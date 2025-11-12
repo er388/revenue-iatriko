@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Διαχείριση Εσόδων - Διαγνωστικό Εργαστήριο</title>
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- CDN Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1>Διαχείριση Εσόδων</h1>
+            <div class="header-actions">
+                <span id="userLabel" class="user-label">Χρήστης: Admin</span>
+                <span id="autosaveIndicator" class="autosave-indicator" style="display: none;">Αποθηκεύτηκε</span>
+                <button id="themeToggle" class="btn-icon" title="Αλλαγή θέματος">🌓</button>
+                <button id="backupBtn" class="btn-secondary">💾 Backup</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Navigation -->
+    <nav class="nav-tabs">
+        <div class="container">
+            <button class="nav-tab active" data-view="dashboard">📊 Dashboard</button>
+            <button class="nav-tab" data-view="entries">📋 Εγγραφές</button>
+            <button class="nav-tab" data-view="reports">📈 Αναφορές</button>
+            <button class="nav-tab" data-view="comparison">🔄 Σύγκριση</button>
+            <button class="nav-tab" data-view="forecasting">🔮 Προβλέψεις</button>
+            <button class="nav-tab" data-view="heatmaps">🌡️ Heatmaps</button>
+            <button class="nav-tab" data-view="cloud">☁️ Cloud</button>
+            <button class="nav-tab" data-view="settings">⚙️ Ρυθμίσεις</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container main-content">
+        
+        <!-- Dashboard View -->
+        <div id="dashboardView" class="view active">
+            <div class="dashboard-header">
+                <h2>Επισκόπηση</h2>
+                <div class="quick-filters">
+                    <select id="dashPeriod" class="form-select">
+                        <option value="today">Σήμερα</option>
+                        <option value="week">Εβδομάδα</option>
+                        <option value="month" selected>Μήνας</option>
+                        <option value="year">Έτος</option>
+                        <option value="all">Όλα</option>
+                    </select>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="dashIncludeClawback" checked>
+                        <span>Με Clawback (ΕΟΠΥΥ)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-label">Συνολικά Έσοδα</div>
+                    <div class="kpi-value" id="kpiTotal">€ 0,00</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Μετρητά & Κάρτες</div>
+                    <div class="kpi-value" id="kpiCash">€ 0,00</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Τιμολόγια</div>
+                    <div class="kpi-value" id="kpiInvoices">€ 0,00</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Κρατήσεις</div>
+                    <div class="kpi-value" id="kpiRetentions">€ 0,00</div>
+                </div>
+            </div>
+
+            <!-- Quick Add Form -->
+            <div class="card">
+                <h3>Γρήγορη Καταχώριση</h3>
+                <form id="quickAddForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Ημερομηνία (ΜΜ/ΕΕΕΕ)*</label>
+                            <input type="text" id="quickDate" class="form-input" placeholder="01/2025" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Διαγνωστικό (Πηγή)*</label>
+                            <div class="input-with-add">
+                                <select id="quickSource" class="form-select" required>
+                                    <option value="">Επιλογή...</option>
+                                </select>
+                                <button id="addNewInsuranceBtn" class="btn-add">Προσθήκη</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Καθαρισμός Cache</h3>
+                <p>Καθαρισμός όλων των δεδομένων (IndexedDB, localStorage, Service Worker)</p>
+                <div class="form-actions">
+                    <button id="clearCacheBtn" class="btn-danger">🗑️ Καθαρισμός</button>
+                </div>
+                <div id="clearCacheReport" class="cache-report"></div>
+            </div>
+
+            <div class="card">
+                <h3>Ιστορικό Ενεργειών (Undo)</h3>
+                <div id="undoHistory"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Entry Modal -->
+    <div id="entryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Νέα Εγγραφή</h3>
+                <button class="modal-close" onclick="document.getElementById('entryModal').classList.remove('active')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="entryForm">
+                    <input type="hidden" id="entryId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Ημερομηνία (ΜΜ/ΕΕΕΕ)*</label>
+                            <input type="text" id="entryDate" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Διαγνωστικό*</label>
+                            <select id="entrySource" class="form-select" required>
+                                <option value="">Επιλογή...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Ασφάλεια*</label>
+                            <select id="entryInsurance" class="form-select" required>
+                                <option value="">Επιλογή...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Τύπος*</label>
+                            <select id="entryType" class="form-select" required>
+                                <option value="cash">Μετρητά</option>
+                                <option value="invoice">Τιμολόγια</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Ποσό (€)*</label>
+                        <input type="number" id="entryAmount" class="form-input" step="0.01" min="0" required>
+                    </div>
+                    
+                    <!-- Retention Fields -->
+                    <div id="modalRetentionFields" class="retention-fields" style="display: none;">
+                        <h4>Κρατήσεις</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Κρατήσεις (€)</label>
+                                <input type="number" id="entryRetentionAmount" class="form-input" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Κρατήσεις (%)</label>
+                                <input type="number" id="entryRetentionPercent" class="form-input" step="0.01" min="0" max="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clawback Fields -->
+                    <div id="modalClawbackFields" class="retention-fields" style="display: none;">
+                        <h4>Clawback (ΕΟΠΥΥ)</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Clawback (€)</label>
+                                <input type="number" id="entryClawbackAmount" class="form-input" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Clawback (%)</label>
+                                <input type="number" id="entryClawbackPercent" class="form-input" step="0.01" min="0" max="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Σημειώσεις</label>
+                        <textarea id="entryNotes" class="form-textarea" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="document.getElementById('entryModal').classList.remove('active')">Άκυρο</button>
+                <button class="btn-primary" onclick="window.saveEntry()">Αποθήκευση</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Backup Modal -->
+    <div id="importBackupModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Import Backup</h3>
+                <button class="modal-close" onclick="document.getElementById('importBackupModal').classList.remove('active')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="import-mode-selection">
+                    <h4>Επιλέξτε Μέθοδο Import</h4>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="importMode" value="merge" checked>
+                            <div class="radio-content">
+                                <strong>Merge (Συγχώνευση)</strong>
+                                <small>Προσθήκη νέων εγγραφών, ενημέρωση υπαρχόντων</small>
+                            </div>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="importMode" value="overwrite">
+                            <div class="radio-content">
+                                <strong>Overwrite (Αντικατάσταση)</strong>
+                                <small>Διαγραφή όλων και εισαγωγή από backup</small>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="importPreview" style="display: none;">
+                    <h4>Preview</h4>
+                    <div class="import-preview-info">
+                        <div class="preview-section" id="backupInfo">
+                            <h5>Backup Info</h5>
+                        </div>
+                        <div class="preview-section" id="impactInfo">
+                            <h5>Επίδραση</h5>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="importReport" style="display: none;">
+                    <h4>Αποτελέσματα Import</h4>
+                    <div class="import-report-content"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="document.getElementById('importBackupModal').classList.remove('active')">Κλείσιμο</button>
+                <button id="confirmImportBtn" class="btn-primary">Επιβεβαίωση Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.error('SW registration failed:', err));
+            });
+        }
+    </script>
+
+    <script type="module" src="./app.js"></script>
+</body>
+</html> type="button" id="addSourceBtn" class="btn-add">+</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Ασφάλεια*</label>
+                            <div class="input-with-add">
+                                <select id="quickInsurance" class="form-select" required>
+                                    <option value="">Επιλογή...</option>
+                                </select>
+                                <button type="button" id="addInsuranceBtn" class="btn-add">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Τύπος Είσπραξης*</label>
+                            <select id="quickType" class="form-select" required>
+                                <option value="cash">Μετρητά (συμπ. κάρτες)</option>
+                                <option value="invoice">Τιμολόγια</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Ποσό (€)*</label>
+                            <input type="number" id="quickAmount" class="form-input" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Retention Fields (for invoices) -->
+                    <div id="quickRetentionFields" class="retention-fields" style="display: none;">
+                        <h4>Κρατήσεις</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Κρατήσεις (€)</label>
+                                <input type="number" id="quickRetentionAmount" class="form-input" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Κρατήσεις (%)</label>
+                                <input type="number" id="quickRetentionPercent" class="form-input" step="0.01" min="0" max="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clawback Fields (for ΕΟΠΥΥ invoices) -->
+                    <div id="quickClawbackFields" class="retention-fields" style="display: none;">
+                        <h4>Clawback (ΕΟΠΥΥ)</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Clawback (€)</label>
+                                <input type="number" id="quickClawbackAmount" class="form-input" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Clawback (%)</label>
+                                <input type="number" id="quickClawbackPercent" class="form-input" step="0.01" min="0" max="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Σημειώσεις</label>
+                        <textarea id="quickNotes" class="form-textarea" rows="2"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Καταχώριση</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Recent Entries -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>Πρόσφατες Εγγραφές</h3>
+                    <button id="exportDashboardPdfBtn" class="btn-secondary btn-sm">📄 Export PDF</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Ημερομηνία</th>
+                                <th>Διαγνωστικό</th>
+                                <th>Ασφάλεια</th>
+                                <th>Τύπος</th>
+                                <th>Ποσό</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentEntriesBody">
+                            <tr><td colspan="5" class="text-center">Δεν υπάρχουν εγγραφές</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-grid">
+                <div class="card">
+                    <h3>Έσοδα ανά Τύπο</h3>
+                    <canvas id="typeChart"></canvas>
+                </div>
+                <div class="card">
+                    <h3>Μηνιαία Εξέλιξη</h3>
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Entries View -->
+        <div id="entriesView" class="view">
+            <div class="view-header">
+                <h2>Διαχείριση Εγγραφών</h2>
+                <div class="view-actions">
+                    <button id="importCsvBtn" class="btn-secondary">📤 Import CSV</button>
+                    <button id="exportCsvBtn" class="btn-secondary">📥 Export CSV</button>
+                    <button id="exportEntriesPdfBtn" class="btn-secondary">📄 Export PDF</button>
+                    <button id="addEntryBtn" class="btn-primary">+ Νέα Εγγραφή</button>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="card filters-card">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Από (ΜΜ/ΕΕΕΕ)</label>
+                        <input type="text" id="filterDateFrom" class="form-input" placeholder="01/2025">
+                    </div>
+                    <div class="form-group">
+                        <label>Έως (ΜΜ/ΕΕΕΕ)</label>
+                        <input type="text" id="filterDateTo" class="form-input" placeholder="12/2025">
+                    </div>
+                    <div class="form-group">
+                        <label>Διαγνωστικό</label>
+                        <select id="filterSource" class="form-select">
+                            <option value="">Όλα</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ασφάλεια</label>
+                        <select id="filterInsurance" class="form-select">
+                            <option value="">Όλες</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Τύπος</label>
+                        <select id="filterType" class="form-select">
+                            <option value="">Όλοι</option>
+                            <option value="cash">Μετρητά</option>
+                            <option value="invoice">Τιμολόγια</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button id="applyFiltersBtn" class="btn-primary">Εφαρμογή Φίλτρων</button>
+                    <button id="clearFiltersBtn" class="btn-secondary">Καθαρισμός</button>
+                </div>
+            </div>
+
+            <!-- CSV Validation Report -->
+            <div id="csvValidationReport" class="card" style="display: none;">
+                <h3>Αποτελέσματα Validation</h3>
+                <div id="csvValidationContent"></div>
+            </div>
+
+            <!-- Entries Table -->
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Ημερομηνία</th>
+                                <th>Διαγνωστικό</th>
+                                <th>Ασφάλεια</th>
+                                <th>Τύπος</th>
+                                <th>Ποσό</th>
+                                <th>Κρατήσεις</th>
+                                <th>Clawback</th>
+                                <th>Σημειώσεις</th>
+                                <th>Ενέργειες</th>
+                            </tr>
+                        </thead>
+                        <tbody id="entriesTableBody">
+                            <tr><td colspan="9" class="text-center">Δεν υπάρχουν εγγραφές</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </div>
+
+        <!-- Reports View -->
+        <div id="reportsView" class="view">
+            <h2>Αναφορές</h2>
+            <div class="card">
+                <h3>Επιλογή Περιόδου</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Από</label>
+                        <input type="text" id="reportDateFrom" class="form-input" placeholder="01/2025">
+                    </div>
+                    <div class="form-group">
+                        <label>Έως</label>
+                        <input type="text" id="reportDateTo" class="form-input" placeholder="12/2025">
+                    </div>
+                    <div class="form-group">
+                        <label>Διαγνωστικό</label>
+                        <select id="reportSource" class="form-select">
+                            <option value="">Όλα</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button id="generateReportBtn" class="btn-primary">Δημιουργία Αναφοράς</button>
+                </div>
+            </div>
+
+            <div id="reportResults" class="card" style="display: none;">
+                <h3>Αποτελέσματα</h3>
+                <div id="reportContent"></div>
+            </div>
+        </div>
+
+        <!-- Comparison View -->
+        <div id="comparisonView" class="view">
+            <h2>Σύγκριση Περιόδων</h2>
+            
+            <div class="card">
+                <h3>Επιλογή Περιόδων</h3>
+                <div class="comparison-selector">
+                    <div class="period-section">
+                        <h4>Περίοδος 1</h4>
+                        <div class="form-group">
+                            <label>Από</label>
+                            <input type="text" id="comparison1From" class="form-input" placeholder="01/2024">
+                        </div>
+                        <div class="form-group">
+                            <label>Έως</label>
+                            <input type="text" id="comparison1To" class="form-input" placeholder="12/2024">
+                        </div>
+                    </div>
+                    <div class="period-section">
+                        <h4>Περίοδος 2</h4>
+                        <div class="form-group">
+                            <label>Από</label>
+                            <input type="text" id="comparison2From" class="form-input" placeholder="01/2025">
+                        </div>
+                        <div class="form-group">
+                            <label>Έως</label>
+                            <input type="text" id="comparison2To" class="form-input" placeholder="12/2025">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button id="comparePeriodsBtn" class="btn-primary">Σύγκριση</button>
+                    <button id="exportComparisonPdfBtn" class="btn-secondary">📄 Export PDF</button>
+                </div>
+            </div>
+
+            <div id="comparisonResults" class="card" style="display: none;">
+                <h3>Αποτελέσματα Σύγκρισης</h3>
+                <div class="comparison-summary" id="comparisonSummary"></div>
+                <div class="table-responsive">
+                    <table class="data-table comparison-table" id="comparisonTable"></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forecasting View -->
+        <div id="forecastingView" class="view">
+            <h2>Προβλέψεις Εσόδων</h2>
+            
+            <div class="card">
+                <h3>Παράμετροι Πρόβλεψης</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Μέθοδος</label>
+                        <select id="forecastMethod" class="form-select">
+                            <option value="linear">Linear Regression</option>
+                            <option value="seasonal">Seasonal Naive</option>
+                            <option value="holt-winters">Holt-Winters</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Περίοδοι Πρόβλεψης</label>
+                        <input type="number" id="forecastPeriods" class="form-input" value="6" min="1" max="24">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button id="generateForecastBtn" class="btn-primary">Δημιουργία Πρόβλεψης</button>
+                    <button id="exportForecastPdfBtn" class="btn-secondary">📄 Export PDF</button>
+                </div>
+            </div>
+
+            <div id="forecastResults" class="card" style="display: none;">
+                <h3>Αποτελέσματα</h3>
+                <div class="forecast-summary" id="forecastSummary"></div>
+                <canvas id="forecastChart"></canvas>
+            </div>
+
+            <div class="card methodology">
+                <h3>Μεθοδολογία</h3>
+                <div id="methodologyText"></div>
+            </div>
+        </div>
+
+        <!-- Heatmaps View -->
+        <div id="heatmapsView" class="view">
+            <h2>Heatmaps</h2>
+            
+            <div class="card">
+                <h3>Επιλογή Heatmap</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Τύπος</label>
+                        <select id="heatmapType" class="form-select">
+                            <option value="month-year">Μήνας × Έτος</option>
+                            <option value="source-month">Διαγνωστικό × Μήνας</option>
+                            <option value="insurance-month">Ασφάλεια × Μήνας</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Έτος (για Διαγνωστικό/Ασφάλεια)</label>
+                        <input type="number" id="heatmapYear" class="form-input" value="2025" min="2020" max="2030">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button id="generateHeatmapBtn" class="btn-primary">Δημιουργία</button>
+                    <button id="exportHeatmapPdfBtn" class="btn-secondary">📄 Export PDF</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Heatmap</h3>
+                <div class="heatmap-canvas-container">
+                    <canvas id="heatmapCanvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cloud View -->
+        <div id="cloudView" class="view">
+            <h2>Cloud Sync</h2>
+            
+            <div class="cloud-providers">
+                <div class="card cloud-card">
+                    <div class="cloud-header">
+                        <h3>Google Drive</h3>
+                        <span class="cloud-status" id="googleDriveStatus">Αποσυνδεδεμένο</span>
+                    </div>
+                    <div class="form-actions">
+                        <button id="connectGoogleDriveBtn" class="btn-primary">Σύνδεση</button>
+                        <button id="uploadGoogleDriveBtn" class="btn-secondary" disabled>📤 Upload</button>
+                    </div>
+                    <div class="cloud-files" id="googleDriveFiles"></div>
+                </div>
+
+                <div class="card cloud-card">
+                    <div class="cloud-header">
+                        <h3>Dropbox</h3>
+                        <span class="cloud-status" id="dropboxStatus">Αποσυνδεδεμένο</span>
+                    </div>
+                    <div class="form-actions">
+                        <button id="connectDropboxBtn" class="btn-primary">Σύνδεση</button>
+                        <button id="uploadDropboxBtn" class="btn-secondary" disabled>📤 Upload</button>
+                    </div>
+                    <div class="cloud-files" id="dropboxFiles"></div>
+                </div>
+
+                <div class="card cloud-card">
+                    <div class="cloud-header">
+                        <h3>OneDrive</h3>
+                        <span class="cloud-status" id="oneDriveStatus">Αποσυνδεδεμένο</span>
+                    </div>
+                    <div class="form-actions">
+                        <button id="connectOneDriveBtn" class="btn-primary">Σύνδεση</button>
+                        <button id="uploadOneDriveBtn" class="btn-secondary" disabled>📤 Upload</button>
+                    </div>
+                    <div class="cloud-files" id="oneDriveFiles"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Οδηγίες Setup</h3>
+                <div class="setup-instructions">
+                    <p>Για να χρησιμοποιήσετε το Cloud Sync, πρέπει να ρυθμίσετε OAuth credentials:</p>
+                    <ol>
+                        <li>Επισκεφτείτε το <code>cloudAdapters.js</code></li>
+                        <li>Προσθέστε τα <code>clientId</code> για κάθε provider</li>
+                        <li>Ρυθμίστε <code>redirectUri</code> στο domain σας</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="settingsView" class="view">
+            <h2>Ρυθμίσεις</h2>
+            
+            <div class="card">
+                <h3>Διαχείριση Δεδομένων</h3>
+                <div class="storage-info" id="storageInfo"></div>
+                
+                <h4>Backup & Restore</h4>
+                <div class="form-actions">
+                    <button id="exportBackupBtn" class="btn-primary">💾 Export Backup (JSON)</button>
+                    <button id="importBackupBtn" class="btn-secondary">📤 Import Backup</button>
+                    <input type="file" id="backupFileInput" accept=".json" style="display: none;">
+                    <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+                </div>
+                
+                <h4>Autosave</h4>
+                <div class="autosave-settings">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="autosaveEnabled">
+                        <span>Ενεργοποίηση Autosave</span>
+                    </label>
+                    <small class="help-text">Αυτόματη δημιουργία backup.json κάθε 30s</small>
+                    <div id="autosaveStatus" class="autosave-status"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Διαγνωστικά & Ασφάλειες</h3>
+                
+                <div class="settings-section">
+                    <h4>Διαγνωστικά (Πηγές)</h4>
+                    <div class="tags-list" id="sourcesList"></div>
+                    <div class="form-group">
+                        <input type="text" id="newSourceInput" class="form-input" placeholder="Νέο διαγνωστικό">
+                        <button id="addNewSourceBtn" class="btn-add">Προσθήκη</button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Ασφάλειες</h4>
+                    <div class="tags-list" id="insurancesList"></div>
+                    <div class="form-group">
+                        <input type="text" id="newInsuranceInput" class="form-input" placeholder="Νέα ασφάλεια">
+                        <button
