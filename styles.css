@@ -1082,3 +1082,47 @@ body {
         border: 1px solid #ccc;
     }
 }
+
+/* ========================================
+   Danger Zone Styles
+   ======================================== */
+
+.card h3:has(+ div[style*="background-color: #fef2f2"]) {
+    color: var(--danger-color);
+}
+
+.cache-report {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.cache-report h5 {
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
+}
+
+.cache-report p {
+    margin: var(--spacing-xs) 0;
+}
+
+.cache-report ul {
+    margin: var(--spacing-sm) 0;
+    padding-left: var(--spacing-lg);
+}
+
+.cache-report li {
+    margin: var(--spacing-xs) 0;
+}
+
+.report-error {
+    color: var(--danger-color);
+}
+
+.report-success {
+    color: var(--success-color);
+}
