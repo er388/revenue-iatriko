@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Διαχείριση Εσόδων - Διαγνωστικό Εργαστήριο</title>
     <link rel="stylesheet" href="styles.css">
-
+    
     <!-- CDN Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -31,18 +31,13 @@
         <div class="container">
             <button class="nav-tab active" data-view="dashboard">📊 Dashboard</button>
             <button class="nav-tab" data-view="entries">📋 Εγγραφές</button>
-            <button class="nav-tab" data-view="reports">📈 Αναφορές</button>
-            <button class="nav-tab" data-view="comparison">🔄 Σύγκριση</button>
-            <button class="nav-tab" data-view="forecasting">🔮 Προβλέψεις</button>
-            <button class="nav-tab" data-view="heatmaps">🌡️ Heatmaps</button>
-            <button class="nav-tab" data-view="cloud">☁️ Cloud</button>
             <button class="nav-tab" data-view="settings">⚙️ Ρυθμίσεις</button>
         </div>
     </nav>
 
     <!-- Main Content -->
     <main class="container main-content">
-
+        
         <!-- Dashboard View -->
         <div id="dashboardView" class="view active">
             <div class="dashboard-header">
@@ -56,29 +51,29 @@
                         <option value="all">Όλα</option>
                     </select>
                     <label class="checkbox-label">
-                        <input type="checkbox" id="dashIncludeClawback" checked>
-                        <span>Με Clawback (ΕΟΠΥΥ)</span>
+                        <input type="checkbox" id="dashIncludeParakratisi" checked>
+                        <span>Με Παρακράτηση</span>
                     </label>
                 </div>
             </div>
 
-            <!-- KPIs -->
+            <!-- Main KPIs -->
             <div class="kpi-grid">
                 <div class="kpi-card">
                     <div class="kpi-label">Συνολικά Έσοδα</div>
                     <div class="kpi-value" id="kpiTotal">€ 0,00</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">Μετρητά & Κάρτες</div>
-                    <div class="kpi-value" id="kpiCash">€ 0,00</div>
+                    <div class="kpi-label">ΕΟΠΥΥ</div>
+                    <div class="kpi-value" id="kpiEopyy">€ 0,00</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">Τιμολόγια</div>
-                    <div class="kpi-value" id="kpiInvoices">€ 0,00</div>
+                    <div class="kpi-label">Άλλα Ταμεία</div>
+                    <div class="kpi-value" id="kpiOthers">€ 0,00</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">Κρατήσεις</div>
-                    <div class="kpi-value" id="kpiRetentions">€ 0,00</div>
+                    <div class="kpi-value" id="kpiDeductions">€ 0,00</div>
                 </div>
             </div>
 
@@ -100,6 +95,8 @@
                                 <button type="button" id="addSourceBtn" class="btn-add">+</button>
                             </div>
                         </div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group">
                             <label>Ασφάλεια*</label>
                             <div class="input-with-add">
@@ -109,9 +106,6 @@
                                 <button type="button" id="addInsuranceBtn" class="btn-add">+</button>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="form-row">
                         <div class="form-group">
                             <label>Τύπος Είσπραξης*</label>
                             <select id="quickType" class="form-select" required>
@@ -119,12 +113,14 @@
                                 <option value="invoice">Τιμολόγια</option>
                             </select>
                         </div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group">
                             <label>Ποσό (€)*</label>
                             <input type="number" id="quickAmount" class="form-input" step="0.01" min="0" required>
                         </div>
                     </div>
-
+                    
                     <!-- ΕΟΠΥΥ Deductions (5 fields) -->
                     <div id="quickEopyyDeductions" class="retention-fields" style="display: none;">
                         <h4>Κρατήσεις ΕΟΠΥΥ (5 πεδία)</h4>
@@ -317,11 +313,11 @@
         <!-- Settings View -->
         <div id="settingsView" class="view">
             <h2>Ρυθμίσεις</h2>
-
+            
             <div class="card">
                 <h3>Διαχείριση Δεδομένων</h3>
                 <div class="storage-info" id="storageInfo"></div>
-
+                
                 <h4>Backup & Restore</h4>
                 <div class="form-actions">
                     <button id="exportBackupBtn" class="btn-primary">💾 Export Backup (JSON)</button>
@@ -329,7 +325,7 @@
                     <input type="file" id="backupFileInput" accept=".json" style="display: none;">
                     <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
                 </div>
-
+                
                 <h4>Autosave</h4>
                 <div class="autosave-settings">
                     <label class="checkbox-label">
@@ -347,7 +343,7 @@
                     <p style="color: #991b1b; margin-bottom: 0.5rem;"><strong>ΠΡΟΣΟΧΗ:</strong> Οι ακόλουθες ενέργειες διαγράφουν ΜΟΝΙΜΑ δεδομένα!</p>
                     <small style="color: #b91c1c;">Δημιουργήστε backup πριν προχωρήσετε.</small>
                 </div>
-
+                
                 <h4>Καθαρισμός Όλων των Δεδομένων</h4>
                 <p>Διαγραφή IndexedDB, localStorage, Service Worker cache και όλων των εγγραφών.</p>
                 <div class="form-actions">
@@ -358,7 +354,7 @@
 
             <div class="card">
                 <h3>Διαγνωστικά & Ασφάλειες</h3>
-
+                
                 <div class="settings-section">
                     <h4>Διαγνωστικά (Πηγές)</h4>
                     <div class="tags-list" id="sourcesList"></div>
@@ -388,87 +384,85 @@
                 <button class="modal-close" onclick="document.getElementById('entryModal').classList.remove('active')">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="entryForm">
-                    <input type="hidden" id="entryId">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Ημερομηνία (ΜΜ/ΕΕΕΕ)*</label>
-                            <input type="text" id="entryDate" class="form-input" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Διαγνωστικό*</label>
-                            <select id="entrySource" class="form-select" required>
-                                <option value="">Επιλογή...</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Ασφάλεια*</label>
-                            <select id="entryInsurance" class="form-select" required>
-                                <option value="">Επιλογή...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Τύπος*</label>
-                            <select id="entryType" class="form-select" required>
-                                <option value="cash">Μετρητά</option>
-                                <option value="invoice">Τιμολόγια</option>
-                            </select>
-                        </div>
+                <input type="hidden" id="entryId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Ημερομηνία (ΜΜ/ΕΕΕΕ)*</label>
+                        <input type="text" id="entryDate" class="form-input" required>
                     </div>
                     <div class="form-group">
-                        <label>Ποσό (€)*</label>
-                        <input type="number" id="entryAmount" class="form-input" step="0.01" min="0" required>
+                        <label>Διαγνωστικό*</label>
+                        <select id="entrySource" class="form-select" required>
+                            <option value="">Επιλογή...</option>
+                        </select>
                     </div>
-
-                    <!-- ΕΟΠΥΥ Deductions -->
-                    <div id="modalEopyyDeductions" class="retention-fields" style="display: none;">
-                        <h4>Κρατήσεις ΕΟΠΥΥ</h4>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Παρακράτηση (€)</label>
-                                <input type="number" id="entryParakratisi" class="form-input" step="0.01" min="0" value="0">
-                            </div>
-                            <div class="form-group">
-                                <label>ΜΔΕ (€)</label>
-                                <input type="number" id="entryMDE" class="form-input" step="0.01" min="0" value="0">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Rebate (€)</label>
-                                <input type="number" id="entryRebate" class="form-input" step="0.01" min="0" value="0">
-                            </div>
-                            <div class="form-group">
-                                <label>Κρατήσεις (€)</label>
-                                <input type="number" id="entryKrathseisEopyy" class="form-input" step="0.01" min="0" value="0">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Clawback (€)</label>
-                                <input type="number" id="entryClawback" class="form-input" step="0.01" min="0" value="0">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Non-ΕΟΠΥΥ Deductions -->
-                    <div id="modalNonEopyyDeductions" class="retention-fields" style="display: none;">
-                        <h4>Κρατήσεις</h4>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Κρατήσεις (€)</label>
-                                <input type="number" id="entryKrathseisOther" class="form-input" step="0.01" min="0" value="0">
-                            </div>
-                        </div>
-                    </div>
-
+                </div>
+                <div class="form-row">
                     <div class="form-group">
-                        <label>Σημειώσεις</label>
-                        <textarea id="entryNotes" class="form-textarea" rows="3"></textarea>
+                        <label>Ασφάλεια*</label>
+                        <select id="entryInsurance" class="form-select" required>
+                            <option value="">Επιλογή...</option>
+                        </select>
                     </div>
-                </form>
+                    <div class="form-group">
+                        <label>Τύπος*</label>
+                        <select id="entryType" class="form-select" required>
+                            <option value="cash">Μετρητά</option>
+                            <option value="invoice">Τιμολόγια</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Ποσό (€)*</label>
+                    <input type="number" id="entryAmount" class="form-input" step="0.01" min="0" required>
+                </div>
+                
+                <!-- ΕΟΠΥΥ Deductions -->
+                <div id="modalEopyyDeductions" class="retention-fields" style="display: none;">
+                    <h4>Κρατήσεις ΕΟΠΥΥ</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Παρακράτηση (€)</label>
+                            <input type="number" id="entryParakratisi" class="form-input" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>ΜΔΕ (€)</label>
+                            <input type="number" id="entryMDE" class="form-input" step="0.01" min="0" value="0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Rebate (€)</label>
+                            <input type="number" id="entryRebate" class="form-input" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Κρατήσεις (€)</label>
+                            <input type="number" id="entryKrathseisEopyy" class="form-input" step="0.01" min="0" value="0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Clawback (€)</label>
+                            <input type="number" id="entryClawback" class="form-input" step="0.01" min="0" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Non-ΕΟΠΥΥ Deductions -->
+                <div id="modalNonEopyyDeductions" class="retention-fields" style="display: none;">
+                    <h4>Κρατήσεις</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Κρατήσεις (€)</label>
+                            <input type="number" id="entryKrathseisOther" class="form-input" step="0.01" min="0" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Σημειώσεις</label>
+                    <textarea id="entryNotes" class="form-textarea" rows="3"></textarea>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="document.getElementById('entryModal').classList.remove('active')">Άκυρο</button>
