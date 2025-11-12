@@ -1021,9 +1021,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Clear cache
-    document.getElementById('clearCacheBtn')?.addEventListener('click', async () => {
-        if (!confirm('ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΛΑ τα δεδομένα! Είστε σίγουροι;')) return;
+document.getElementById('clearCacheBtn')?.addEventListener('click', async () => {
+        const confirmed = confirm('⚠️ ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΛΟΙ οι τομείς αποθήκευσης!\n\n' +
+            '- Όλες οι εγγραφές\n' +
+            '- Διαγνωστικά και Ασφάλειες\n' +
+            '- Ρυθμίσεις\n' +
+            '- Cache\n\n' +
+            'Η ενέργεια είναι ΜΟΝΙΜΗ και ΔΕΝ μπορεί να αναιρεθεί!\n\n' +
+            'Θέλετε σίγουρα να συνεχίσετε;');
+        
+        if (!confirmed) return;
 
+        const doubleConfirm = confirm('ΤΕΛΙΚΗ ΕΠΙΒΕΒΑΙΩΣΗ:\n\nΠατήστε OK για να διαγράψετε ΟΛΑ τα δεδομένα.');
+        if (!doubleConfirm) return;
         const report = await storage.clearAllStorage();
         
         const reportEl = document.getElementById('clearCacheReport');
@@ -1121,4 +1131,65 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     console.log('Revenue Management System initialized successfully!');
     console.log('CDN Status:', STATE.cdnAvailable ? 'Online' : 'Offline');
+// Import CSV
+    document.getElementById('importCsvBtn')?.addEventListener('click', () => {
+        document.getElementById('csvFileInput').click();
+    });
+
+    document.getElementById('csvFileInput')?.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        showToast('Φόρτωση CSV...', 'info');
+
+        try {
+            if (!window.Papa) {
+                showToast('PapaParse library δεν είναι διαθέσιμη', 'error');
+                return;
+            }
+
+            const text = await file.text();
+            const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+
+            if (parsed.errors.length > 0) {
+                console.warn('CSV parsing warnings:', parsed.errors);
+            }
+
+            let imported = 0;
+            for (const row of parsed.data) {
+                const entry = {
+                    date: row['Ημερομηνία'] || row.date,
+                    source: row['Διαγνωστικό'] || row.source,
+                    insurance: row['Ασφάλεια'] || row.insurance,
+                    type: (row['Τύπος'] || row.type || '').toLowerCase().includes('μετρητ') ? 'cash' : 'invoice',
+                    amount: parseFloat(row['Αρχικό Ποσό'] || row.amount || 0),
+                    notes: row['Σημειώσεις'] || row.notes || ''
+                };
+
+                if (entry.date && entry.source && entry.insurance && entry.amount > 0) {
+                    const success = await addEntry(entry);
+                    if (success) imported++;
+                }
+            }
+
+            showToast(`Εισήχθησαν ${imported} εγγραφές`, 'success');
+            renderEntriesTable();
+            if (STATE.currentView === 'dashboard') renderDashboard();
+        } catch (error) {
+            console.error('CSV import error:', error);
+            showToast('Σφάλμα εισαγωγής CSV', 'error');
+        }
+
+        e.target.value = '';
+    });
+
+    // Backup button
+    document.getElementById('backupBtn')?.addEventListener('click', async () => {
+        try {
+            await exportBackup();
+            showToast('Backup δημιουργήθηκε!', 'success');
+        } catch (error) {
+            showToast('Σφάλμα backup', 'error');
+        }
+    });
 });
