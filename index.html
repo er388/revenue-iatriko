@@ -103,15 +103,6 @@
             </div>
 
             <div class="card">
-                <h3>Καθαρισμός Cache</h3>
-                <p>Καθαρισμός όλων των δεδομένων (IndexedDB, localStorage, Service Worker)</p>
-                <div class="form-actions">
-                    <button id="clearCacheBtn" class="btn-danger">🗑️ Καθαρισμός</button>
-                </div>
-                <div id="clearCacheReport" class="cache-report"></div>
-            </div>
-
-            <div class="card">
                 <h3>Ιστορικό Ενεργειών (Undo)</h3>
                 <div id="undoHistory"></div>
             </div>
@@ -271,7 +262,7 @@
 
     <script type="module" src="./app.js"></script>
 </body>
-</html> type="button" id="addSourceBtn" class="btn-add">+</button>
+</html> <button type="button" id="addSourceBtn" class="btn-add">+</button>
                             </div>
                         </div>
                         <div class="form-group">
@@ -686,6 +677,21 @@
                     <small class="help-text">Αυτόματη δημιουργία backup.json κάθε 30s</small>
                     <div id="autosaveStatus" class="autosave-status"></div>
                 </div>
+            </div>
+
+            <div class="card">
+                <h3>⚠️ Επικίνδυνη Ζώνη</h3>
+                <div style="background-color: #fef2f2; border: 2px solid #ef4444; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <p style="color: #991b1b; margin-bottom: 0.5rem;"><strong>ΠΡΟΣΟΧΗ:</strong> Οι ακόλουθες ενέργειες διαγράφουν ΜΟΝΙΜΑ δεδομένα!</p>
+                    <small style="color: #b91c1c;">Δημιουργήστε backup πριν προχωρήσετε.</small>
+                </div>
+                
+                <h4>Καθαρισμός Όλων των Δεδομένων</h4>
+                <p>Διαγραφή IndexedDB, localStorage, Service Worker cache και όλων των εγγραφών.</p>
+                <div class="form-actions">
+                    <button id="clearCacheBtn" class="btn-danger">🗑️ Καθαρισμός Όλων</button>
+                </div>
+                <div id="clearCacheReport" class="cache-report"></div>
             </div>
 
             <div class="card">
