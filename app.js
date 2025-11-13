@@ -1,5 +1,5 @@
 /**
- * app.js - Main Application File with Advanced Deductions
+ * app.js - Main Application File v3
  * ΕΟΠΥΥ: 5 deductions, Others: 1 deduction
  */
 
@@ -59,7 +59,8 @@ const STATE = {
     userLabel: 'Admin',
     charts: {},
     cdnAvailable: true,
-    currentKPIs: {}
+    currentKPIs: {},
+    changeCounter: 0
 };
 
 // ========================================
@@ -68,7 +69,7 @@ const STATE = {
 function showToast(message, type = 'info') {
     const toast = document.getElementById('toast');
     toast.textContent = message;
-    toast.className = `toast ${type} show`;
+    toast.className = `toast toast-compact ${type} show`;
     setTimeout(() => {
         toast.classList.remove('show');
     }, 3000);
@@ -87,7 +88,6 @@ async function loadData() {
         
         document.getElementById('userLabel').textContent = `Χρήστης: ${STATE.userLabel}`;
         
-        // Load deductions
         await eopyyDeductionsManager.loadDeductions();
         
         console.log(`Loaded ${STATE.entries.length} entries`);
@@ -102,6 +102,18 @@ async function saveData() {
         await storage.saveEntries(STATE.entries);
         await storage.saveSetting('sources', STATE.sources);
         await storage.saveSetting('insurances', STATE.insurances);
+        
+        STATE.changeCounter++;
+        
+        // Autosave every 5 changes
+        if (STATE.changeCounter >= 5) {
+            const autosaveEnabled = localStorage.getItem('autosaveEnabled') === 'true';
+            if (autosaveEnabled) {
+                await exportBackup();
+                showToast('Auto-backup δημιουργήθηκε', 'success');
+                STATE.changeCounter = 0;
+            }
+        }
         
         markChangesPending();
     } catch (error) {
@@ -126,7 +138,6 @@ async function addEntry(entry) {
         return false;
     }
 
-    // Store original amount
     entry.originalAmount = entry.amount;
 
     if (!entry.id) {
@@ -160,7 +171,6 @@ async function addEntry(entry) {
         });
     }
 
-    // Apply deductions if specified
     const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
     
     if (isEopyy && entry.deductions) {
@@ -185,7 +195,6 @@ async function deleteEntry(id) {
             data: { ...STATE.entries[index] }
         });
         
-        // Remove deductions if exists
         await eopyyDeductionsManager.removeDeductions(id);
         
         STATE.entries.splice(index, 1);
@@ -203,18 +212,14 @@ function renderDashboard() {
     const includeParakratisi = document.getElementById('dashIncludeParakratisi').checked;
     const filtered = filterEntriesByPeriod(STATE.entries, period);
 
-    // Calculate KPIs
     const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi });
-    
     STATE.currentKPIs = kpis;
 
-    // Main KPIs
     document.getElementById('kpiTotal').textContent = formatCurrency(kpis.total);
     document.getElementById('kpiEopyy').textContent = formatCurrency(kpis.eopyyTotal);
     document.getElementById('kpiOthers').textContent = formatCurrency(kpis.nonEopyyTotal);
     document.getElementById('kpiDeductions').textContent = formatCurrency(kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis);
 
-    // ΕΟΠΥΥ Breakdown
     document.getElementById('kpiParakratisi').textContent = formatCurrency(kpis.eopyyParakratisi);
     document.getElementById('kpiMDE').textContent = formatCurrency(kpis.eopyyMDE);
     document.getElementById('kpiRebate').textContent = formatCurrency(kpis.eopyyRebate);
@@ -236,7 +241,6 @@ function renderRecentEntries() {
 
     tbody.innerHTML = recent.map(entry => {
         const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
-        const displayAmount = amounts.finalAmount;
         
         return `
             <tr>
@@ -244,19 +248,18 @@ function renderRecentEntries() {
                 <td>${escapeHtml(entry.source)}</td>
                 <td>${escapeHtml(entry.insurance)}</td>
                 <td>${entry.type === 'cash' ? 'Μετρητά' : 'Τιμολόγια'}</td>
-                <td class="text-right">${formatCurrency(displayAmount)}</td>
+                <td class="text-right">${formatCurrency(amounts.finalAmount)}</td>
             </tr>
         `;
     }).join('');
 }
 
 function renderCharts(entries) {
-    if (!STATE.cdnAvailable) {
+    if (!STATE.cdnAvailable || !window.Chart) {
         console.warn('Charts disabled - CDN unavailable');
         return;
     }
 
-    // Type Chart
     const eopyyTotal = entries.filter(e => eopyyDeductionsManager.isEopyyEntry(e))
         .reduce((sum, e) => {
             const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
@@ -270,7 +273,7 @@ function renderCharts(entries) {
         }, 0);
 
     const typeCtx = document.getElementById('typeChart');
-    if (typeCtx && window.Chart) {
+    if (typeCtx) {
         if (STATE.charts.typeChart) STATE.charts.typeChart.destroy();
         STATE.charts.typeChart = new Chart(typeCtx, {
             type: 'pie',
@@ -295,7 +298,6 @@ function renderCharts(entries) {
         });
     }
 
-    // Monthly Chart
     const monthlyData = {};
     entries.forEach(entry => {
         if (!monthlyData[entry.date]) monthlyData[entry.date] = 0;
@@ -307,7 +309,7 @@ function renderCharts(entries) {
     const monthlyValues = sortedMonths.map(m => monthlyData[m]);
 
     const monthlyCtx = document.getElementById('monthlyChart');
-    if (monthlyCtx && window.Chart) {
+    if (monthlyCtx) {
         if (STATE.charts.monthlyChart) STATE.charts.monthlyChart.destroy();
         STATE.charts.monthlyChart = new Chart(monthlyCtx, {
             type: 'line',
@@ -354,7 +356,7 @@ function renderEntriesTable() {
     const pageEntries = filtered.slice(start, end);
 
     if (pageEntries.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center">Δεν υπάρχουν εγγραφές</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center">Δεν υπάρχουν εγγραφές</td></tr>';
         renderPagination(0, 0);
         return;
     }
@@ -363,12 +365,10 @@ function renderEntriesTable() {
         const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
         const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
         
-        let deductionsDisplay = '-';
-        if (isEopyy && amounts.hasDeductions) {
-            deductionsDisplay = `Π:${formatCurrency(amounts.parakratisi)}, ΜΔΕ:${formatCurrency(amounts.mde)}, R:${formatCurrency(amounts.rebate)}, Κ:${formatCurrency(amounts.krathseis)}, C:${formatCurrency(amounts.clawback)}`;
-        } else if (!isEopyy && amounts.hasDeductions) {
-            deductionsDisplay = formatCurrency(amounts.krathseis);
-        }
+        const deductionsAmount = amounts.totalDeductions;
+        const deductionsPercent = amounts.originalAmount > 0 
+            ? ((deductionsAmount / amounts.originalAmount) * 100).toFixed(2) 
+            : '0.00';
         
         return `
             <tr>
@@ -377,13 +377,18 @@ function renderEntriesTable() {
                 <td>${escapeHtml(entry.insurance)}</td>
                 <td>${entry.type === 'cash' ? 'Μετρητά' : 'Τιμολόγια'}</td>
                 <td class="text-right">${formatCurrency(amounts.originalAmount)}</td>
-                <td class="text-right" style="font-size: 0.85em;">${deductionsDisplay}</td>
                 <td class="text-right"><strong>${formatCurrency(amounts.finalAmount)}</strong></td>
-                <td>${entry.notes ? escapeHtml(entry.notes.substring(0, 30)) : '-'}</td>
+                <td>${entry.notes ? escapeHtml(entry.notes.substring(0, 20)) : '-'}</td>
                 <td>
-                    <button class="btn-secondary btn-sm" onclick="window.editEntry('${entry.id}')">✏️</button>
-                    <button class="btn-danger btn-sm" onclick="window.confirmDelete('${entry.id}')">🗑️</button>
+                    <button class="btn-secondary btn-compact btn-sm" onclick="window.editEntry('${entry.id}')">✏️</button>
+                    <button class="btn-danger btn-compact btn-sm" onclick="window.confirmDelete('${entry.id}')">🗑️</button>
                 </td>
+            </tr>
+            <tr class="deductions-row">
+                <td colspan="4"></td>
+                <td class="text-right">${formatCurrency(deductionsAmount)}</td>
+                <td class="text-right">${deductionsPercent}%</td>
+                <td colspan="2"></td>
             </tr>
         `;
     }).join('');
@@ -425,12 +430,12 @@ function renderPagination(totalItems, totalPages) {
 }
 
 function renderSourcesAndInsurances() {
-    const sourceSelects = ['quickSource', 'filterSource', 'reportSource', 'entrySource'];
+    const sourceSelects = ['quickSource', 'filterSource', 'entrySource'];
     sourceSelects.forEach(id => {
         const select = document.getElementById(id);
         if (!select) return;
         const currentValue = select.value;
-        select.innerHTML = id.startsWith('filter') || id.startsWith('report') ? '<option value="">Όλα</option>' : '<option value="">Επιλογή...</option>';
+        select.innerHTML = id.startsWith('filter') ? '<option value="">Όλα</option>' : '<option value="">Επιλογή...</option>';
         STATE.sources.forEach(source => {
             select.innerHTML += `<option value="${escapeHtml(source)}">${escapeHtml(source)}</option>`;
         });
@@ -451,23 +456,82 @@ function renderSourcesAndInsurances() {
 
     const sourcesList = document.getElementById('sourcesList');
     if (sourcesList) {
-        sourcesList.innerHTML = STATE.sources.map(source => `
-            <div class="tag">
-                ${escapeHtml(source)}
-                <button onclick="window.removeSource('${escapeHtml(source)}')">×</button>
+        sourcesList.innerHTML = STATE.sources.map((source, index) => `
+            <div class="sortable-item" draggable="true" data-index="${index}" data-type="source">
+                <span class="drag-handle">☰</span>
+                <span class="item-text">${escapeHtml(source)}</span>
+                <div class="item-actions">
+                    <button onclick="window.removeSource('${escapeHtml(source).replace(/'/g, "\\'")}')">×</button>
+                </div>
             </div>
         `).join('');
+        setupSortable(sourcesList, 'sources');
     }
 
     const insurancesList = document.getElementById('insurancesList');
     if (insurancesList) {
-        insurancesList.innerHTML = STATE.insurances.map(insurance => `
-            <div class="tag">
-                ${escapeHtml(insurance)}
-                <button onclick="window.removeInsurance('${escapeHtml(insurance)}')">×</button>
+        insurancesList.innerHTML = STATE.insurances.map((insurance, index) => `
+            <div class="sortable-item" draggable="true" data-index="${index}" data-type="insurance">
+                <span class="drag-handle">☰</span>
+                <span class="item-text">${escapeHtml(insurance)}</span>
+                <div class="item-actions">
+                    <button onclick="window.removeInsurance('${escapeHtml(insurance).replace(/'/g, "\\'")}')">×</button>
+                </div>
             </div>
         `).join('');
+        setupSortable(insurancesList, 'insurances');
     }
+}
+
+function setupSortable(container, arrayName) {
+    let draggedItem = null;
+    
+    container.addEventListener('dragstart', (e) => {
+        if (e.target.classList.contains('sortable-item')) {
+            draggedItem = e.target;
+            e.target.style.opacity = '0.5';
+        }
+    });
+    
+    container.addEventListener('dragend', (e) => {
+        if (e.target.classList.contains('sortable-item')) {
+            e.target.style.opacity = '1';
+        }
+    });
+    
+    container.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(container, e.clientY);
+        if (afterElement == null) {
+            container.appendChild(draggedItem);
+        } else {
+            container.insertBefore(draggedItem, afterElement);
+        }
+    });
+    
+    container.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        const items = [...container.querySelectorAll('.sortable-item')];
+        const newOrder = items.map(item => item.querySelector('.item-text').textContent.trim());
+        STATE[arrayName] = newOrder;
+        await storage.saveSetting(arrayName, newOrder);
+        renderSourcesAndInsurances();
+    });
+}
+
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.sortable-item:not(.dragging)')];
+    
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
 // ========================================
@@ -491,6 +555,32 @@ function applyFilters() {
     if (STATE.filters.type) {
         filtered = filtered.filter(e => e.type === STATE.filters.type);
     }
+    if (STATE.filters.amountFrom) {
+        filtered = filtered.filter(e => {
+            const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
+            return amounts.originalAmount >= parseFloat(STATE.filters.amountFrom);
+        });
+    }
+    if (STATE.filters.amountTo) {
+        filtered = filtered.filter(e => {
+            const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
+            return amounts.originalAmount <= parseFloat(STATE.filters.amountTo);
+        });
+    }
+    if (STATE.filters.deductionPercentFrom) {
+        filtered = filtered.filter(e => {
+            const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
+            const percent = amounts.originalAmount > 0 ? (amounts.totalDeductions / amounts.originalAmount) * 100 : 0;
+            return percent >= parseFloat(STATE.filters.deductionPercentFrom);
+        });
+    }
+    if (STATE.filters.deductionPercentTo) {
+        filtered = filtered.filter(e => {
+            const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
+            const percent = amounts.originalAmount > 0 ? (amounts.totalDeductions / amounts.originalAmount) * 100 : 0;
+            return percent <= parseFloat(STATE.filters.deductionPercentTo);
+        });
+    }
 
     filtered.sort((a, b) => compareDates(b.date, a.date));
 
@@ -501,7 +591,7 @@ function filterEntriesByPeriod(entries, period) {
     const now = new Date();
     let filtered = [...entries];
 
-    if (period === 'today' || period === 'month') {
+    if (period === 'month') {
         const thisMonth = formatMonthYear(now.getMonth() + 1, now.getFullYear());
         filtered = filtered.filter(e => e.date === thisMonth);
     } else if (period === 'year') {
@@ -523,6 +613,8 @@ function showDeductionFields() {
     
     document.getElementById('quickEopyyDeductions').style.display = (isEopyy && isInvoice) ? 'block' : 'none';
     document.getElementById('quickNonEopyyDeductions').style.display = (!isEopyy && isInvoice) ? 'block' : 'none';
+    
+    calculateFinalAmount('quick');
 }
 
 function showModalDeductionFields() {
@@ -533,6 +625,63 @@ function showModalDeductionFields() {
     
     document.getElementById('modalEopyyDeductions').style.display = (isEopyy && isInvoice) ? 'block' : 'none';
     document.getElementById('modalNonEopyyDeductions').style.display = (!isEopyy && isInvoice) ? 'block' : 'none';
+    
+    calculateFinalAmount('entry');
+}
+
+function calculateFinalAmount(prefix) {
+    const amountEl = document.getElementById(`${prefix}Amount`);
+    const insuranceEl = document.getElementById(`${prefix}Insurance`);
+    
+    if (!amountEl || !insuranceEl) return;
+    
+    const amount = parseFloat(amountEl.value) || 0;
+    const insurance = insuranceEl.value;
+    const isEopyy = insurance.toUpperCase().includes('ΕΟΠΥΥ');
+    
+    let totalDeductions = 0;
+    
+    if (isEopyy) {
+        totalDeductions += parseFloat(document.getElementById(`${prefix}Parakratisi`)?.value) || 0;
+        totalDeductions += parseFloat(document.getElementById(`${prefix}MDE`)?.value) || 0;
+        totalDeductions += parseFloat(document.getElementById(`${prefix}Rebate`)?.value) || 0;
+        totalDeductions += parseFloat(document.getElementById(`${prefix}KrathseisEopyy`)?.value) || 0;
+        totalDeductions += parseFloat(document.getElementById(`${prefix}Clawback`)?.value) || 0;
+    } else {
+        totalDeductions += parseFloat(document.getElementById(`${prefix}KrathseisOther`)?.value) || 0;
+    }
+    
+    const finalAmount = amount - totalDeductions;
+    const displayId = prefix === 'quick' ? 'quickFinalAmount' : 'modalFinalAmount';
+    const displayEl = document.getElementById(displayId);
+    if (displayEl) {
+        displayEl.textContent = formatCurrency(finalAmount);
+    }
+}
+
+function setupPercentageSync(amountId, percentId, baseAmountGetter) {
+    const amountInput = document.getElementById(amountId);
+    const percentInput = document.getElementById(percentId);
+    
+    if (!amountInput || !percentInput) return;
+    
+    amountInput.addEventListener('input', () => {
+        const baseAmount = baseAmountGetter();
+        const amount = parseFloat(amountInput.value) || 0;
+        if (baseAmount > 0) {
+            percentInput.value = ((amount / baseAmount) * 100).toFixed(2);
+        }
+        const prefix = amountId.startsWith('quick') ? 'quick' : 'entry';
+        calculateFinalAmount(prefix);
+    });
+    
+    percentInput.addEventListener('input', () => {
+        const baseAmount = baseAmountGetter();
+        const percent = parseFloat(percentInput.value) || 0;
+        amountInput.value = ((baseAmount * percent) / 100).toFixed(2);
+        const prefix = amountId.startsWith('quick') ? 'quick' : 'entry';
+        calculateFinalAmount(prefix);
+    });
 }
 
 // ========================================
@@ -550,9 +699,19 @@ window.editEntry = function(id) {
     document.getElementById('entryInsurance').value = entry.insurance;
     document.getElementById('entryType').value = entry.type;
     document.getElementById('entryAmount').value = entry.originalAmount || entry.amount;
-    document.getElementById('entryNotes').value = entry.notes || '';
+    
+    const notesField = document.getElementById('entryNotes');
+    const notesToggle = document.getElementById('entryNotesToggle');
+    if (entry.notes) {
+        notesField.value = entry.notes;
+        notesToggle.checked = true;
+        notesField.style.display = 'block';
+    } else {
+        notesField.value = '';
+        notesToggle.checked = false;
+        notesField.style.display = 'none';
+    }
 
-    // Load deductions
     const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
     const deduction = eopyyDeductionsManager.getDeductions(entry.id);
     
@@ -589,7 +748,6 @@ window.saveEntry = async function() {
         return;
     }
 
-    // Add deductions
     if (isEopyy) {
         entry.deductions = {
             parakratisi: parseFloat(document.getElementById('entryParakratisi').value) || 0,
@@ -645,13 +803,25 @@ window.removeInsurance = async function(insurance) {
     }
 };
 
+window.exportChartPDF = async function(canvasId) {
+    if (!STATE.cdnAvailable) {
+        showToast('PDF export δεν είναι διαθέσιμο', 'error');
+        return;
+    }
+    try {
+        await pdfExportManager.exportHeatmap(canvasId, `Chart_${canvasId}`);
+        showToast('PDF εξήχθη επιτυχώς', 'success');
+    } catch (error) {
+        showToast('Σφάλμα export PDF', 'error');
+    }
+};
+
 // ========================================
 // Initialization
 // ========================================
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Initializing Revenue Management System...');
+    console.log('Initializing Revenue Management System v3...');
 
-    // Check CDN availability
     const cdnStatus = await cdnChecker.checkAll();
     STATE.cdnAvailable = !cdnStatus.offline;
     
@@ -664,9 +834,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await storage.init();
     await loadData();
-    
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    document.body.setAttribute('data-theme', savedTheme);
 
     renderSourcesAndInsurances();
     renderDashboard();
@@ -675,6 +842,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupDateAutoFormat(document.getElementById('entryDate'));
     setupDateAutoFormat(document.getElementById('filterDateFrom'));
     setupDateAutoFormat(document.getElementById('filterDateTo'));
+
+    // Setup percentage sync for quick form
+    const getQuickAmount = () => parseFloat(document.getElementById('quickAmount').value) || 0;
+    setupPercentageSync('quickParakratisi', 'quickParakratisiPercent', getQuickAmount);
+    setupPercentageSync('quickMDE', 'quickMDEPercent', getQuickAmount);
+    setupPercentageSync('quickRebate', 'quickRebatePercent', getQuickAmount);
+    setupPercentageSync('quickKrathseisEopyy', 'quickKrathseisEopyyPercent', getQuickAmount);
+    setupPercentageSync('quickClawback', 'quickClawbackPercent', getQuickAmount);
+    setupPercentageSync('quickKrathseisOther', 'quickKrathseisOtherPercent', getQuickAmount);
+    
+    // Setup percentage sync for modal
+    const getModalAmount = () => parseFloat(document.getElementById('entryAmount').value) || 0;
+    setupPercentageSync('entryParakratisi', 'entryParakratisiPercent', getModalAmount);
+    setupPercentageSync('entryMDE', 'entryMDEPercent', getModalAmount);
+    setupPercentageSync('entryRebate', 'entryRebatePercent', getModalAmount);
+    setupPercentageSync('entryKrathseisEopyy', 'entryKrathseisEopyyPercent', getModalAmount);
+    setupPercentageSync('entryClawback', 'entryClawbackPercent', getModalAmount);
+    setupPercentageSync('entryKrathseisOther', 'entryKrathseisOtherPercent', getModalAmount);
+    
+    // Notes toggle
+    document.getElementById('quickNotesToggle')?.addEventListener('change', (e) => {
+        document.getElementById('quickNotes').style.display = e.target.checked ? 'block' : 'none';
+    });
+    
+    document.getElementById('entryNotesToggle')?.addEventListener('change', (e) => {
+        document.getElementById('entryNotes').style.display = e.target.checked ? 'block' : 'none';
+    });
+    
+    // Dark mode toggle
+    document.getElementById('darkModeToggle')?.addEventListener('change', (e) => {
+        document.body.setAttribute('data-theme', e.target.checked ? 'dark' : 'light');
+        localStorage.setItem('theme', e.target.checked ? 'dark' : 'light');
+    });
+    
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.body.setAttribute('data-theme', savedTheme);
+    if (document.getElementById('darkModeToggle')) {
+        document.getElementById('darkModeToggle').checked = savedTheme === 'dark';
+    }
+    
+    // Remember last selections
+    ['quickSource', 'quickInsurance', 'quickType'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            const savedValue = localStorage.getItem(`last_${id}`);
+            if (savedValue) el.value = savedValue;
+            
+            el.addEventListener('change', () => {
+                localStorage.setItem(`last_${id}`, el.value);
+            });
+        }
+    });
 
     // Quick Add Form
     document.getElementById('quickAddForm').addEventListener('submit', async (e) => {
@@ -711,21 +931,37 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const success = await addEntry(entry);
         if (success) {
-            e.target.reset();
+            // Clear only amount and notes, keep selections
+            document.getElementById('quickAmount').value = '';
+            document.getElementById('quickNotes').value = '';
+            document.getElementById('quickNotesToggle').checked = false;
+            document.getElementById('quickNotes').style.display = 'none';
+            
+            // Clear deduction fields
+            ['quickParakratisi', 'quickParakratisiPercent', 'quickMDE', 'quickMDEPercent', 
+             'quickRebate', 'quickRebatePercent', 'quickKrathseisEopyy', 'quickKrathseisEopyyPercent',
+             'quickClawback', 'quickClawbackPercent', 'quickKrathseisOther', 'quickKrathseisOtherPercent'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            
             showToast(STRINGS.success.entrySaved, 'success');
             renderDashboard();
         }
     });
 
     // Type/Insurance change handlers
-    document.getElementById('quickType').addEventListener('change', showDeductionFields);
-    document.getElementById('quickInsurance').addEventListener('change', showDeductionFields);
-    document.getElementById('entryType').addEventListener('change', showModalDeductionFields);
-    document.getElementById('entryInsurance').addEventListener('change', showModalDeductionFields);
+    document.getElementById('quickType')?.addEventListener('change', showDeductionFields);
+    document.getElementById('quickInsurance')?.addEventListener('change', showDeductionFields);
+    document.getElementById('quickAmount')?.addEventListener('input', () => calculateFinalAmount('quick'));
+    
+    document.getElementById('entryType')?.addEventListener('change', showModalDeductionFields);
+    document.getElementById('entryInsurance')?.addEventListener('change', showModalDeductionFields);
+    document.getElementById('entryAmount')?.addEventListener('input', () => calculateFinalAmount('entry'));
 
     // Dashboard toggles
-    document.getElementById('dashPeriod').addEventListener('change', () => renderDashboard());
-    document.getElementById('dashIncludeParakratisi').addEventListener('change', () => renderDashboard());
+    document.getElementById('dashPeriod')?.addEventListener('change', () => renderDashboard());
+    document.getElementById('dashIncludeParakratisi')?.addEventListener('change', () => renderDashboard());
 
     // Navigation tabs
     document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -745,53 +981,67 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Filters
-    document.getElementById('applyFiltersBtn').addEventListener('click', () => {
+    document.getElementById('applyFiltersBtn')?.addEventListener('click', () => {
         STATE.filters = {
             dateFrom: document.getElementById('filterDateFrom').value,
             dateTo: document.getElementById('filterDateTo').value,
             source: document.getElementById('filterSource').value,
             insurance: document.getElementById('filterInsurance').value,
-            type: document.getElementById('filterType').value
+            type: document.getElementById('filterType').value,
+            amountFrom: document.getElementById('filterAmountFrom').value,
+            amountTo: document.getElementById('filterAmountTo').value,
+            deductionPercentFrom: document.getElementById('filterDeductionPercentFrom').value,
+            deductionPercentTo: document.getElementById('filterDeductionPercentTo').value
         };
         STATE.currentPage = 1;
         renderEntriesTable();
     });
 
-    document.getElementById('clearFiltersBtn').addEventListener('click', () => {
-        document.getElementById('filterDateFrom').value = '';
-        document.getElementById('filterDateTo').value = '';
-        document.getElementById('filterSource').value = '';
-        document.getElementById('filterInsurance').value = '';
-        document.getElementById('filterType').value = '';
+    document.getElementById('clearFiltersBtn')?.addEventListener('click', () => {
+        ['filterDateFrom', 'filterDateTo', 'filterSource', 'filterInsurance', 'filterType',
+         'filterAmountFrom', 'filterAmountTo', 'filterDeductionPercentFrom', 'filterDeductionPercentTo'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
         STATE.filters = {};
         STATE.currentPage = 1;
         renderEntriesTable();
     });
 
     // Add Entry Modal
-    document.getElementById('addEntryBtn').addEventListener('click', () => {
+    document.getElementById('addEntryBtn')?.addEventListener('click', () => {
         STATE.editingEntry = null;
         document.getElementById('modalTitle').textContent = 'Νέα Εγγραφή';
         document.getElementById('entryId').value = '';
         document.getElementById('entryDate').value = '';
-        document.getElementById('entrySource').value = '';
-        document.getElementById('entryInsurance').value = '';
-        document.getElementById('entryType').value = 'cash';
+        
+        // Keep last selections
+        const lastSource = localStorage.getItem('last_quickSource');
+        const lastInsurance = localStorage.getItem('last_quickInsurance');
+        const lastType = localStorage.getItem('last_quickType') || 'cash';
+        
+        if (lastSource) document.getElementById('entrySource').value = lastSource;
+        if (lastInsurance) document.getElementById('entryInsurance').value = lastInsurance;
+        document.getElementById('entryType').value = lastType;
+        
         document.getElementById('entryAmount').value = '';
-        document.getElementById('entryParakratisi').value = '';
-        document.getElementById('entryMDE').value = '';
-        document.getElementById('entryRebate').value = '';
-        document.getElementById('entryKrathseisEopyy').value = '';
-        document.getElementById('entryClawback').value = '';
-        document.getElementById('entryKrathseisOther').value = '';
+        ['entryParakratisi', 'entryParakratisiPercent', 'entryMDE', 'entryMDEPercent',
+         'entryRebate', 'entryRebatePercent', 'entryKrathseisEopyy', 'entryKrathseisEopyyPercent',
+         'entryClawback', 'entryClawbackPercent', 'entryKrathseisOther', 'entryKrathseisOtherPercent'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        
         document.getElementById('entryNotes').value = '';
+        document.getElementById('entryNotesToggle').checked = false;
+        document.getElementById('entryNotes').style.display = 'none';
         document.getElementById('modalEopyyDeductions').style.display = 'none';
         document.getElementById('modalNonEopyyDeductions').style.display = 'none';
         document.getElementById('entryModal').classList.add('active');
     });
 
     // CSV Export
-    document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
         const filtered = applyFilters();
         const csv = [
             ['Ημερομηνία', 'Διαγνωστικό', 'Ασφάλεια', 'Τύπος', 'Αρχικό Ποσό', 'Παρακράτηση', 'ΜΔΕ', 'Rebate', 'Κρατήσεις', 'Clawback', 'Τελικό Ποσό', 'Σημειώσεις'].join(','),
@@ -976,52 +1226,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (autosaveCheckbox) {
         const savedAutosave = localStorage.getItem('autosaveEnabled') === 'true';
         autosaveCheckbox.checked = savedAutosave;
-        
-        if (savedAutosave) {
-            enableAutosave();
-            updateAutosaveStatus();
-        }
 
         autosaveCheckbox.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                enableAutosave();
-                localStorage.setItem('autosaveEnabled', 'true');
-            } else {
-                disableAutosave();
-                localStorage.setItem('autosaveEnabled', 'false');
-            }
-            updateAutosaveStatus();
+            localStorage.setItem('autosaveEnabled', e.target.checked ? 'true' : 'false');
+            showToast(e.target.checked ? 'Autosave ενεργοποιήθηκε' : 'Autosave απενεργοποιήθηκε', 'info');
         });
     }
 
-    function updateAutosaveStatus() {
-        const status = getAutosaveStatus();
-        const statusEl = document.getElementById('autosaveStatus');
-        if (statusEl) {
-            statusEl.innerHTML = `
-                <p><strong>Κατάσταση:</strong> ${status.enabled ? '✅ Ενεργό' : '❌ Ανενεργό'}</p>
-                ${status.enabled ? `
-                    <p><strong>Τελευταία αποθήκευση:</strong> ${status.lastSaveFormatted}</p>
-                    <p><strong>Εκκρεμείς αλλαγές:</strong> ${status.pendingChanges ? 'Ναι' : 'Όχι'}</p>
-                ` : ''}
-            `;
-        }
-    }
-
-    // Storage info
-    const storageInfo = storage.getStorageInfo();
-    const storageInfoEl = document.getElementById('storageInfo');
-    if (storageInfoEl) {
-        storageInfoEl.innerHTML = `
-            <p><strong>Στρατηγική:</strong> ${storageInfo.strategy === 'indexeddb' ? 'IndexedDB' : 'LocalStorage'}</p>
-            ${storageInfo.estimate.quota > 0 ? `
-                <p><strong>Χρήση:</strong> ${(storageInfo.estimate.usage / 1024 / 1024).toFixed(2)} MB / ${(storageInfo.estimate.quota / 1024 / 1024).toFixed(2)} MB (${storageInfo.estimate.percent.toFixed(1)}%)</p>
-            ` : ''}
-        `;
-    }
-
     // Clear cache
-document.getElementById('clearCacheBtn')?.addEventListener('click', async () => {
+    document.getElementById('clearCacheBtn')?.addEventListener('click', async () => {
         const confirmed = confirm('⚠️ ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΛΟΙ οι τομείς αποθήκευσης!\n\n' +
             '- Όλες οι εγγραφές\n' +
             '- Διαγνωστικά και Ασφάλειες\n' +
@@ -1034,6 +1247,7 @@ document.getElementById('clearCacheBtn')?.addEventListener('click', async () => 
 
         const doubleConfirm = confirm('ΤΕΛΙΚΗ ΕΠΙΒΕΒΑΙΩΣΗ:\n\nΠατήστε OK για να διαγράψετε ΟΛΑ τα δεδομένα.');
         if (!doubleConfirm) return;
+        
         const report = await storage.clearAllStorage();
         
         const reportEl = document.getElementById('clearCacheReport');
@@ -1054,14 +1268,6 @@ document.getElementById('clearCacheBtn')?.addEventListener('click', async () => 
         `;
 
         showToast(STRINGS.success.cacheCleared, 'success');
-    });
-
-    // Theme toggle
-    document.getElementById('themeToggle')?.addEventListener('click', () => {
-        const current = document.body.getAttribute('data-theme');
-        const newTheme = current === 'dark' ? 'light' : 'dark';
-        document.body.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
     });
 
     // Add new source
@@ -1108,30 +1314,7 @@ document.getElementById('clearCacheBtn')?.addEventListener('click', async () => 
         showToast('Η ασφάλεια προστέθηκε', 'success');
     });
 
-    // Add source/insurance buttons in forms
-    document.getElementById('addSourceBtn')?.addEventListener('click', async () => {
-        const newSource = prompt('Νέο διαγνωστικό:');
-        if (newSource && newSource.trim()) {
-            STATE.sources.push(newSource.trim());
-            await storage.saveSetting('sources', STATE.sources);
-            renderSourcesAndInsurances();
-            document.getElementById('quickSource').value = newSource.trim();
-        }
-    });
-
-    document.getElementById('addInsuranceBtn')?.addEventListener('click', async () => {
-        const newInsurance = prompt('Νέα ασφάλεια:');
-        if (newInsurance && newInsurance.trim()) {
-            STATE.insurances.push(newInsurance.trim());
-            await storage.saveSetting('insurances', STATE.insurances);
-            renderSourcesAndInsurances();
-            document.getElementById('quickInsurance').value = newInsurance.trim();
-        }
-    });
-
-    console.log('Revenue Management System initialized successfully!');
-    console.log('CDN Status:', STATE.cdnAvailable ? 'Online' : 'Offline');
-// Import CSV
+    // Import CSV
     document.getElementById('importCsvBtn')?.addEventListener('click', () => {
         document.getElementById('csvFileInput').click();
     });
@@ -1192,4 +1375,8 @@ document.getElementById('clearCacheBtn')?.addEventListener('click', async () => 
             showToast('Σφάλμα backup', 'error');
         }
     });
+
+    console.log('Revenue Management System v3 initialized successfully!');
+    console.log('CDN Status:', STATE.cdnAvailable ? 'Online' : 'Offline');
+    console.log('Change Counter for Autosave: Active (every 5 changes)');
 });
