@@ -1,6 +1,7 @@
 /**
- * app.js - Main Application File v3
+ * app.js - Main Application File v4
  * ΕΟΠΥΥ: 5 deductions, Others: 1 deduction
+ * Autosave threshold configurable by user
  */
 
 import storage from './storage.js';
@@ -60,7 +61,8 @@ const STATE = {
     charts: {},
     cdnAvailable: true,
     currentKPIs: {},
-    changeCounter: 0
+    changeCounter: 0,
+    autosaveThreshold: 5 // Default, user configurable
 };
 
 // ========================================
@@ -86,6 +88,13 @@ async function loadData() {
         STATE.userLabel = (await storage.loadSetting('userLabel')) || STATE.userLabel;
         STATE.undoStack = await storage.loadUndoActions();
         
+        // Load autosave threshold
+        const savedThreshold = await storage.loadSetting('autosaveThreshold');
+        if (savedThreshold) {
+            STATE.autosaveThreshold = savedThreshold;
+            document.getElementById('autosaveThreshold').value = savedThreshold;
+        }
+        
         document.getElementById('userLabel').textContent = `Χρήστης: ${STATE.userLabel}`;
         
         await eopyyDeductionsManager.loadDeductions();
@@ -105,8 +114,8 @@ async function saveData() {
         
         STATE.changeCounter++;
         
-        // Autosave every 5 changes
-        if (STATE.changeCounter >= 5) {
+        // Autosave based on user-defined threshold
+        if (STATE.changeCounter >= STATE.autosaveThreshold) {
             const autosaveEnabled = localStorage.getItem('autosaveEnabled') === 'true';
             if (autosaveEnabled) {
                 await exportBackup();
@@ -820,7 +829,7 @@ window.exportChartPDF = async function(canvasId) {
 // Initialization
 // ========================================
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Initializing Revenue Management System v3...');
+    console.log('Initializing Revenue Management System v4...');
 
     const cdnStatus = await cdnChecker.checkAll();
     STATE.cdnAvailable = !cdnStatus.offline;
@@ -1008,6 +1017,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderEntriesTable();
     });
 
+    // Autosave threshold change
+    document.getElementById('autosaveThreshold')?.addEventListener('change', async (e) => {
+        const value = parseInt(e.target.value);
+        if (value >= 1 && value <= 50) {
+            STATE.autosaveThreshold = value;
+            await storage.saveSetting('autosaveThreshold', value);
+            showToast(`Autosave threshold: ${value} αλλαγές`, 'info');
+        }
+    });
+
     // Add Entry Modal
     document.getElementById('addEntryBtn')?.addEventListener('click', () => {
         STATE.editingEntry = null;
@@ -1075,6 +1094,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         showToast('CSV εξήχθη επιτυχώς', 'success');
     });
 
+    // Continue with remaining handlers...
+    
     // PDF Exports
     document.getElementById('exportDashboardPdfBtn')?.addEventListener('click', async () => {
         if (!STATE.cdnAvailable) {
@@ -1376,7 +1397,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    console.log('Revenue Management System v3 initialized successfully!');
+    console.log('Revenue Management System v4 initialized successfully!');
     console.log('CDN Status:', STATE.cdnAvailable ? 'Online' : 'Offline');
-    console.log('Change Counter for Autosave: Active (every 5 changes)');
+    console.log(`Autosave Threshold: ${STATE.autosaveThreshold} changes`);
 });
