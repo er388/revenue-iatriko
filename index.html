@@ -39,20 +39,7 @@
         
         <!-- Dashboard View -->
         <div id="dashboardView" class="view active">
-            <div class="dashboard-header">
-                <h2>Επισκόπηση</h2>
-                <div class="quick-filters">
-                    <select id="dashPeriod" class="form-select form-compact">
-                        <option value="month" selected>Μήνας</option>
-                        <option value="year">Έτος</option>
-                        <option value="all">Όλα</option>
-                    </select>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="dashIncludeParakratisi" checked>
-                        <span>Με Παρακράτηση</span>
-                    </label>
-                </div>
-            </div>
+            <h2>Επισκόπηση</h2>
 
             <!-- Quick Add Form -->
             <div class="card card-compact">
@@ -171,6 +158,22 @@
                         <button type="submit" class="btn-primary btn-compact">Καταχώριση</button>
                     </div>
                 </form>
+            </div>
+
+            <!-- MOVED: Dashboard Header with Filters (NOW ABOVE CHARTS) -->
+            <div class="dashboard-header">
+                <h3>Επισκόπηση</h3>
+                <div class="quick-filters">
+                    <select id="dashPeriod" class="form-select form-compact">
+                        <option value="month" selected>Μήνας</option>
+                        <option value="year">Έτος</option>
+                        <option value="all">Όλα</option>
+                    </select>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="dashIncludeParakratisi" checked>
+                        <span>Με Παρακράτηση</span>
+                    </label>
+                </div>
             </div>
 
             <!-- KPI Cards -->
@@ -307,7 +310,7 @@
                     </div>
                     <div class="form-group form-group-compact">
                         <label>Ποσό Έως (€)</label>
-                        <input type="number" id="filterAmountTo" class="form-input form-input-compact" step="0.01" min="0" placeholder="99999">
+                        <input type="number" id="filterAmountTo" class="form-input form-input-compact" step="0.01" min="0" max="9999999" placeholder="9999999">
                     </div>
                     <div class="form-group form-group-compact">
                         <label>Κρατήσεις Από (%)</label>
@@ -358,7 +361,7 @@
         <div id="reportsView" class="view">
             <h2>Αναφορές</h2>
             <div class="card card-compact">
-                <p>Αναφορές - Coming soon</p>
+                <p>Αναφορές - Under Development</p>
             </div>
         </div>
 
@@ -366,7 +369,7 @@
         <div id="comparisonView" class="view">
             <h2>Σύγκριση Περιόδων</h2>
             <div class="card card-compact">
-                <p>Σύγκριση - Coming soon</p>
+                <p>Σύγκριση - Under Development</p>
             </div>
         </div>
 
@@ -374,7 +377,7 @@
         <div id="forecastingView" class="view">
             <h2>Προβλέψεις</h2>
             <div class="card card-compact">
-                <p>Προβλέψεις - Coming soon</p>
+                <p>Προβλέψεις - Under Development</p>
             </div>
         </div>
 
@@ -382,7 +385,7 @@
         <div id="heatmapsView" class="view">
             <h2>Heatmaps</h2>
             <div class="card card-compact">
-                <p>Heatmaps - Coming soon</p>
+                <p>Heatmaps - Under Development</p>
             </div>
         </div>
 
@@ -390,7 +393,7 @@
         <div id="cloudView" class="view">
             <h2>Cloud Sync</h2>
             <div class="card card-compact">
-                <p>Cloud - Coming soon</p>
+                <p>Cloud - Under Development</p>
             </div>
         </div>
 
@@ -421,8 +424,13 @@
                 <div class="autosave-settings">
                     <label class="checkbox-label">
                         <input type="checkbox" id="autosaveEnabled">
-                        <span>Αυτόματη Αποθήκευση (κάθε 5 αλλαγές)</span>
+                        <span>Αυτόματη Αποθήκευση</span>
                     </label>
+                    <div class="form-group form-group-compact" style="margin-top: 0.5rem;">
+                        <label>Αριθμός Αλλαγών για Autosave:</label>
+                        <input type="number" id="autosaveThreshold" class="form-input form-input-compact" min="1" max="50" value="5" step="1">
+                        <small class="help-text">Ορίστε πόσες αλλαγές απαιτούνται πριν γίνει αυτόματο backup (1-50)</small>
+                    </div>
                     <div id="autosaveStatus" class="autosave-status"></div>
                 </div>
             </div>
