@@ -104,6 +104,11 @@ let heatmapGenerator = null;
 // Populate Dropdowns Function (Global)
 // ========================================
 function populateDropdowns() {
+    console.log('Populating dropdowns with:', {
+        sources: STATE.sources,
+        insurances: STATE.insurances
+    });
+    
     // Quick form dropdowns
     const quickSource = document.getElementById('quickSource');
     const quickInsurance = document.getElementById('quickInsurance');
@@ -111,11 +116,17 @@ function populateDropdowns() {
     if (quickSource) {
         quickSource.innerHTML = '<option value="">Επιλογή...</option>' +
             STATE.sources.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+        console.log('✓ Quick source populated:', quickSource.options.length, 'options');
+    } else {
+        console.error('❌ quickSource element not found');
     }
     
     if (quickInsurance) {
         quickInsurance.innerHTML = '<option value="">Επιλογή...</option>' +
             STATE.insurances.map(i => `<option value="${escapeHtml(i)}">${escapeHtml(i)}</option>`).join('');
+        console.log('✓ Quick insurance populated:', quickInsurance.options.length, 'options');
+    } else {
+        console.error('❌ quickInsurance element not found');
     }
     
     // Modal dropdowns
@@ -304,15 +315,36 @@ function showToast(message, type = 'info') {
 async function loadData() {
     try {
         STATE.entries = await storage.loadEntries();
-        STATE.sources = (await storage.loadSetting('sources')) || STATE.sources;
-        STATE.insurances = (await storage.loadSetting('insurances')) || STATE.insurances;
+        
+        // CRITICAL: Load sources/insurances ή χρήση defaults
+        const loadedSources = await storage.loadSetting('sources');
+        const loadedInsurances = await storage.loadSetting('insurances');
+        
+        // Ensure we ALWAYS have defaults
+        if (!loadedSources || loadedSources.length === 0) {
+            STATE.sources = ['Ταμείο 1', 'Ταμείο 2'];
+            await storage.saveSetting('sources', STATE.sources);
+            console.log('✓ Default sources created');
+        } else {
+            STATE.sources = loadedSources;
+        }
+        
+        if (!loadedInsurances || loadedInsurances.length === 0) {
+            STATE.insurances = ['ΕΟΠΥΥ', 'Ιδιωτική'];
+            await storage.saveSetting('insurances', STATE.insurances);
+            console.log('✓ Default insurances created');
+        } else {
+            STATE.insurances = loadedInsurances;
+        }
+        
         STATE.userLabel = (await storage.loadSetting('userLabel')) || STATE.userLabel;
         STATE.undoStack = await storage.loadUndoActions();
         
         const savedThreshold = await storage.loadSetting('autosaveThreshold');
         if (savedThreshold) {
             STATE.autosaveThreshold = savedThreshold;
-            document.getElementById('autosaveThreshold').value = savedThreshold;
+            const thresholdEl = document.getElementById('autosaveThreshold');
+            if (thresholdEl) thresholdEl.value = savedThreshold;
         }
         
         const savedPageSize = await storage.loadSetting('pageSize');
@@ -321,13 +353,18 @@ async function loadData() {
             CONFIG.pageSize = savedPageSize;
         }
         
-        document.getElementById('userLabel').textContent = `Χρήστης: ${STATE.userLabel}`;
+        const userLabelEl = document.getElementById('userLabel');
+        if (userLabelEl) {
+            userLabelEl.textContent = `Χρήστης: ${STATE.userLabel}`;
+        }
         
         await eopyyDeductionsManager.loadDeductions();
         
-        console.log(`Loaded ${STATE.entries.length} entries`);
+        console.log(`✓ Loaded ${STATE.entries.length} entries`);
+        console.log(`✓ Sources: ${STATE.sources.length}`, STATE.sources);
+        console.log(`✓ Insurances: ${STATE.insurances.length}`, STATE.insurances);
     } catch (error) {
-        console.error('Load data error:', error);
+        console.error('❌ Load data error:', error);
         showToast('Σφάλμα φόρτωσης δεδομένων', 'error');
     }
 }
@@ -446,56 +483,82 @@ async function deleteEntry(id) {
 // UI Rendering
 // ========================================
 function renderDashboard() {
-    const period = document.getElementById('dashPeriod').value;
-    const includeParakratisi = document.getElementById('dashIncludeParakratisi').checked;
+    const period = document.getElementById('dashPeriod')?.value || 'all';
+    const includeParakratisi = document.getElementById('dashIncludeParakratisi')?.checked || false;
     const filtered = filterEntriesByPeriod(STATE.entries, period);
 
     const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi });
     STATE.currentKPIs = kpis;
 
-    // Calculate percentages
+    // Calculate percentages SAFELY
     const totalOriginal = filtered.reduce((sum, e) => {
         const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
-        return sum + amounts.originalAmount;
+        return sum + (amounts.originalAmount || 0);
     }, 0);
 
-    document.getElementById('kpiTotal').innerHTML = `
-        <div class="kpi-header"><div class="kpi-label">Συνολικά</div></div>
-        <div class="kpi-content">
-            <div class="kpi-amount">${formatCurrency(kpis.total)}</div>
-            <div class="kpi-percent">${((kpis.total / totalOriginal) * 100).toFixed(2)}%</div>
-        </div>
-    `;
-    
-    document.getElementById('kpiEopyy').innerHTML = `
-        <div class="kpi-header"><div class="kpi-label">ΕΟΠΥΥ</div></div>
-        <div class="kpi-content">
-            <div class="kpi-amount">${formatCurrency(kpis.eopyyTotal)}</div>
-            <div class="kpi-percent">${((kpis.eopyyTotal / totalOriginal) * 100).toFixed(2)}%</div>
-        </div>
-    `;
-    
-    document.getElementById('kpiOthers').innerHTML = `
-        <div class="kpi-header"><div class="kpi-label">Άλλα</div></div>
-        <div class="kpi-content">
-            <div class="kpi-amount">${formatCurrency(kpis.nonEopyyTotal)}</div>
-            <div class="kpi-percent">${((kpis.nonEopyyTotal / totalOriginal) * 100).toFixed(2)}%</div>
-        </div>
-    `;
-    
-    document.getElementById('kpiDeductions').innerHTML = `
-        <div class="kpi-header"><div class="kpi-label">Κρατήσεις</div></div>
-        <div class="kpi-content">
-            <div class="kpi-amount">${formatCurrency(kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis)}</div>
-            <div class="kpi-percent">${(((kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis) / totalOriginal) * 100).toFixed(2)}%</div>
-        </div>
-    `;
+    // Avoid division by zero
+    const safePercent = (value) => {
+        if (totalOriginal === 0) return '0.00';
+        return ((value / totalOriginal) * 100).toFixed(2);
+    };
 
-    document.getElementById('kpiParakratisi').textContent = formatCurrency(kpis.eopyyParakratisi);
-    document.getElementById('kpiMDE').textContent = formatCurrency(kpis.eopyyMDE);
-    document.getElementById('kpiRebate').textContent = formatCurrency(kpis.eopyyRebate);
-    document.getElementById('kpiKrathseis').textContent = formatCurrency(kpis.eopyyKrathseis);
-    document.getElementById('kpiClawback').textContent = formatCurrency(kpis.eopyyClawback);
+    // Main KPIs
+    const kpiTotalEl = document.getElementById('kpiTotal');
+    if (kpiTotalEl) {
+        kpiTotalEl.innerHTML = `
+            <div class="kpi-header"><div class="kpi-label">Συνολικά</div></div>
+            <div class="kpi-content">
+                <div class="kpi-amount">${formatCurrency(kpis.total)}</div>
+                <div class="kpi-percent">${safePercent(kpis.total)}%</div>
+            </div>
+        `;
+    }
+    
+    const kpiEopyyEl = document.getElementById('kpiEopyy');
+    if (kpiEopyyEl) {
+        kpiEopyyEl.innerHTML = `
+            <div class="kpi-header"><div class="kpi-label">ΕΟΠΥΥ</div></div>
+            <div class="kpi-content">
+                <div class="kpi-amount">${formatCurrency(kpis.eopyyTotal)}</div>
+                <div class="kpi-percent">${safePercent(kpis.eopyyTotal)}%</div>
+            </div>
+        `;
+    }
+    
+    const kpiOthersEl = document.getElementById('kpiOthers');
+    if (kpiOthersEl) {
+        kpiOthersEl.innerHTML = `
+            <div class="kpi-header"><div class="kpi-label">Άλλα</div></div>
+            <div class="kpi-content">
+                <div class="kpi-amount">${formatCurrency(kpis.nonEopyyTotal)}</div>
+                <div class="kpi-percent">${safePercent(kpis.nonEopyyTotal)}%</div>
+            </div>
+        `;
+    }
+    
+    const kpiDeductionsEl = document.getElementById('kpiDeductions');
+    if (kpiDeductionsEl) {
+        const totalDeductions = kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis;
+        kpiDeductionsEl.innerHTML = `
+            <div class="kpi-header"><div class="kpi-label">Κρατήσεις</div></div>
+            <div class="kpi-content">
+                <div class="kpi-amount">${formatCurrency(totalDeductions)}</div>
+                <div class="kpi-percent">${safePercent(totalDeductions)}%</div>
+            </div>
+        `;
+    }
+
+    // Breakdown KPIs
+    const setKPIValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = formatCurrency(value);
+    };
+
+    setKPIValue('kpiParakratisi', kpis.eopyyParakratisi);
+    setKPIValue('kpiMDE', kpis.eopyyMDE);
+    setKPIValue('kpiRebate', kpis.eopyyRebate);
+    setKPIValue('kpiKrathseis', kpis.eopyyKrathseis);
+    setKPIValue('kpiClawback', kpis.eopyyClawback);
 
     renderRecentEntries();
     renderCharts(filtered);
@@ -1055,13 +1118,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         periodicChecker.start();
 
-        // Load data
-        await loadData();
-        console.log('✓ Data loaded:', STATE.entries.length, 'entries');
+// Load data ΠΡΙΝ populate dropdowns
+await loadData();
+console.log('✓ Data loaded:', STATE.entries.length, 'entries');
 
-        // Populate all dropdowns
-        populateDropdowns();
-        console.log('✓ Dropdowns populated');
+// CRITICAL: Wait για async operations
+await new Promise(resolve => setTimeout(resolve, 100));
+
+// Populate all dropdowns ΜΕΤΑ το load
+populateDropdowns();
+console.log('✓ Dropdowns populated');
+
+// Verify dropdowns have options
+const quickSource = document.getElementById('quickSource');
+const quickInsurance = document.getElementById('quickInsurance');
+console.log('Quick dropdowns check:', {
+    sources: quickSource?.options?.length || 0,
+    insurances: quickInsurance?.options?.length || 0
+});
 
         // Auto-load backup
         await autoLoadBackup();
@@ -1084,7 +1158,62 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Render initial dashboard
         renderDashboard();
-        console.log('✓ Dashboard rendered');
+        console.log('✓ Dashboard rendered');// Setup quick add form submission
+const quickAddForm = document.getElementById('quickAddForm');
+if (quickAddForm) {
+    quickAddForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const insurance = document.getElementById('quickInsurance').value;
+        const isEopyy = insurance.toUpperCase().includes('ΕΟΠΥΥ');
+        const amount = parseFloat(document.getElementById('quickAmount').value);
+        
+        const entry = {
+            date: document.getElementById('quickDate').value,
+            source: document.getElementById('quickSource').value,
+            insurance: insurance,
+            type: document.getElementById('quickType').value,
+            amount: amount,
+            notes: document.getElementById('quickNotes').value
+        };
+
+        if (!isValidMonthYear(entry.date)) {
+            showToast(STRINGS.errors.invalidDate, 'error');
+            return;
+        }
+
+        if (isEopyy) {
+            entry.deductions = {
+                parakratisi: parseFloat(document.getElementById('quickParakratisi').value) || 0,
+                mde: parseFloat(document.getElementById('quickMDE').value) || 0,
+                rebate: parseFloat(document.getElementById('quickRebate').value) || 0,
+                krathseis: parseFloat(document.getElementById('quickKrathseisEopyy').value) || 0,
+                clawback: parseFloat(document.getElementById('quickClawback').value) || 0
+            };
+            
+            entry.deductionPercentages = {
+                parakratisi: parseFloat(document.getElementById('quickParakratisiPercent').value) || 0,
+                mde: parseFloat(document.getElementById('quickMDEPercent').value) || 0,
+                rebate: parseFloat(document.getElementById('quickRebatePercent').value) || 0,
+                krathseis: parseFloat(document.getElementById('quickKrathseisEopyyPercent').value) || 0,
+                clawback: parseFloat(document.getElementById('quickClawbackPercent').value) || 0
+            };
+        } else {
+            entry.krathseis = parseFloat(document.getElementById('quickKrathseisOther').value) || 0;
+            entry.krathseisPercent = parseFloat(document.getElementById('quickKrathseisOtherPercent').value) || 0;
+        }
+
+        const success = await addEntry(entry);
+        if (success) {
+            showToast(STRINGS.success.entrySaved, 'success');
+            quickAddForm.reset();
+            document.getElementById('quickFinalAmount').textContent = '€ 0,00';
+            document.getElementById('quickEopyyDeductions').style.display = 'none';
+            document.getElementById('quickNonEopyyDeductions').style.display = 'none';
+            renderDashboard();
+        }
+    });
+}
 
         // Setup date auto-format
         setupDateAutoFormat(document.getElementById('quickDate'));
