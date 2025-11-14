@@ -25,6 +25,9 @@ import {
     compareDates,
     setupDateAutoFormat
 } from './utils.js';
+import PeriodComparison from './comparison.js';
+import ForecastManager from './forecasting.js';
+import { HeatmapGenerator, HeatmapDataProcessor } from './charts.js';
 
 // ========================================
 // Configuration
@@ -64,6 +67,12 @@ const STATE = {
     sortDirection: 'desc',
     pageSize: 25
 };
+
+// Comparison, Forecasting, Heatmaps state
+let comparisonChart = null;
+let comparisonTrendChart = null;
+let forecastChart = null;
+let heatmapGenerator = null;
 
 // ========================================
 // Modal Draggable Setup
@@ -925,6 +934,555 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('dashIncludeParakratisi').checked = false;
 
     renderDashboard();
+
+// ========================================
+    // REPORTS View Handlers
+    // ========================================
+    document.getElementById('generateReportBtn')?.addEventListener('click', async () => {
+        const dateFrom = document.getElementById('reportDateFrom').value;
+        const dateTo = document.getElementById('reportDateTo').value;
+        const source = document.getElementById('reportSource').value;
+
+        if (!isValidMonthYear(dateFrom) || !isValidMonthYear(dateTo)) {
+            showToast('Μη έγκυρες ημερομηνίες', 'error');
+            return;
+        }
+
+        let filtered = STATE.entries.filter(e => {
+            return compareDates(e.date, dateFrom) >= 0 && compareDates(e.date, dateTo) <= 0;
+        });
+
+        if (source) {
+            filtered = filtered.filter(e => e.source === source);
+        }
+
+        if (filtered.length === 0) {
+            showToast('Δεν βρέθηκαν εγγραφές', 'warning');
+            return;
+        }
+
+        // Calculate summary
+        const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi: false });
+
+        document.getElementById('reportSummary').innerHTML = `
+            <div class="kpi-grid kpi-grid-compact">
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Σύνολο Εγγραφών</div>
+                    <div class="kpi-value kpi-value-compact">${filtered.length}</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Συνολικά</div>
+                    <div class="kpi-value kpi-value-compact">${formatCurrency(kpis.total)}</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">ΕΟΠΥΥ</div>
+                    <div class="kpi-value kpi-value-compact">${formatCurrency(kpis.eopyyTotal)}</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Άλλα</div>
+                    <div class="kpi-value kpi-value-compact">${formatCurrency(kpis.nonEopyyTotal)}</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Κρατήσεις</div>
+                    <div class="kpi-value kpi-value-compact">${formatCurrency(kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis)}</div>
+                </div>
+            </div>
+        `;
+
+        // Render table
+        const thead = document.getElementById('reportTableHead');
+        const tbody = document.getElementById('reportTableBody');
+
+        thead.innerHTML = `
+            <tr>
+                <th>Ημ/νία</th>
+                <th>Διαγνωστικό</th>
+                <th>Ασφάλεια</th>
+                <th class="text-right">Αρχικό</th>
+                <th class="text-right">Κρατήσεις</th>
+                <th class="text-right">Τελικό</th>
+            </tr>
+        `;
+
+        tbody.innerHTML = filtered.map(entry => {
+            const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
+            return `
+                <tr>
+                    <td>${escapeHtml(entry.date)}</td>
+                    <td>${escapeHtml(entry.source)}</td>
+                    <td>${escapeHtml(entry.insurance)}</td>
+                    <td class="text-right">${formatCurrency(amounts.originalAmount)}</td>
+                    <td class="text-right">${formatCurrency(amounts.totalDeductions)}</td>
+                    <td class="text-right"><strong>${formatCurrency(amounts.finalAmount)}</strong></td>
+                </tr>
+            `;
+        }).join('');
+
+        document.getElementById('reportResults').style.display = 'block';
+        showToast('Αναφορά δημιουργήθηκε', 'success');
+    });
+
+    document.getElementById('exportReportPdfBtn')?.addEventListener('click', async () => {
+        const dateFrom = document.getElementById('reportDateFrom').value;
+        const dateTo = document.getElementById('reportDateTo').value;
+        const source = document.getElementById('reportSource').value;
+
+        let filtered = STATE.entries.filter(e => {
+            return compareDates(e.date, dateFrom) >= 0 && compareDates(e.date, dateTo) <= 0;
+        });
+
+        if (source) filtered = filtered.filter(e => e.source === source);
+
+        await pdfExportManager.exportEntriesList(filtered, { dateFrom, dateTo, source });
+        showToast('PDF εξήχθη', 'success');
+    });
+
+    document.getElementById('exportReportCsvBtn')?.addEventListener('click', () => {
+        const dateFrom = document.getElementById('reportDateFrom').value;
+        const dateTo = document.getElementById('reportDateTo').value;
+        const source = document.getElementById('reportSource').value;
+
+        let filtered = STATE.entries.filter(e => {
+            return compareDates(e.date, dateFrom) >= 0 && compareDates(e.date, dateTo) <= 0;
+        });
+
+        if (source) filtered = filtered.filter(e => e.source === source);
+
+        // Export CSV
+        const csvData = [
+            ['Ημερομηνία', 'Διαγνωστικό', 'Ασφάλεια', 'Τύπος', 'Αρχικό', 'Κρατήσεις', 'Τελικό'],
+            ...filtered.map(entry => {
+                const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
+                return [
+                    entry.date,
+                    entry.source,
+                    entry.insurance,
+                    entry.type === 'cash' ? 'Μετρητά' : 'Τιμολόγια',
+                    amounts.originalAmount.toFixed(2),
+                    amounts.totalDeductions.toFixed(2),
+                    amounts.finalAmount.toFixed(2)
+                ];
+            })
+        ];
+
+        const csv = csvData.map(row => row.join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const filename = `report_${dateFrom}_${dateTo}.csv`;
+        downloadBlob(filename, blob);
+        showToast('CSV εξήχθη', 'success');
+    });
+
+    // ========================================
+    // COMPARISON View Handlers
+    // ========================================
+    document.querySelectorAll('.comparison-quick button').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const preset = btn.dataset.preset;
+            const comparison = new PeriodComparison(STATE.entries);
+            const result = comparison.getPresetComparison(preset);
+
+            renderComparisonResults(result);
+        });
+    });
+
+    document.getElementById('compareBtn')?.addEventListener('click', () => {
+        const period1 = {
+            start: document.getElementById('comp1From').value,
+            end: document.getElementById('comp1To').value,
+            label: 'Περίοδος 1'
+        };
+
+        const period2 = {
+            start: document.getElementById('comp2From').value,
+            end: document.getElementById('comp2To').value,
+            label: 'Περίοδος 2'
+        };
+
+        if (!isValidMonthYear(period1.start) || !isValidMonthYear(period1.end) ||
+            !isValidMonthYear(period2.start) || !isValidMonthYear(period2.end)) {
+            showToast('Μη έγκυρες ημερομηνίες', 'error');
+            return;
+        }
+
+        const comparison = new PeriodComparison(STATE.entries);
+        const result = comparison.comparePeriods(period1, period2);
+
+        renderComparisonResults(result);
+    });
+
+    function renderComparisonResults(result) {
+        const summary = new PeriodComparison(STATE.entries).generateSummary(result);
+        document.getElementById('comparisonSummary').innerHTML = `<p>${escapeHtml(summary)}</p>`;
+
+        const tableData = new PeriodComparison(STATE.entries).generateComparisonTable(result);
+        const tbody = document.getElementById('comparisonTableBody');
+
+        tbody.innerHTML = tableData.map(row => {
+            const trendIcon = row.trend === 'up' ? '📈' : row.trend === 'down' ? '📉' : '➡️';
+            const trendClass = row.trend === 'up' ? 'trend-up' : row.trend === 'down' ? 'trend-down' : 'trend-neutral';
+
+            return `
+                <tr>
+                    <td>${escapeHtml(row.metric)}</td>
+                    <td class="text-right">${escapeHtml(row.period1)}</td>
+                    <td class="text-right">${escapeHtml(row.period2)}</td>
+                    <td class="text-right">${escapeHtml(row.change)}</td>
+                    <td class="text-right ${trendClass}">${escapeHtml(row.changePercent)}</td>
+                    <td class="text-center">${trendIcon}</td>
+                </tr>
+            `;
+        }).join('');
+
+        // Render charts
+        if (STATE.cdnAvailable && window.Chart) {
+            renderComparisonCharts(result);
+        }
+
+        document.getElementById('comparisonResults').style.display = 'block';
+        showToast('Σύγκριση ολοκληρώθηκε', 'success');
+    }
+
+    function renderComparisonCharts(result) {
+        const ctx1 = document.getElementById('comparisonChart');
+        const ctx2 = document.getElementById('comparisonTrendChart');
+
+        if (comparisonChart) comparisonChart.destroy();
+        if (comparisonTrendChart) comparisonTrendChart.destroy();
+
+        // Side-by-side comparison
+        comparisonChart = new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: ['Συνολικά', 'Μετρητά', 'Τιμολόγια', 'Κρατήσεις'],
+                datasets: [
+                    {
+                        label: result.period1.label,
+                        data: [
+                            result.period1.kpis.total,
+                            result.period1.kpis.cash,
+                            result.period1.kpis.invoices,
+                            result.period1.kpis.retentions
+                        ],
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)'
+                    },
+                    {
+                        label: result.period2.label,
+                        data: [
+                            result.period2.kpis.total,
+                            result.period2.kpis.cash,
+                            result.period2.kpis.invoices,
+                            result.period2.kpis.retentions
+                        ],
+                        backgroundColor: 'rgba(255, 99, 132, 0.7)'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: value => formatCurrency(value)
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: context => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`
+                        }
+                    }
+                }
+            }
+        });
+
+        // Trend comparison
+        const trend1 = result.period1.kpis.monthlyTotals || [];
+        const trend2 = result.period2.kpis.monthlyTotals || [];
+        const maxLength = Math.max(trend1.length, trend2.length);
+        const labels = Array.from({ length: maxLength }, (_, i) => `Μήνας ${i + 1}`);
+
+        comparisonTrendChart = new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: result.period1.label,
+                        data: trend1.map(t => t.amount),
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: result.period2.label,
+                        data: trend2.map(t => t.amount),
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: value => formatCurrency(value)
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: context => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ========================================
+    // FORECASTING View Handlers
+    // ========================================
+    document.getElementById('generateForecastBtn')?.addEventListener('click', () => {
+        const method = document.getElementById('forecastMethod').value;
+        const periods = parseInt(document.getElementById('forecastPeriods').value);
+        const startDate = document.getElementById('forecastStartDate').value;
+        const endDate = document.getElementById('forecastEndDate').value;
+
+        if (startDate && !isValidMonthYear(startDate)) {
+            showToast('Μη έγκυρη ημερομηνία έναρξης', 'error');
+            return;
+        }
+
+        if (endDate && !isValidMonthYear(endDate)) {
+            showToast('Μη έγκυρη ημερομηνία λήξης', 'error');
+            return;
+        }
+
+        try {
+            const manager = new ForecastManager(STATE.entries);
+            const forecast = manager.generateForecast(method, periods, { startDate, endDate });
+
+            renderForecastResults(forecast);
+        } catch (error) {
+            console.error('Forecast error:', error);
+            showToast('Σφάλμα πρόβλεψης: ' + error.message, 'error');
+        }
+    });
+
+    function renderForecastResults(forecast) {
+        document.getElementById('forecastSummary').innerHTML = `<p>${escapeHtml(forecast.summary)}</p>`;
+
+        // Render table
+        const tbody = document.getElementById('forecastTableBody');
+        tbody.innerHTML = forecast.predictions.map(pred => `
+            <tr>
+                <td>${escapeHtml(pred.date)}</td>
+                <td class="text-right"><strong>${formatCurrency(pred.value)}</strong></td>
+                <td class="text-right">${formatCurrency(pred.lower)}</td>
+                <td class="text-right">${formatCurrency(pred.upper)}</td>
+            </tr>
+        `).join('');
+
+        // Render chart
+        if (STATE.cdnAvailable && window.Chart) {
+            renderForecastChart(forecast);
+        }
+
+        document.getElementById('forecastResults').style.display = 'block';
+        showToast('Πρόβλεψη ολοκληρώθηκε', 'success');
+    }
+
+    function renderForecastChart(forecast) {
+        const ctx = document.getElementById('forecastChart');
+        if (forecastChart) forecastChart.destroy();
+
+        const historicalDates = forecast.historical.map(d => d.date);
+        const historicalValues = forecast.historical.map(d => d.value);
+        const predictionDates = forecast.predictions.map(p => p.date);
+        const predictionValues = forecast.predictions.map(p => p.value);
+        const upperBound = forecast.predictions.map(p => p.upper);
+        const lowerBound = forecast.predictions.map(p => p.lower);
+
+        const allDates = [...historicalDates, ...predictionDates];
+
+        forecastChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: allDates,
+                datasets: [
+                    {
+                        label: 'Ιστορικά',
+                        data: [...historicalValues, ...Array(predictionDates.length).fill(null)],
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        pointRadius: 4
+                    },
+                    {
+                        label: 'Πρόβλεψη',
+                        data: [...Array(historicalDates.length).fill(null), ...predictionValues],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        borderDash: [5, 5],
+                        pointRadius: 4
+                    },
+                    {
+                        label: 'Άνω Όριο',
+                        data: [...Array(historicalDates.length).fill(null), ...upperBound],
+                        borderColor: 'rgba(255, 99, 132, 0.3)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.05)',
+                        fill: '+1',
+                        pointRadius: 0,
+                        borderDash: [2, 2]
+                    },
+                    {
+                        label: 'Κάτω Όριο',
+                        data: [...Array(historicalDates.length).fill(null), ...lowerBound],
+                        borderColor: 'rgba(255, 99, 132, 0.3)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.05)',
+                        pointRadius: 0,
+                        borderDash: [2, 2]
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: value => formatCurrency(value)
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: context => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    document.getElementById('exportForecastPdfBtn')?.addEventListener('click', async () => {
+        const method = document.getElementById('forecastMethod').value;
+        const periods = parseInt(document.getElementById('forecastPeriods').value);
+        const manager = new ForecastManager(STATE.entries);
+        const forecast = manager.generateForecast(method, periods);
+
+        await pdfExportManager.exportForecast(forecast);
+        showToast('Forecast PDF εξήχθη', 'success');
+    });
+
+    document.getElementById('exportForecastCsvBtn')?.addEventListener('click', () => {
+        const method = document.getElementById('forecastMethod').value;
+        const periods = parseInt(document.getElementById('forecastPeriods').value);
+        const manager = new ForecastManager(STATE.entries);
+        const forecast = manager.generateForecast(method, periods);
+
+        const csvData = [
+            ['Περίοδος', 'Πρόβλεψη', 'Κάτω Όριο', 'Άνω Όριο'],
+            ...forecast.predictions.map(pred => [
+                pred.date,
+                pred.value.toFixed(2),
+                pred.lower.toFixed(2),
+                pred.upper.toFixed(2)
+            ])
+        ];
+
+        const csv = csvData.map(row => row.join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        downloadBlob(`forecast_${method}.csv`, blob);
+        showToast('Forecast CSV εξήχθη', 'success');
+    });
+
+    // ========================================
+    // HEATMAPS View Handlers
+    // ========================================
+    document.getElementById('generateHeatmapBtn')?.addEventListener('click', () => {
+        const type = document.getElementById('heatmapType').value;
+        const year = parseInt(document.getElementById('heatmapYear').value) || null;
+        const colorScheme = document.getElementById('heatmapColorScheme').value;
+
+        const processor = new HeatmapDataProcessor(STATE.entries);
+        let data;
+
+        switch (type) {
+            case 'month-year':
+                data = processor.generateMonthYearHeatmap();
+                break;
+            case 'source-month':
+                data = processor.generateSourceMonthHeatmap(year);
+                break;
+            case 'insurance-month':
+                data = processor.generateInsuranceMonthHeatmap(year);
+                break;
+        }
+
+        if (data.length === 0) {
+            showToast('Δεν υπάρχουν δεδομένα για heatmap', 'warning');
+            return;
+        }
+
+        if (!heatmapGenerator) {
+            heatmapGenerator = new HeatmapGenerator('heatmapCanvas', {
+                colorScheme,
+                title: getHeatmapTitle(type, year)
+            });
+        } else {
+            heatmapGenerator.options.colorScheme = colorScheme;
+            heatmapGenerator.options.title = getHeatmapTitle(type, year);
+        }
+
+        heatmapGenerator.draw(data);
+
+        document.getElementById('heatmapResults').style.display = 'block';
+        showToast('Heatmap δημιουργήθηκε', 'success');
+    });
+
+    function getHeatmapTitle(type, year) {
+        const titles = {
+            'month-year': 'Μήνας × Έτος',
+            'source-month': `Διαγνωστικό × Μήνας ${year || ''}`,
+            'insurance-month': `Ασφάλεια × Μήνας ${year || ''}`
+        };
+        return titles[type] || '';
+    }
+
+    document.getElementById('exportHeatmapPdfBtn')?.addEventListener('click', async () => {
+        await pdfExportManager.exportHeatmap('heatmapCanvas', 'Heatmap Ανάλυση');
+        showToast('Heatmap PDF εξήχθη', 'success');
+    });
+
+    document.getElementById('exportHeatmapPngBtn')?.addEventListener('click', () => {
+        const canvas = document.getElementById('heatmapCanvas');
+        canvas.toBlob(blob => {
+            downloadBlob('heatmap.png', blob);
+            showToast('Heatmap PNG εξήχθη', 'success');
+        });
+    });
+
+    // ========================================
+    // Populate Report & Comparison Source Dropdowns
+    // ========================================
+    function populateSourceDropdowns() {
+        const reportSourceSelect = document.getElementById('reportSource');
+        if (reportSourceSelect) {
+            reportSourceSelect.innerHTML = '<option value="">Όλες</option>' +
+                STATE.sources.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+        }
+    }
+
+    populateSourceDropdowns();
     
     // Setup percentage sync
     const getQuickAmount = () => parseFloat(document.getElementById('quickAmount').value) || 0;
