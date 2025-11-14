@@ -1,22 +1,16 @@
 /**
  * eopyyClawback.js - ΕΟΠΥΥ Advanced Deductions Management
- * Διαχείριση 5 τύπων κρατήσεων για ΕΟΠΥΥ + γενικές κρατήσεις για άλλα ταμεία
+ * v2.1 - Added percentage storage
  */
 
 import { formatCurrency, parseMonthYear, generateId } from './utils.js';
 import storage from './storage.js';
 
-// ========================================
-// ΕΟΠΥΥ Deductions Manager
-// ========================================
 class EopyyDeductionsManager {
     constructor() {
-        this.deductions = []; // [{entryId, deductions: {parakratisi, mde, rebate, krathseis, clawback}, appliedDate}]
+        this.deductions = [];
     }
 
-    /**
-     * Load deductions από storage
-     */
     async loadDeductions() {
         try {
             this.deductions = await storage.loadSetting('eopyyDeductions') || [];
@@ -26,9 +20,6 @@ class EopyyDeductionsManager {
         }
     }
 
-    /**
-     * Save deductions σε storage
-     */
     async saveDeductions() {
         try {
             await storage.saveSetting('eopyyDeductions', this.deductions);
@@ -37,23 +28,19 @@ class EopyyDeductionsManager {
         }
     }
 
-    /**
-     * Check αν entry είναι ΕΟΠΥΥ
-     * @param {Object} entry - Entry object
-     * @returns {boolean}
-     */
     isEopyyEntry(entry) {
         return entry.insurance && entry.insurance.toUpperCase().includes('ΕΟΠΥΥ');
     }
 
     /**
-     * Apply deductions σε entry
+     * Apply deductions με percentages
      * @param {string} entryId - Entry ID
      * @param {Object} deductionAmounts - {parakratisi, mde, rebate, krathseis, clawback}
      * @param {string} notes - Notes
+     * @param {Object} percentages - {parakratisi, mde, rebate, krathseis, clawback} percentages
      * @returns {Promise<Object>}
      */
-    async applyDeductions(entryId, deductionAmounts, notes = '') {
+    async applyDeductions(entryId, deductionAmounts, notes = '', percentages = {}) {
         const existingIndex = this.deductions.findIndex(d => d.entryId === entryId);
         
         const deduction = {
@@ -65,6 +52,13 @@ class EopyyDeductionsManager {
                 rebate: parseFloat(deductionAmounts.rebate) || 0,
                 krathseis: parseFloat(deductionAmounts.krathseis) || 0,
                 clawback: parseFloat(deductionAmounts.clawback) || 0
+            },
+            percentages: {
+                parakratisi: parseFloat(percentages.parakratisi) || 0,
+                mde: parseFloat(percentages.mde) || 0,
+                rebate: parseFloat(percentages.rebate) || 0,
+                krathseis: parseFloat(percentages.krathseis) || 0,
+                clawback: parseFloat(percentages.clawback) || 0
             },
             appliedDate: Date.now(),
             notes
@@ -80,11 +74,6 @@ class EopyyDeductionsManager {
         return deduction;
     }
 
-    /**
-     * Remove deductions από entry
-     * @param {string} entryId - Entry ID
-     * @returns {Promise<boolean>}
-     */
     async removeDeductions(entryId) {
         const index = this.deductions.findIndex(d => d.entryId === entryId);
         if (index >= 0) {
@@ -95,24 +84,13 @@ class EopyyDeductionsManager {
         return false;
     }
 
-    /**
-     * Get deductions για entry
-     * @param {string} entryId - Entry ID
-     * @returns {Object|null}
-     */
     getDeductions(entryId) {
         return this.deductions.find(d => d.entryId === entryId) || null;
     }
 
-    /**
-     * Calculate amounts breakdown
-     * @param {Object} entry - Entry object
-     * @returns {Object}
-     */
     getAmountsBreakdown(entry) {
         const originalAmount = parseFloat(entry.originalAmount) || parseFloat(entry.amount);
         
-        // Για ΕΟΠΥΥ
         if (this.isEopyyEntry(entry)) {
             const deduction = this.getDeductions(entry.id);
             
@@ -126,7 +104,7 @@ class EopyyDeductionsManager {
                     clawback: 0,
                     totalDeductions: 0,
                     finalAmount: originalAmount,
-                    finalAmountNoParakratisi: originalAmount, // Για στατιστικά
+                    finalAmountNoParakratisi: originalAmount,
                     hasDeductions: false
                 };
             }
@@ -145,12 +123,11 @@ class EopyyDeductionsManager {
                 clawback,
                 totalDeductions,
                 finalAmount,
-                finalAmountNoParakratisi, // Χωρίς παρακράτηση (εισπράχθηκε ήδη)
+                finalAmountNoParakratisi,
                 hasDeductions: true
             };
         }
         
-        // Για άλλα ταμεία (μόνο γενικές κρατήσεις)
         const krathseisAmount = parseFloat(entry.krathseis) || 0;
         return {
             originalAmount,
@@ -163,12 +140,6 @@ class EopyyDeductionsManager {
         };
     }
 
-    /**
-     * Calculate KPIs με επιλογές προβολής
-     * @param {Array} entries - Entries array
-     * @param {Object} options - {includeParakratisi: bool}
-     * @returns {Object}
-     */
     calculateKPIs(entries, options = {}) {
         const { includeParakratisi = false } = options;
 
@@ -200,9 +171,9 @@ class EopyyDeductionsManager {
                 eopyyFinalNoParakratisi += amounts.finalAmountNoParakratisi;
                 
                 if (includeParakratisi) {
-                    eopyyTotal += amounts.finalAmountNoParakratisi; // Συμπεριλαμβάνει παρακράτηση
+                    eopyyTotal += amounts.finalAmountNoParakratisi;
                 } else {
-                    eopyyTotal += amounts.finalAmount; // Χωρίς παρακράτηση
+                    eopyyTotal += amounts.finalAmount;
                 }
             } else {
                 nonEopyyTotal += amounts.originalAmount;
@@ -233,11 +204,6 @@ class EopyyDeductionsManager {
         };
     }
 
-    /**
-     * Get entries που χρειάζονται deductions (ΕΟΠΥΥ χωρίς deductions)
-     * @param {Array} entries - Entries array
-     * @returns {Array}
-     */
     getEntriesMissingDeductions(entries) {
         return entries.filter(entry => {
             if (!this.isEopyyEntry(entry)) return false;
@@ -245,24 +211,12 @@ class EopyyDeductionsManager {
         });
     }
 
-    /**
-     * Get entries με deductions
-     * @param {Array} entries - Entries array
-     * @returns {Array}
-     */
     getEntriesWithDeductions(entries) {
         return entries.filter(entry => {
             return this.isEopyyEntry(entry) && this.getDeductions(entry.id);
         });
     }
 
-    /**
-     * Batch apply deductions percentage σε όλα τα ΕΟΠΥΥ entries
-     * @param {Array} entries - Entries array
-     * @param {Object} percentages - {parakratisi, mde, rebate, krathseis, clawback}
-     * @param {string} notes - Notes
-     * @returns {Promise<Object>}
-     */
     async batchApplyDeductions(entries, percentages, notes = '') {
         const eopyyEntries = entries.filter(e => this.isEopyyEntry(e));
         let applied = 0;
@@ -280,7 +234,7 @@ class EopyyDeductionsManager {
             };
 
             try {
-                await this.applyDeductions(entry.id, deductionAmounts, notes);
+                await this.applyDeductions(entry.id, deductionAmounts, notes, percentages);
                 applied++;
             } catch (error) {
                 console.error('Batch apply deductions error:', error);
@@ -295,11 +249,6 @@ class EopyyDeductionsManager {
         };
     }
 
-    /**
-     * Export deductions report
-     * @param {Array} entries - Entries array
-     * @returns {Object}
-     */
     exportDeductionsReport(entries) {
         const report = {
             generatedDate: new Date().toISOString(),
@@ -335,13 +284,7 @@ class EopyyDeductionsManager {
     }
 }
 
-// ========================================
-// Singleton Instance
-// ========================================
 const eopyyDeductionsManager = new EopyyDeductionsManager();
 
-// ========================================
-// Exports
-// ========================================
 export { EopyyDeductionsManager };
 export default eopyyDeductionsManager;
