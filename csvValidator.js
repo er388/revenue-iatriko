@@ -1,6 +1,6 @@
 /**
  * csvValidator.js - Enhanced CSV Validation Module
- * Validation, error detection, και auto-correction για CSV imports
+ * Validation, error detection, ÎºÎ±Î¹ auto-correction Î³Î¹Î± CSV imports
  */
 
 import {
@@ -18,7 +18,7 @@ const VALIDATION_RULES = {
     date: {
         required: true,
         validator: isValidMonthYear,
-        errorMessage: 'Μη έγκυρη ημερομηνία (απαιτείται ΜΜ/ΕΕΕΕ)',
+        errorMessage: 'ÎœÎ· Î­Î³ÎºÏ…ÏÎ· Î·Î¼ÎµÏÎ¿Î¼Î·Î½Î¯Î± (Î±Ï€Î±Î¹Ï„ÎµÎ¯Ï„Î±Î¹ ÎœÎœ/Î•Î•Î•Î•)',
         autoFix: (value) => {
             // Try to fix common date formats
             if (!value) return null;
@@ -46,13 +46,13 @@ const VALIDATION_RULES = {
     source: {
         required: true,
         validator: (value) => value && value.trim().length > 0,
-        errorMessage: 'Η πηγή είναι υποχρεωτική',
+        errorMessage: 'Î— Ï€Î·Î³Î® ÎµÎ¯Î½Î±Î¹ Ï…Ï€Î¿Ï‡ÏÎµÏ‰Ï„Î¹ÎºÎ®',
         autoFix: null
     },
     insurance: {
         required: true,
         validator: (value) => value && value.trim().length > 0,
-        errorMessage: 'Η ασφάλεια είναι υποχρεωτική',
+        errorMessage: 'Î— Î±ÏƒÏ†Î¬Î»ÎµÎ¹Î± ÎµÎ¯Î½Î±Î¹ Ï…Ï€Î¿Ï‡ÏÎµÏ‰Ï„Î¹ÎºÎ®',
         autoFix: null
     },
     type: {
@@ -60,19 +60,19 @@ const VALIDATION_RULES = {
         validator: (value) => {
             if (!value) return false;
             const normalized = value.toLowerCase().trim();
-            return normalized.includes('μετρητ') || 
+            return normalized.includes('Î¼ÎµÏ„ÏÎ·Ï„') || 
                    normalized.includes('cash') || 
-                   normalized.includes('τιμολ') || 
+                   normalized.includes('Ï„Î¹Î¼Î¿Î»') || 
                    normalized.includes('invoice');
         },
-        errorMessage: 'Μη έγκυρος τύπος (Μετρητά ή Τιμολόγια)',
+        errorMessage: 'ÎœÎ· Î­Î³ÎºÏ…ÏÎ¿Ï‚ Ï„ÏÏ€Î¿Ï‚ (ÎœÎµÏ„ÏÎ·Ï„Î¬ Î® Î¤Î¹Î¼Î¿Î»ÏŒÎ³Î¹Î±)',
         autoFix: (value) => {
             if (!value) return null;
             const normalized = value.toLowerCase().trim();
-            if (normalized.includes('μετρητ') || normalized.includes('cash')) {
+            if (normalized.includes('Î¼ÎµÏ„ÏÎ·Ï„') || normalized.includes('cash')) {
                 return 'cash';
             }
-            if (normalized.includes('τιμολ') || normalized.includes('invoice')) {
+            if (normalized.includes('Ï„Î¹Î¼Î¿Î»') || normalized.includes('invoice')) {
                 return 'invoice';
             }
             return null;
@@ -81,13 +81,13 @@ const VALIDATION_RULES = {
     amount: {
         required: true,
         validator: isValidAmount,
-        errorMessage: 'Μη έγκυρο ποσό',
+        errorMessage: 'ÎœÎ· Î­Î³ÎºÏ…ÏÎ¿ Ï€Î¿ÏƒÏŒ',
         autoFix: (value) => {
             if (!value) return null;
             
             // Remove currency symbols and spaces
             let cleaned = String(value)
-                .replace(/[€$£]/g, '')
+                .replace(/[â‚¬$Â£]/g, '')
                 .replace(/\s/g, '')
                 .trim();
             
@@ -237,7 +237,7 @@ class CSVValidator {
                     result.warning = {
                         row: rowIndex + 1,
                         field: fieldName,
-                        message: `Αυτόματη διόρθωση: "${value}" → "${fixed}"`
+                        message: `Î‘Ï…Ï„ÏŒÎ¼Î±Ï„Î· Î´Î¹ÏŒÏÎ¸Ï‰ÏƒÎ·: "${value}" â†’ "${fixed}"`
                     };
                     return result;
                 }
@@ -269,7 +269,7 @@ class CSVValidator {
         if (fieldCount === 0) {
             warnings.push({
                 row: rowIndex + 1,
-                message: 'Κενή γραμμή - θα παραλειφθεί'
+                message: 'ÎšÎµÎ½Î® Î³ÏÎ±Î¼Î¼Î® - Î¸Î± Ï€Î±ÏÎ±Î»ÎµÎ¹Ï†Î¸ÎµÎ¯'
             });
         }
 
@@ -281,7 +281,7 @@ class CSVValidator {
                 warnings.push({
                     row: rowIndex + 1,
                     field,
-                    message: 'Περιέχει μη έγκυρους χαρακτήρες (emoji, ειδικά σύμβολα)'
+                    message: 'Î ÎµÏÎ¹Î­Ï‡ÎµÎ¹ Î¼Î· Î­Î³ÎºÏ…ÏÎ¿Ï…Ï‚ Ï‡Î±ÏÎ±ÎºÏ„Î®ÏÎµÏ‚ (emoji, ÎµÎ¹Î´Î¹ÎºÎ¬ ÏƒÏÎ¼Î²Î¿Î»Î±)'
                 });
             }
         });
@@ -291,7 +291,7 @@ class CSVValidator {
             warnings.push({
                 row: rowIndex + 1,
                 field: 'amount',
-                message: 'Πολύ μεγάλο ποσό (>1M€) - επαληθεύστε'
+                message: 'Î Î¿Î»Ï Î¼ÎµÎ³Î¬Î»Î¿ Ï€Î¿ÏƒÏŒ (>1Mâ‚¬) - ÎµÏ€Î±Î»Î·Î¸ÎµÏÏƒÏ„Îµ'
             });
         }
 
@@ -308,26 +308,26 @@ class CSVValidator {
 
         // Summary
         html += '<div class="validation-summary">';
-        html += `<h4>Περίληψη Validation</h4>`;
-        html += `<p><strong>Σύνολο Γραμμών:</strong> ${validationResult.summary.totalRows}</p>`;
-        html += `<p><strong>Έγκυρες:</strong> <span class="text-success">${validationResult.summary.validRows}</span></p>`;
-        html += `<p><strong>Μη Έγκυρες:</strong> <span class="text-danger">${validationResult.summary.invalidRows}</span></p>`;
-        html += `<p><strong>Σφάλματα:</strong> ${validationResult.summary.totalErrors}</p>`;
-        html += `<p><strong>Προειδοποιήσεις:</strong> ${validationResult.summary.totalWarnings}</p>`;
-        html += `<p><strong>Αυτόματες Διορθώσεις:</strong> ${validationResult.summary.totalAutoFixes}</p>`;
+        html += `<h4>Î ÎµÏÎ¯Î»Î·ÏˆÎ· Validation</h4>`;
+        html += `<p><strong>Î£ÏÎ½Î¿Î»Î¿ Î“ÏÎ±Î¼Î¼ÏŽÎ½:</strong> ${validationResult.summary.totalRows}</p>`;
+        html += `<p><strong>ÎˆÎ³ÎºÏ…ÏÎµÏ‚:</strong> <span class="text-success">${validationResult.summary.validRows}</span></p>`;
+        html += `<p><strong>ÎœÎ· ÎˆÎ³ÎºÏ…ÏÎµÏ‚:</strong> <span class="text-danger">${validationResult.summary.invalidRows}</span></p>`;
+        html += `<p><strong>Î£Ï†Î¬Î»Î¼Î±Ï„Î±:</strong> ${validationResult.summary.totalErrors}</p>`;
+        html += `<p><strong>Î ÏÎ¿ÎµÎ¹Î´Î¿Ï€Î¿Î¹Î®ÏƒÎµÎ¹Ï‚:</strong> ${validationResult.summary.totalWarnings}</p>`;
+        html += `<p><strong>Î‘Ï…Ï„ÏŒÎ¼Î±Ï„ÎµÏ‚ Î”Î¹Î¿ÏÎ¸ÏŽÏƒÎµÎ¹Ï‚:</strong> ${validationResult.summary.totalAutoFixes}</p>`;
         html += '</div>';
 
         // Errors
         if (validationResult.errors.length > 0) {
             html += '<div class="validation-errors">';
-            html += '<h4>Σφάλματα</h4>';
+            html += '<h4>Î£Ï†Î¬Î»Î¼Î±Ï„Î±</h4>';
             html += '<ul>';
             validationResult.errors.forEach(error => {
                 html += `<li class="error-item">`;
-                html += `<strong>Γραμμή ${error.row}:</strong> `;
+                html += `<strong>Î“ÏÎ±Î¼Î¼Î® ${error.row}:</strong> `;
                 html += `${escapeHtml(error.message)}`;
                 if (error.value) {
-                    html += ` (Τιμή: "${escapeHtml(String(error.value))}")`;
+                    html += ` (Î¤Î¹Î¼Î®: "${escapeHtml(String(error.value))}")`;
                 }
                 html += `</li>`;
             });
@@ -338,11 +338,11 @@ class CSVValidator {
         // Warnings
         if (validationResult.warnings.length > 0) {
             html += '<div class="validation-warnings">';
-            html += '<h4>Προειδοποιήσεις</h4>';
+            html += '<h4>Î ÏÎ¿ÎµÎ¹Î´Î¿Ï€Î¿Î¹Î®ÏƒÎµÎ¹Ï‚</h4>';
             html += '<ul>';
             validationResult.warnings.forEach(warning => {
                 html += `<li class="warning-item">`;
-                html += `<strong>Γραμμή ${warning.row}:</strong> `;
+                html += `<strong>Î“ÏÎ±Î¼Î¼Î® ${warning.row}:</strong> `;
                 html += `${escapeHtml(warning.message)}`;
                 html += `</li>`;
             });
@@ -353,11 +353,11 @@ class CSVValidator {
         // Auto-fixes
         if (validationResult.autoFixes.length > 0) {
             html += '<div class="validation-fixes">';
-            html += '<h4>Αυτόματες Διορθώσεις</h4>';
+            html += '<h4>Î‘Ï…Ï„ÏŒÎ¼Î±Ï„ÎµÏ‚ Î”Î¹Î¿ÏÎ¸ÏŽÏƒÎµÎ¹Ï‚</h4>';
             html += '<ul>';
             validationResult.autoFixes.forEach(fix => {
                 html += `<li class="fix-item">`;
-                html += `<strong>Γραμμή ${fix.row}:</strong> `;
+                html += `<strong>Î“ÏÎ±Î¼Î¼Î® ${fix.row}:</strong> `;
                 html += `${escapeHtml(fix.message)}`;
                 html += `</li>`;
             });
@@ -370,7 +370,7 @@ class CSVValidator {
     }
 
     /**
-     * Highlight problematic rows στο preview table
+     * Highlight problematic rows ÏƒÏ„Î¿ preview table
      * @param {Object} validationResult - Validation result
      * @returns {Array}
      */

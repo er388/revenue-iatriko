@@ -1,6 +1,6 @@
 /**
  * forecasting.js - Revenue Forecasting Module
- * Client-side forecasting με Linear Regression, Seasonal Naive, Holt-Winters
+ * Client-side forecasting Î¼Îµ Linear Regression, Seasonal Naive, Holt-Winters
  */
 
 import {
@@ -17,7 +17,7 @@ import {
 
 /**
  * Linear Regression Forecasting
- * Απλό γραμμικό μοντέλο: y = mx + b
+ * Î‘Ï€Î»ÏŒ Î³ÏÎ±Î¼Î¼Î¹ÎºÏŒ Î¼Î¿Î½Ï„Î­Î»Î¿: y = mx + b
  */
 class LinearRegressionForecast {
     constructor(historicalData) {
@@ -28,7 +28,7 @@ class LinearRegressionForecast {
     }
 
     /**
-     * Train το μοντέλο
+     * Train Ï„Î¿ Î¼Î¿Î½Ï„Î­Î»Î¿
      */
     train() {
         const n = this.data.length;
@@ -92,7 +92,7 @@ class LinearRegressionForecast {
     }
 
     /**
-     * Calculate confidence intervals (απλοποιημένο)
+     * Calculate confidence intervals (Î±Ï€Î»Î¿Ï€Î¿Î¹Î·Î¼Î­Î½Î¿)
      * @param {Array} predictions - Predictions
      * @returns {Array}
      */
@@ -119,7 +119,7 @@ class LinearRegressionForecast {
 
 /**
  * Seasonal Naive Forecasting
- * Χρησιμοποιεί τιμές από την ίδια περίοδο προηγούμενου έτους
+ * Î§ÏÎ·ÏƒÎ¹Î¼Î¿Ï€Î¿Î¹ÎµÎ¯ Ï„Î¹Î¼Î­Ï‚ Î±Ï€ÏŒ Ï„Î·Î½ Î¯Î´Î¹Î± Ï€ÎµÏÎ¯Î¿Î´Î¿ Ï€ÏÎ¿Î·Î³Î¿ÏÎ¼ÎµÎ½Î¿Ï… Î­Ï„Î¿Ï…Ï‚
  */
 class SeasonalNaiveForecast {
     constructor(historicalData) {
@@ -214,12 +214,12 @@ class SeasonalNaiveForecast {
 
 /**
  * Holt-Winters Exponential Smoothing (Simplified)
- * Triple exponential smoothing για trend και seasonality
+ * Triple exponential smoothing Î³Î¹Î± trend ÎºÎ±Î¹ seasonality
  */
 class HoltWintersForecast {
     constructor(historicalData, seasonLength = 12) {
         this.data = historicalData;
-        this.seasonLength = seasonLength; // 12 για μηνιαία δεδομένα
+        this.seasonLength = seasonLength; // 12 Î³Î¹Î± Î¼Î·Î½Î¹Î±Î¯Î± Î´ÎµÎ´Î¿Î¼Î­Î½Î±
         this.alpha = 0.3; // Level smoothing
         this.beta = 0.1;  // Trend smoothing
         this.gamma = 0.2; // Seasonal smoothing
@@ -368,7 +368,7 @@ class ForecastManager {
     }
 
     /**
-     * Prepare historical data για forecasting
+     * Prepare historical data Î³Î¹Î± forecasting
      * @param {string} startDate - Start date (optional)
      * @param {string} endDate - End date (optional)
      * @returns {Array}
@@ -467,26 +467,26 @@ class ForecastManager {
         const change = ((firstPrediction - lastActual) / lastActual) * 100;
 
         const methodNames = {
-            'linear': 'Γραμμική Παλινδρόμηση',
-            'seasonal': 'Εποχική Πρόβλεψη',
+            'linear': 'Î“ÏÎ±Î¼Î¼Î¹ÎºÎ® Î Î±Î»Î¹Î½Î´ÏÏŒÎ¼Î·ÏƒÎ·',
+            'seasonal': 'Î•Ï€Î¿Ï‡Î¹ÎºÎ® Î ÏÏŒÎ²Î»ÎµÏˆÎ·',
             'holt-winters': 'Holt-Winters'
         };
 
-        let summary = `Μέθοδος: ${methodNames[method] || method}\n\n`;
+        let summary = `ÎœÎ­Î¸Î¿Î´Î¿Ï‚: ${methodNames[method] || method}\n\n`;
 
         if (change > 5) {
-            summary += `📈 Αναμένεται αύξηση εσόδων κατά ${change.toFixed(1)}% τον επόμενο μήνα.\n`;
+            summary += `ðŸ“ˆ Î‘Î½Î±Î¼Î­Î½ÎµÏ„Î±Î¹ Î±ÏÎ¾Î·ÏƒÎ· ÎµÏƒÏŒÎ´Ï‰Î½ ÎºÎ±Ï„Î¬ ${change.toFixed(1)}% Ï„Î¿Î½ ÎµÏ€ÏŒÎ¼ÎµÎ½Î¿ Î¼Î®Î½Î±.\n`;
         } else if (change < -5) {
-            summary += `📉 Αναμένεται μείωση εσόδων κατά ${Math.abs(change).toFixed(1)}% τον επόμενο μήνα.\n`;
+            summary += `ðŸ“‰ Î‘Î½Î±Î¼Î­Î½ÎµÏ„Î±Î¹ Î¼ÎµÎ¯Ï‰ÏƒÎ· ÎµÏƒÏŒÎ´Ï‰Î½ ÎºÎ±Ï„Î¬ ${Math.abs(change).toFixed(1)}% Ï„Î¿Î½ ÎµÏ€ÏŒÎ¼ÎµÎ½Î¿ Î¼Î®Î½Î±.\n`;
         } else {
-            summary += `➡️ Αναμένεται σταθερότητα εσόδων (${Math.abs(change).toFixed(1)}% διακύμανση).\n`;
+            summary += `âž¡ï¸ Î‘Î½Î±Î¼Î­Î½ÎµÏ„Î±Î¹ ÏƒÏ„Î±Î¸ÎµÏÏŒÏ„Î·Ï„Î± ÎµÏƒÏŒÎ´Ï‰Î½ (${Math.abs(change).toFixed(1)}% Î´Î¹Î±ÎºÏÎ¼Î±Î½ÏƒÎ·).\n`;
         }
 
-        summary += `\nΜέσος όρος πρόβλεψης για τους επόμενους ${predictions.length} μήνες: ${avgPrediction.toFixed(2)} €\n`;
+        summary += `\nÎœÎ­ÏƒÎ¿Ï‚ ÏŒÏÎ¿Ï‚ Ï€ÏÏŒÎ²Î»ÎµÏˆÎ·Ï‚ Î³Î¹Î± Ï„Î¿Ï…Ï‚ ÎµÏ€ÏŒÎ¼ÎµÎ½Î¿Ï…Ï‚ ${predictions.length} Î¼Î®Î½ÎµÏ‚: ${avgPrediction.toFixed(2)} â‚¬\n`;
 
         // Confidence note
         const avgConfidence = predictions.reduce((sum, p) => sum + (p.upper - p.lower), 0) / predictions.length;
-        summary += `\nΔιάστημα εμπιστοσύνης: ±${avgConfidence.toFixed(2)} € (95%)`;
+        summary += `\nÎ”Î¹Î¬ÏƒÏ„Î·Î¼Î± ÎµÎ¼Ï€Î¹ÏƒÏ„Î¿ÏƒÏÎ½Î·Ï‚: Â±${avgConfidence.toFixed(2)} â‚¬ (95%)`;
 
         return summary;
     }

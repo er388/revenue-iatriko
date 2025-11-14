@@ -1,6 +1,6 @@
 /**
  * cloudAdapters.js - Cloud Storage Integrations
- * Google Drive, Dropbox, OneDrive με OAuth2 PKCE
+ * Google Drive, Dropbox, OneDrive Î¼Îµ OAuth2 PKCE
  */
 
 import { logError, generateId, downloadBlob } from './utils.js';
@@ -40,7 +40,7 @@ const CLOUD_CONFIG = {
 // ========================================
 
 /**
- * Generate random string για PKCE
+ * Generate random string Î³Î¹Î± PKCE
  * @param {number} length - Length
  * @returns {string}
  */
@@ -51,7 +51,7 @@ function generateRandomString(length = 128) {
 }
 
 /**
- * Generate code challenge για PKCE
+ * Generate code challenge Î³Î¹Î± PKCE
  * @param {string} codeVerifier - Code verifier
  * @returns {Promise<string>}
  */
@@ -82,7 +82,7 @@ class CloudAdapter {
     }
 
     /**
-     * Load tokens από localStorage
+     * Load tokens Î±Ï€ÏŒ localStorage
      */
     loadTokens() {
         try {
@@ -100,7 +100,7 @@ class CloudAdapter {
     }
 
     /**
-     * Save tokens σε localStorage
+     * Save tokens ÏƒÎµ localStorage
      */
     saveTokens() {
         try {
@@ -127,7 +127,7 @@ class CloudAdapter {
     }
 
     /**
-     * Start OAuth flow με PKCE
+     * Start OAuth flow Î¼Îµ PKCE
      * @returns {Promise<void>}
      */
     async connect() {
@@ -137,7 +137,7 @@ class CloudAdapter {
             const codeChallenge = await generateCodeChallenge(codeVerifier);
             const state = generateId();
 
-            // Store για callback
+            // Store Î³Î¹Î± callback
             sessionStorage.setItem('oauth_code_verifier', codeVerifier);
             sessionStorage.setItem('oauth_state', state);
             sessionStorage.setItem('oauth_provider', this.name);
@@ -153,7 +153,7 @@ class CloudAdapter {
                 code_challenge_method: 'S256'
             });
 
-            // Redirect για authorization
+            // Redirect Î³Î¹Î± authorization
             window.location.href = `${this.config.authEndpoint}?${params.toString()}`;
         } catch (error) {
             logError(`${this.name} connect`, error);
@@ -204,7 +204,7 @@ class CloudAdapter {
     }
 
     /**
-     * Exchange authorization code για tokens
+     * Exchange authorization code Î³Î¹Î± tokens
      * @param {string} code - Authorization code
      * @param {string} codeVerifier - PKCE code verifier
      * @returns {Promise<Object>}
@@ -273,13 +273,13 @@ class CloudAdapter {
     }
 
     /**
-     * Check αν token είναι valid, αλλιώς refresh
+     * Check Î±Î½ token ÎµÎ¯Î½Î±Î¹ valid, Î±Î»Î»Î¹ÏŽÏ‚ refresh
      * @returns {Promise<boolean>}
      */
     async ensureValidToken() {
         if (!this.accessToken) return false;
 
-        // Check αν expired
+        // Check Î±Î½ expired
         if (Date.now() >= this.tokenExpiry - 60000) { // 1 min buffer
             return await this.refreshAccessToken();
         }
@@ -288,7 +288,7 @@ class CloudAdapter {
     }
 
     /**
-     * Disconnect από cloud service
+     * Disconnect Î±Ï€ÏŒ cloud service
      */
     disconnect() {
         this.clearTokens();
@@ -314,7 +314,7 @@ class CloudAdapter {
             headers
         });
 
-        // Αν 401, δοκίμασε refresh
+        // Î‘Î½ 401, Î´Î¿ÎºÎ¯Î¼Î±ÏƒÎµ refresh
         if (response.status === 401) {
             const refreshed = await this.refreshAccessToken();
             if (refreshed) {
@@ -327,7 +327,7 @@ class CloudAdapter {
         return response;
     }
 
-    // Abstract methods - override στα subclasses
+    // Abstract methods - override ÏƒÏ„Î± subclasses
     async upload(filename, data) {
         throw new Error('upload() must be implemented');
     }
@@ -350,7 +350,7 @@ class GoogleDriveAdapter extends CloudAdapter {
     }
 
     /**
-     * Upload file σε Google Drive
+     * Upload file ÏƒÎµ Google Drive
      * @param {string} filename - Filename
      * @param {string} data - JSON data
      * @param {boolean} overwrite - Overwrite existing
@@ -358,7 +358,7 @@ class GoogleDriveAdapter extends CloudAdapter {
      */
     async upload(filename, data, overwrite = true) {
         try {
-            // Check αν υπάρχει ήδη
+            // Check Î±Î½ Ï…Ï€Î¬ÏÏ‡ÎµÎ¹ Î®Î´Î·
             let fileId = null;
             if (overwrite) {
                 const existing = await this.findFile(filename);
@@ -419,7 +419,7 @@ class GoogleDriveAdapter extends CloudAdapter {
     }
 
     /**
-     * Download file από Google Drive
+     * Download file Î±Ï€ÏŒ Google Drive
      * @param {string} fileId - File ID
      * @returns {Promise<string>}
      */

@@ -1,6 +1,6 @@
 /**
  * comparison.js - Period Comparison Module
- * Σύγκριση περιόδων με side-by-side KPIs και trend analysis
+ * Î£ÏÎ³ÎºÏÎ¹ÏƒÎ· Ï€ÎµÏÎ¹ÏŒÎ´Ï‰Î½ Î¼Îµ side-by-side KPIs ÎºÎ±Î¹ trend analysis
  */
 
 import {
@@ -112,7 +112,7 @@ class PeriodComparison {
     }
 
     /**
-     * Filter entries για συγκεκριμένη περίοδο
+     * Filter entries Î³Î¹Î± ÏƒÏ…Î³ÎºÎµÎºÏÎ¹Î¼Î­Î½Î· Ï€ÎµÏÎ¯Î¿Î´Î¿
      * @param {string} startDate - Start date (MM/YYYY)
      * @param {string} endDate - End date (MM/YYYY)
      * @returns {Array}
@@ -125,7 +125,7 @@ class PeriodComparison {
     }
 
     /**
-     * Calculate KPIs για περίοδο
+     * Calculate KPIs Î³Î¹Î± Ï€ÎµÏÎ¯Î¿Î´Î¿
      * @param {Array} entries - Filtered entries
      * @returns {Object}
      */
@@ -179,7 +179,7 @@ class PeriodComparison {
     }
 
     /**
-     * Compare δύο περιόδους
+     * Compare Î´ÏÎ¿ Ï€ÎµÏÎ¹ÏŒÎ´Î¿Ï…Ï‚
      * @param {Object} period1 - {start, end, label}
      * @param {Object} period2 - {start, end, label}
      * @returns {Object}
@@ -235,27 +235,27 @@ class PeriodComparison {
     }
 
     /**
-     * Get comparison με preset
+     * Get comparison Î¼Îµ preset
      * @param {string} preset - Preset name
      * @returns {Object}
      */
     getPresetComparison(preset) {
         const presets = {
             'month-vs-previous': {
-                period1: { ...PERIOD_PRESETS.previousMonth(), label: 'Προηγούμενος Μήνας' },
-                period2: { ...PERIOD_PRESETS.currentMonth(), label: 'Τρέχων Μήνας' }
+                period1: { ...PERIOD_PRESETS.previousMonth(), label: 'Î ÏÎ¿Î·Î³Î¿ÏÎ¼ÎµÎ½Î¿Ï‚ ÎœÎ®Î½Î±Ï‚' },
+                period2: { ...PERIOD_PRESETS.currentMonth(), label: 'Î¤ÏÎ­Ï‡Ï‰Î½ ÎœÎ®Î½Î±Ï‚' }
             },
             'month-vs-last-year': {
-                period1: { ...PERIOD_PRESETS.sameLastYear(), label: 'Ίδιος Μήνας Πέρσι' },
-                period2: { ...PERIOD_PRESETS.currentMonth(), label: 'Τρέχων Μήνας' }
+                period1: { ...PERIOD_PRESETS.sameLastYear(), label: 'ÎŠÎ´Î¹Î¿Ï‚ ÎœÎ®Î½Î±Ï‚ Î Î­ÏÏƒÎ¹' },
+                period2: { ...PERIOD_PRESETS.currentMonth(), label: 'Î¤ÏÎ­Ï‡Ï‰Î½ ÎœÎ®Î½Î±Ï‚' }
             },
             'quarter-vs-previous': {
-                period1: { ...PERIOD_PRESETS.previousQuarter(), label: 'Προηγούμενο Τρίμηνο' },
-                period2: { ...PERIOD_PRESETS.currentQuarter(), label: 'Τρέχον Τρίμηνο' }
+                period1: { ...PERIOD_PRESETS.previousQuarter(), label: 'Î ÏÎ¿Î·Î³Î¿ÏÎ¼ÎµÎ½Î¿ Î¤ÏÎ¯Î¼Î·Î½Î¿' },
+                period2: { ...PERIOD_PRESETS.currentQuarter(), label: 'Î¤ÏÎ­Ï‡Î¿Î½ Î¤ÏÎ¯Î¼Î·Î½Î¿' }
             },
             'year-vs-previous': {
-                period1: { ...PERIOD_PRESETS.previousYear(), label: 'Προηγούμενο Έτος' },
-                period2: { ...PERIOD_PRESETS.currentYear(), label: 'Τρέχον Έτος' }
+                period1: { ...PERIOD_PRESETS.previousYear(), label: 'Î ÏÎ¿Î·Î³Î¿ÏÎ¼ÎµÎ½Î¿ ÎˆÏ„Î¿Ï‚' },
+                period2: { ...PERIOD_PRESETS.currentYear(), label: 'Î¤ÏÎ­Ï‡Î¿Î½ ÎˆÏ„Î¿Ï‚' }
             }
         };
 
@@ -266,7 +266,7 @@ class PeriodComparison {
     }
 
     /**
-     * Generate trend data για γράφημα
+     * Generate trend data Î³Î¹Î± Î³ÏÎ¬Ï†Î·Î¼Î±
      * @param {string} startDate - Start date
      * @param {string} endDate - End date
      * @returns {Object}
@@ -300,7 +300,7 @@ class PeriodComparison {
 
         return [
             {
-                metric: 'Συνολικά Έσοδα',
+                metric: 'Î£Ï…Î½Î¿Î»Î¹ÎºÎ¬ ÎˆÏƒÎ¿Î´Î±',
                 period1: formatCurrency(period1.kpis.total),
                 period2: formatCurrency(period2.kpis.total),
                 change: formatCurrency(changes.total.value),
@@ -308,7 +308,7 @@ class PeriodComparison {
                 trend: changes.total.percent > 0 ? 'up' : changes.total.percent < 0 ? 'down' : 'neutral'
             },
             {
-                metric: 'Μετρητά & Κάρτες',
+                metric: 'ÎœÎµÏ„ÏÎ·Ï„Î¬ & ÎšÎ¬ÏÏ„ÎµÏ‚',
                 period1: formatCurrency(period1.kpis.cash),
                 period2: formatCurrency(period2.kpis.cash),
                 change: formatCurrency(changes.cash.value),
@@ -316,7 +316,7 @@ class PeriodComparison {
                 trend: changes.cash.percent > 0 ? 'up' : changes.cash.percent < 0 ? 'down' : 'neutral'
             },
             {
-                metric: 'Τιμολόγια',
+                metric: 'Î¤Î¹Î¼Î¿Î»ÏŒÎ³Î¹Î±',
                 period1: formatCurrency(period1.kpis.invoices),
                 period2: formatCurrency(period2.kpis.invoices),
                 change: formatCurrency(changes.invoices.value),
@@ -324,7 +324,7 @@ class PeriodComparison {
                 trend: changes.invoices.percent > 0 ? 'up' : changes.invoices.percent < 0 ? 'down' : 'neutral'
             },
             {
-                metric: 'Κρατήσεις',
+                metric: 'ÎšÏÎ±Ï„Î®ÏƒÎµÎ¹Ï‚',
                 period1: formatCurrency(period1.kpis.retentions),
                 period2: formatCurrency(period2.kpis.retentions),
                 change: formatCurrency(changes.retentions.value),
@@ -332,7 +332,7 @@ class PeriodComparison {
                 trend: changes.retentions.percent > 0 ? 'up' : changes.retentions.percent < 0 ? 'down' : 'neutral'
             },
             {
-                metric: 'Αριθμός Εγγραφών',
+                metric: 'Î‘ÏÎ¹Î¸Î¼ÏŒÏ‚ Î•Î³Î³ÏÎ±Ï†ÏŽÎ½',
                 period1: period1.kpis.count.toString(),
                 period2: period2.kpis.count.toString(),
                 change: changes.count.value > 0 ? `+${changes.count.value}` : changes.count.value.toString(),
@@ -340,7 +340,7 @@ class PeriodComparison {
                 trend: changes.count.percent > 0 ? 'up' : changes.count.percent < 0 ? 'down' : 'neutral'
             },
             {
-                metric: 'Μέσος Όρος / Εγγραφή',
+                metric: 'ÎœÎ­ÏƒÎ¿Ï‚ ÎŒÏÎ¿Ï‚ / Î•Î³Î³ÏÎ±Ï†Î®',
                 period1: formatCurrency(period1.kpis.avgPerEntry),
                 period2: formatCurrency(period2.kpis.avgPerEntry),
                 change: formatCurrency(changes.avgPerEntry.value),
@@ -362,28 +362,28 @@ class PeriodComparison {
 
         // Overall trend
         if (changes.total.percent > 10) {
-            parts.push(`📈 Σημαντική αύξηση εσόδων κατά ${formatPercent(changes.total.percent)}`);
+            parts.push(`ðŸ“ˆ Î£Î·Î¼Î±Î½Ï„Î¹ÎºÎ® Î±ÏÎ¾Î·ÏƒÎ· ÎµÏƒÏŒÎ´Ï‰Î½ ÎºÎ±Ï„Î¬ ${formatPercent(changes.total.percent)}`);
         } else if (changes.total.percent < -10) {
-            parts.push(`📉 Σημαντική μείωση εσόδων κατά ${formatPercent(Math.abs(changes.total.percent))}`);
+            parts.push(`ðŸ“‰ Î£Î·Î¼Î±Î½Ï„Î¹ÎºÎ® Î¼ÎµÎ¯Ï‰ÏƒÎ· ÎµÏƒÏŒÎ´Ï‰Î½ ÎºÎ±Ï„Î¬ ${formatPercent(Math.abs(changes.total.percent))}`);
         } else if (Math.abs(changes.total.percent) <= 10) {
-            parts.push(`➡️ Σταθερότητα εσόδων (${formatPercent(Math.abs(changes.total.percent))} διακύμανση)`);
+            parts.push(`âž¡ï¸ Î£Ï„Î±Î¸ÎµÏÏŒÏ„Î·Ï„Î± ÎµÏƒÏŒÎ´Ï‰Î½ (${formatPercent(Math.abs(changes.total.percent))} Î´Î¹Î±ÎºÏÎ¼Î±Î½ÏƒÎ·)`);
         }
 
         // Count trend
         if (changes.count.value > 0) {
-            parts.push(`Αύξηση εγγραφών: ${changes.count.value} (+${formatPercent(changes.count.percent)})`);
+            parts.push(`Î‘ÏÎ¾Î·ÏƒÎ· ÎµÎ³Î³ÏÎ±Ï†ÏŽÎ½: ${changes.count.value} (+${formatPercent(changes.count.percent)})`);
         } else if (changes.count.value < 0) {
-            parts.push(`Μείωση εγγραφών: ${Math.abs(changes.count.value)} (-${formatPercent(Math.abs(changes.count.percent))})`);
+            parts.push(`ÎœÎµÎ¯Ï‰ÏƒÎ· ÎµÎ³Î³ÏÎ±Ï†ÏŽÎ½: ${Math.abs(changes.count.value)} (-${formatPercent(Math.abs(changes.count.percent))})`);
         }
 
         // Average per entry
         if (changes.avgPerEntry.percent > 5) {
-            parts.push(`Βελτίωση μέσου όρου ανά εγγραφή: ${formatCurrency(changes.avgPerEntry.value)}`);
+            parts.push(`Î’ÎµÎ»Ï„Î¯Ï‰ÏƒÎ· Î¼Î­ÏƒÎ¿Ï… ÏŒÏÎ¿Ï… Î±Î½Î¬ ÎµÎ³Î³ÏÎ±Ï†Î®: ${formatCurrency(changes.avgPerEntry.value)}`);
         } else if (changes.avgPerEntry.percent < -5) {
-            parts.push(`Μείωση μέσου όρου ανά εγγραφή: ${formatCurrency(Math.abs(changes.avgPerEntry.value))}`);
+            parts.push(`ÎœÎµÎ¯Ï‰ÏƒÎ· Î¼Î­ÏƒÎ¿Ï… ÏŒÏÎ¿Ï… Î±Î½Î¬ ÎµÎ³Î³ÏÎ±Ï†Î®: ${formatCurrency(Math.abs(changes.avgPerEntry.value))}`);
         }
 
-        return parts.join(' • ');
+        return parts.join(' â€¢ ');
     }
 }
 

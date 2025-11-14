@@ -1,6 +1,6 @@
 /**
  * cdnChecker.js - CDN Availability Checker
- * Έλεγχος διαθεσιμότητας CDN libraries και fallback management
+ * ÎˆÎ»ÎµÎ³Ï‡Î¿Ï‚ Î´Î¹Î±Î¸ÎµÏƒÎ¹Î¼ÏŒÏ„Î·Ï„Î±Ï‚ CDN libraries ÎºÎ±Î¹ fallback management
  */
 
 import { checkCDNAvailability } from './utils.js';
@@ -40,7 +40,7 @@ class CDNChecker {
     }
 
     /**
-     * Check όλα τα CDN libraries
+     * Check ÏŒÎ»Î± Ï„Î± CDN libraries
      * @returns {Promise<Object>}
      */
     async checkAll() {
@@ -111,7 +111,7 @@ class CDNChecker {
     }
 
     /**
-     * Get status για specific library
+     * Get status Î³Î¹Î± specific library
      * @param {string} name - Library name
      * @returns {Object|null}
      */
@@ -120,7 +120,7 @@ class CDNChecker {
     }
 
     /**
-     * Check αν είμαστε offline
+     * Check Î±Î½ ÎµÎ¯Î¼Î±ÏƒÏ„Îµ offline
      * @returns {boolean}
      */
     isOffline() {
@@ -158,13 +158,13 @@ class CDNChecker {
         notice.className = 'cdn-notice offline';
         notice.innerHTML = `
             <div class="cdn-notice-content">
-                <span class="cdn-notice-icon">⚠️</span>
+                <span class="cdn-notice-icon">âš ï¸</span>
                 <div class="cdn-notice-text">
-                    <strong>Λειτουργία Offline</strong>
-                    <p>Δεν μπορούν να φορτωθούν οι βιβλιοθήκες CDN. Μερικές λειτουργίες μπορεί να μην είναι διαθέσιμες.</p>
-                    <small>Γραφήματα, PDF exports και CSV imports μπορεί να μην λειτουργούν.</small>
+                    <strong>Î›ÎµÎ¹Ï„Î¿Ï…ÏÎ³Î¯Î± Offline</strong>
+                    <p>Î”ÎµÎ½ Î¼Ï€Î¿ÏÎ¿ÏÎ½ Î½Î± Ï†Î¿ÏÏ„Ï‰Î¸Î¿ÏÎ½ Î¿Î¹ Î²Î¹Î²Î»Î¹Î¿Î¸Î®ÎºÎµÏ‚ CDN. ÎœÎµÏÎ¹ÎºÎ­Ï‚ Î»ÎµÎ¹Ï„Î¿Ï…ÏÎ³Î¯ÎµÏ‚ Î¼Ï€Î¿ÏÎµÎ¯ Î½Î± Î¼Î·Î½ ÎµÎ¯Î½Î±Î¹ Î´Î¹Î±Î¸Î­ÏƒÎ¹Î¼ÎµÏ‚.</p>
+                    <small>Î“ÏÎ±Ï†Î®Î¼Î±Ï„Î±, PDF exports ÎºÎ±Î¹ CSV imports Î¼Ï€Î¿ÏÎµÎ¯ Î½Î± Î¼Î·Î½ Î»ÎµÎ¹Ï„Î¿Ï…ÏÎ³Î¿ÏÎ½.</small>
                 </div>
-                <button class="cdn-notice-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                <button class="cdn-notice-close" onclick="this.parentElement.parentElement.remove()">Ã—</button>
             </div>
         `;
 
@@ -187,12 +187,12 @@ class CDNChecker {
         notice.className = 'cdn-notice online';
         notice.innerHTML = `
             <div class="cdn-notice-content">
-                <span class="cdn-notice-icon">✅</span>
+                <span class="cdn-notice-icon">âœ…</span>
                 <div class="cdn-notice-text">
-                    <strong>Σύνδεση Αποκαταστάθηκε</strong>
-                    <p>Όλες οι λειτουργίες είναι διαθέσιμες.</p>
+                    <strong>Î£ÏÎ½Î´ÎµÏƒÎ· Î‘Ï€Î¿ÎºÎ±Ï„Î±ÏƒÏ„Î¬Î¸Î·ÎºÎµ</strong>
+                    <p>ÎŒÎ»ÎµÏ‚ Î¿Î¹ Î»ÎµÎ¹Ï„Î¿Ï…ÏÎ³Î¯ÎµÏ‚ ÎµÎ¯Î½Î±Î¹ Î´Î¹Î±Î¸Î­ÏƒÎ¹Î¼ÎµÏ‚.</p>
                 </div>
-                <button class="cdn-notice-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                <button class="cdn-notice-close" onclick="this.parentElement.parentElement.remove()">Ã—</button>
             </div>
         `;
 
@@ -210,18 +210,18 @@ class CDNChecker {
      * @returns {string}
      */
     generateStatusReport() {
-        let report = '📊 CDN Libraries Status:\n\n';
+        let report = 'ðŸ“Š CDN Libraries Status:\n\n';
 
         Object.entries(this.status).forEach(([name, status]) => {
-            const icon = status.available ? '✅' : '❌';
+            const icon = status.available ? 'âœ…' : 'âŒ';
             const required = status.required ? '(Required)' : '(Optional)';
             report += `${icon} ${name} ${required}: ${status.source}\n`;
         });
 
         if (this.offline) {
-            report += '\n⚠️ Offline Mode: Some features unavailable';
+            report += '\nâš ï¸ Offline Mode: Some features unavailable';
         } else {
-            report += '\n✅ All systems operational';
+            report += '\nâœ… All systems operational';
         }
 
         return report;
@@ -260,7 +260,7 @@ class CDNChecker {
     }
 
     /**
-     * Get fallback instructions για user
+     * Get fallback instructions Î³Î¹Î± user
      * @returns {Object}
      */
     getFallbackInstructions() {
@@ -284,31 +284,31 @@ class CDNChecker {
         if (unavailable.includes('chartjs')) {
             instructions.steps.push({
                 library: 'Chart.js',
-                impact: 'Γραφήματα δεν θα εμφανίζονται',
-                workaround: 'Χρησιμοποιήστε τα exports CSV για ανάλυση σε Excel'
+                impact: 'Î“ÏÎ±Ï†Î®Î¼Î±Ï„Î± Î´ÎµÎ½ Î¸Î± ÎµÎ¼Ï†Î±Î½Î¯Î¶Î¿Î½Ï„Î±Î¹',
+                workaround: 'Î§ÏÎ·ÏƒÎ¹Î¼Î¿Ï€Î¿Î¹Î®ÏƒÏ„Îµ Ï„Î± exports CSV Î³Î¹Î± Î±Î½Î¬Î»Ï…ÏƒÎ· ÏƒÎµ Excel'
             });
         }
 
         if (unavailable.includes('papaparse')) {
             instructions.steps.push({
                 library: 'PapaParse',
-                impact: 'CSV import δεν θα λειτουργεί',
-                workaround: 'Χρησιμοποιήστε JSON import/export'
+                impact: 'CSV import Î´ÎµÎ½ Î¸Î± Î»ÎµÎ¹Ï„Î¿Ï…ÏÎ³ÎµÎ¯',
+                workaround: 'Î§ÏÎ·ÏƒÎ¹Î¼Î¿Ï€Î¿Î¹Î®ÏƒÏ„Îµ JSON import/export'
             });
         }
 
         if (unavailable.includes('jspdf')) {
             instructions.steps.push({
                 library: 'jsPDF',
-                impact: 'PDF export δεν θα λειτουργεί',
-                workaround: 'Χρησιμοποιήστε Print to PDF του browser'
+                impact: 'PDF export Î´ÎµÎ½ Î¸Î± Î»ÎµÎ¹Ï„Î¿Ï…ÏÎ³ÎµÎ¯',
+                workaround: 'Î§ÏÎ·ÏƒÎ¹Î¼Î¿Ï€Î¿Î¹Î®ÏƒÏ„Îµ Print to PDF Ï„Î¿Ï… browser'
             });
         }
 
         instructions.steps.push({
             library: 'General',
             impact: 'Offline mode',
-            workaround: 'Ελέγξτε τη σύνδεση internet και ανανεώστε τη σελίδα'
+            workaround: 'Î•Î»Î­Î³Î¾Ï„Îµ Ï„Î· ÏƒÏÎ½Î´ÎµÏƒÎ· internet ÎºÎ±Î¹ Î±Î½Î±Î½ÎµÏŽÏƒÏ„Îµ Ï„Î· ÏƒÎµÎ»Î¯Î´Î±'
         });
 
         return instructions;

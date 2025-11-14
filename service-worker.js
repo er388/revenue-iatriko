@@ -1,6 +1,6 @@
 /**
  * service-worker.js - Service Worker for Offline Support
- * Caching strategy για offline-first functionality
+ * Caching strategy Î³Î¹Î± offline-first functionality
  */
 
 const CACHE_NAME = 'revenue-manager-v1.2';
@@ -105,13 +105,13 @@ self.addEventListener('fetch', (event) => {
 
     // Apply different strategies based on request type
     if (isStaticAsset(url)) {
-        // Cache-first strategy για static assets
+        // Cache-first strategy Î³Î¹Î± static assets
         event.respondWith(cacheFirst(request));
     } else if (isCDNAsset(url)) {
-        // Stale-while-revalidate για CDN
+        // Stale-while-revalidate Î³Î¹Î± CDN
         event.respondWith(staleWhileRevalidate(request));
     } else if (isAPIRequest(url)) {
-        // Network-first για API requests
+        // Network-first Î³Î¹Î± API requests
         event.respondWith(networkFirst(request));
     } else {
         // Default: network-first
@@ -125,7 +125,7 @@ self.addEventListener('fetch', (event) => {
 
 /**
  * Cache-first strategy
- * Χρησιμοποιείται για static assets που δεν αλλάζουν συχνά
+ * Î§ÏÎ·ÏƒÎ¹Î¼Î¿Ï€Î¿Î¹ÎµÎ¯Ï„Î±Î¹ Î³Î¹Î± static assets Ï€Î¿Ï… Î´ÎµÎ½ Î±Î»Î»Î¬Î¶Î¿Ï…Î½ ÏƒÏ…Ï‡Î½Î¬
  */
 async function cacheFirst(request) {
     const cache = await caches.open(CACHE_NAME);
@@ -238,7 +238,7 @@ function isAPIRequest(url) {
 }
 
 // ========================================
-// Message Event (για cache management από main thread)
+// Message Event (Î³Î¹Î± cache management Î±Ï€ÏŒ main thread)
 // ========================================
 self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -309,5 +309,3 @@ async function cleanOldCaches() {
 self.addEventListener('activate', (event) => {
     event.waitUntil(cleanOldCaches());
 });
-
-console.log('[ServiceWorker] Loaded');

@@ -1,6 +1,6 @@
 /**
  * backup.js - Backup Management Module
- * Import με Merge/Overwrite, Autosave, Local file handling
+ * Import Î¼Îµ Merge/Overwrite, Autosave, Local file handling
  */
 
 import storage from './storage.js';
@@ -253,7 +253,7 @@ class BackupManager {
         AUTOSAVE_CONFIG.interval = interval;
 
         this.startAutosave();
-        this.showAutosaveIndicator('Autosave ενεργό');
+        this.showAutosaveIndicator('Autosave ÎµÎ½ÎµÏÎ³ÏŒ');
         
         console.log(`Autosave enabled with ${interval}ms interval`);
     }
@@ -315,7 +315,7 @@ class BackupManager {
 
         } catch (error) {
             logError('Autosave', error);
-            this.showAutosaveIndicator('Σφάλμα autosave', 'error');
+            this.showAutosaveIndicator('Î£Ï†Î¬Î»Î¼Î± autosave', 'error');
         }
     }
 
@@ -341,7 +341,7 @@ class BackupManager {
         return {
             enabled: this.autosaveEnabled,
             lastSave: AUTOSAVE_CONFIG.lastSave,
-            lastSaveFormatted: AUTOSAVE_CONFIG.lastSave ? formatDateTime(AUTOSAVE_CONFIG.lastSave) : 'Ποτέ',
+            lastSaveFormatted: AUTOSAVE_CONFIG.lastSave ? formatDateTime(AUTOSAVE_CONFIG.lastSave) : 'Î Î¿Ï„Î­',
             pendingChanges: this.changesPending,
             interval: AUTOSAVE_CONFIG.interval
         };

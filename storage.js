@@ -1,6 +1,6 @@
 /**
  * storage.js - Storage Management Module
- * Διαχείριση IndexedDB με localStorage fallback και graceful degradations
+ * Î”Î¹Î±Ï‡ÎµÎ¯ÏÎ¹ÏƒÎ· IndexedDB Î¼Îµ localStorage fallback ÎºÎ±Î¹ graceful degradations
  */
 
 import { logError, generateId } from './utils.js';

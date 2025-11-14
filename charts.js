@@ -1,6 +1,6 @@
 /**
  * charts.js - Advanced Charts & Heatmaps Module
- * Heatmaps για εποχικότητα, trend charts, comparison charts
+ * Heatmaps Î³Î¹Î± ÎµÏ€Î¿Ï‡Î¹ÎºÏŒÏ„Î·Ï„Î±, trend charts, comparison charts
  */
 
 import {
@@ -124,7 +124,7 @@ class HeatmapGenerator {
     }
 
     /**
-     * Generate color από value
+     * Generate color Î±Ï€ÏŒ value
      * @private
      */
     getColor(value, min, max) {
@@ -160,7 +160,7 @@ class HeatmapGenerator {
             this.ctx.fillStyle = '#666';
             this.ctx.font = '14px Arial';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText('Δεν υπάρχουν δεδομένα', this.canvas.width / 2, this.canvas.height / 2);
+            this.ctx.fillText('Î”ÎµÎ½ Ï…Ï€Î¬ÏÏ‡Î¿Ï…Î½ Î´ÎµÎ´Î¿Î¼Î­Î½Î±', this.canvas.width / 2, this.canvas.height / 2);
             return;
         }
 
@@ -298,7 +298,7 @@ class HeatmapDataProcessor {
     }
 
     /**
-     * Generate Month × Year heatmap data
+     * Generate Month Ã— Year heatmap data
      * @returns {Array}
      */
     generateMonthYearHeatmap() {
@@ -307,7 +307,7 @@ class HeatmapDataProcessor {
 
         const data = [];
         const yearSet = new Set();
-        const monthNames = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαϊ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
+        const monthNames = ['Î™Î±Î½', 'Î¦ÎµÎ²', 'ÎœÎ±Ï', 'Î‘Ï€Ï', 'ÎœÎ±ÏŠ', 'Î™Î¿Ï…Î½', 'Î™Î¿Ï…Î»', 'Î‘Ï…Î³', 'Î£ÎµÏ€', 'ÎŸÎºÏ„', 'ÎÎ¿Îµ', 'Î”ÎµÎº'];
 
         Object.entries(grouped).forEach(([date, items]) => {
             const { month, year } = parseMonthYear(date);
@@ -340,7 +340,7 @@ class HeatmapDataProcessor {
     }
 
     /**
-     * Generate Source × Month heatmap data
+     * Generate Source Ã— Month heatmap data
      * @param {number} year - Year to analyze (optional)
      * @returns {Array}
      */
@@ -356,7 +356,7 @@ class HeatmapDataProcessor {
 
         const grouped = {};
         const sources = new Set();
-        const monthNames = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαϊ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
+        const monthNames = ['Î™Î±Î½', 'Î¦ÎµÎ²', 'ÎœÎ±Ï', 'Î‘Ï€Ï', 'ÎœÎ±ÏŠ', 'Î™Î¿Ï…Î½', 'Î™Î¿Ï…Î»', 'Î‘Ï…Î³', 'Î£ÎµÏ€', 'ÎŸÎºÏ„', 'ÎÎ¿Îµ', 'Î”ÎµÎº'];
 
         filtered.forEach(entry => {
             const { month } = parseMonthYear(entry.date);
@@ -393,7 +393,7 @@ class HeatmapDataProcessor {
     }
 
     /**
-     * Generate Insurance × Month heatmap data
+     * Generate Insurance Ã— Month heatmap data
      * @param {number} year - Year to analyze (optional)
      * @returns {Array}
      */
@@ -409,7 +409,7 @@ class HeatmapDataProcessor {
 
         const grouped = {};
         const insurances = new Set();
-        const monthNames = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαϊ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
+        const monthNames = ['Î™Î±Î½', 'Î¦ÎµÎ²', 'ÎœÎ±Ï', 'Î‘Ï€Ï', 'ÎœÎ±ÏŠ', 'Î™Î¿Ï…Î½', 'Î™Î¿Ï…Î»', 'Î‘Ï…Î³', 'Î£ÎµÏ€', 'ÎŸÎºÏ„', 'ÎÎ¿Îµ', 'Î”ÎµÎº'];
 
         filtered.forEach(entry => {
             const { month } = parseMonthYear(entry.date);
@@ -464,7 +464,7 @@ class ComparisonCharts {
         return new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['Συνολικά', 'Μετρητά', 'Τιμολόγια', 'Κρατήσεις'],
+                labels: ['Î£Ï…Î½Î¿Î»Î¹ÎºÎ¬', 'ÎœÎµÏ„ÏÎ·Ï„Î¬', 'Î¤Î¹Î¼Î¿Î»ÏŒÎ³Î¹Î±', 'ÎšÏÎ±Ï„Î®ÏƒÎµÎ¹Ï‚'],
                 datasets: [
                     {
                         label: period1.label,
@@ -528,7 +528,7 @@ class ComparisonCharts {
                 labels: labels,
                 datasets: [
                     {
-                        label: 'Περίοδος 1',
+                        label: 'Î ÎµÏÎ¯Î¿Î´Î¿Ï‚ 1',
                         data: trendData1,
                         borderColor: 'rgba(54, 162, 235, 1)',
                         backgroundColor: 'rgba(54, 162, 235, 0.1)',
@@ -536,7 +536,7 @@ class ComparisonCharts {
                         tension: 0.4
                     },
                     {
-                        label: 'Περίοδος 2',
+                        label: 'Î ÎµÏÎ¯Î¿Î´Î¿Ï‚ 2',
                         data: trendData2,
                         borderColor: 'rgba(255, 99, 132, 1)',
                         backgroundColor: 'rgba(255, 99, 132, 0.1)',
@@ -593,7 +593,7 @@ class ComparisonCharts {
                 labels: allDates,
                 datasets: [
                     {
-                        label: 'Ιστορικά Δεδομένα',
+                        label: 'Î™ÏƒÏ„Î¿ÏÎ¹ÎºÎ¬ Î”ÎµÎ´Î¿Î¼Î­Î½Î±',
                         data: [...historicalValues, ...Array(predictions.length).fill(null)],
                         borderColor: 'rgba(54, 162, 235, 1)',
                         backgroundColor: 'rgba(54, 162, 235, 0.1)',
@@ -601,7 +601,7 @@ class ComparisonCharts {
                         pointHoverRadius: 6
                     },
                     {
-                        label: 'Πρόβλεψη',
+                        label: 'Î ÏÏŒÎ²Î»ÎµÏˆÎ·',
                         data: [...Array(historical.length).fill(null), ...predictionValues],
                         borderColor: 'rgba(255, 99, 132, 1)',
                         backgroundColor: 'rgba(255, 99, 132, 0.1)',
@@ -610,7 +610,7 @@ class ComparisonCharts {
                         pointHoverRadius: 6
                     },
                     {
-                        label: 'Άνω Όριο (95%)',
+                        label: 'Î†Î½Ï‰ ÎŒÏÎ¹Î¿ (95%)',
                         data: [...Array(historical.length).fill(null), ...upperBound],
                         borderColor: 'rgba(255, 99, 132, 0.3)',
                         backgroundColor: 'rgba(255, 99, 132, 0.05)',
@@ -619,7 +619,7 @@ class ComparisonCharts {
                         borderDash: [2, 2]
                     },
                     {
-                        label: 'Κάτω Όριο (95%)',
+                        label: 'ÎšÎ¬Ï„Ï‰ ÎŒÏÎ¹Î¿ (95%)',
                         data: [...Array(historical.length).fill(null), ...lowerBound],
                         borderColor: 'rgba(255, 99, 132, 0.3)',
                         backgroundColor: 'rgba(255, 99, 132, 0.05)',

@@ -1,6 +1,6 @@
 /**
  * pdfExport.js - Advanced PDF Export Module
- * Updated για νέο σύστημα κρατήσεων
+ * Updated Î³Î¹Î± Î½Î­Î¿ ÏƒÏÏƒÏ„Î·Î¼Î± ÎºÏÎ±Ï„Î®ÏƒÎµÏ‰Î½
  */
 
 import { formatCurrency, formatDateTime } from './utils.js';
@@ -40,26 +40,26 @@ class PDFExportManager {
         // Header
         doc.setFontSize(20);
         doc.setTextColor(37, 99, 235);
-        doc.text('Αναφορά Εσόδων', margin, yPos);
+        doc.text('Î‘Î½Î±Ï†Î¿ÏÎ¬ Î•ÏƒÏŒÎ´Ï‰Î½', margin, yPos);
         yPos += 10;
 
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Δημιουργήθηκε: ${formatDateTime(Date.now())}`, margin, yPos);
+        doc.text(`Î”Î·Î¼Î¹Î¿Ï…ÏÎ³Î®Î¸Î·ÎºÎµ: ${formatDateTime(Date.now())}`, margin, yPos);
         yPos += 15;
 
         // Main KPIs
         doc.setFontSize(14);
         doc.setTextColor(0, 0, 0);
-        doc.text('Βασικοί Δείκτες', margin, yPos);
+        doc.text('Î’Î±ÏƒÎ¹ÎºÎ¿Î¯ Î”ÎµÎ¯ÎºÏ„ÎµÏ‚', margin, yPos);
         yPos += 8;
 
         doc.setFontSize(10);
         const mainKpis = [
-            ['Συνολικά Έσοδα:', formatCurrency(data.kpis.total)],
-            ['ΕΟΠΥΥ (Τελικό):', formatCurrency(data.kpis.eopyyTotal)],
-            ['Άλλα Ταμεία:', formatCurrency(data.kpis.nonEopyyTotal)],
-            ['Σύνολο Κρατήσεων:', formatCurrency(data.kpis.eopyyTotalDeductions + data.kpis.nonEopyyKrathseis)]
+            ['Î£Ï…Î½Î¿Î»Î¹ÎºÎ¬ ÎˆÏƒÎ¿Î´Î±:', formatCurrency(data.kpis.total)],
+            ['Î•ÎŸÎ Î¥Î¥ (Î¤ÎµÎ»Î¹ÎºÏŒ):', formatCurrency(data.kpis.eopyyTotal)],
+            ['Î†Î»Î»Î± Î¤Î±Î¼ÎµÎ¯Î±:', formatCurrency(data.kpis.nonEopyyTotal)],
+            ['Î£ÏÎ½Î¿Î»Î¿ ÎšÏÎ±Ï„Î®ÏƒÎµÏ‰Î½:', formatCurrency(data.kpis.eopyyTotalDeductions + data.kpis.nonEopyyKrathseis)]
         ];
 
         mainKpis.forEach(([label, value]) => {
@@ -70,20 +70,20 @@ class PDFExportManager {
 
         yPos += 10;
 
-        // ΕΟΠΥΥ Deductions Breakdown
+        // Î•ÎŸÎ Î¥Î¥ Deductions Breakdown
         doc.setFontSize(14);
-        doc.text('Ανάλυση Κρατήσεων ΕΟΠΥΥ', margin, yPos);
+        doc.text('Î‘Î½Î¬Î»Ï…ÏƒÎ· ÎšÏÎ±Ï„Î®ÏƒÎµÏ‰Î½ Î•ÎŸÎ Î¥Î¥', margin, yPos);
         yPos += 8;
 
         doc.setFontSize(10);
         const eopyyDeductions = [
-            ['Αρχικό Ποσό:', formatCurrency(data.kpis.eopyyOriginal)],
-            ['Παρακράτηση:', formatCurrency(data.kpis.eopyyParakratisi)],
-            ['ΜΔΕ:', formatCurrency(data.kpis.eopyyMDE)],
+            ['Î‘ÏÏ‡Î¹ÎºÏŒ Î Î¿ÏƒÏŒ:', formatCurrency(data.kpis.eopyyOriginal)],
+            ['Î Î±ÏÎ±ÎºÏÎ¬Ï„Î·ÏƒÎ·:', formatCurrency(data.kpis.eopyyParakratisi)],
+            ['ÎœÎ”Î•:', formatCurrency(data.kpis.eopyyMDE)],
             ['Rebate:', formatCurrency(data.kpis.eopyyRebate)],
-            ['Κρατήσεις:', formatCurrency(data.kpis.eopyyKrathseis)],
+            ['ÎšÏÎ±Ï„Î®ÏƒÎµÎ¹Ï‚:', formatCurrency(data.kpis.eopyyKrathseis)],
             ['Clawback:', formatCurrency(data.kpis.eopyyClawback)],
-            ['Τελικό:', formatCurrency(data.kpis.eopyyFinal)]
+            ['Î¤ÎµÎ»Î¹ÎºÏŒ:', formatCurrency(data.kpis.eopyyFinal)]
         ];
 
         eopyyDeductions.forEach(([label, value]) => {
@@ -138,18 +138,18 @@ class PDFExportManager {
 
         // Header
         doc.setFontSize(16);
-        doc.text('Λίστα Εγγραφών', margin, yPos);
+        doc.text('Î›Î¯ÏƒÏ„Î± Î•Î³Î³ÏÎ±Ï†ÏŽÎ½', margin, yPos);
         yPos += 10;
 
         // Filters info
         if (Object.keys(filters).length > 0) {
             doc.setFontSize(9);
             doc.setTextColor(100, 100, 100);
-            let filterText = 'Φίλτρα: ';
-            if (filters.dateFrom) filterText += `Από ${filters.dateFrom} `;
-            if (filters.dateTo) filterText += `Έως ${filters.dateTo} `;
-            if (filters.source) filterText += `Πηγή: ${filters.source} `;
-            if (filters.insurance) filterText += `Ασφάλεια: ${filters.insurance}`;
+            let filterText = 'Î¦Î¯Î»Ï„ÏÎ±: ';
+            if (filters.dateFrom) filterText += `Î‘Ï€ÏŒ ${filters.dateFrom} `;
+            if (filters.dateTo) filterText += `ÎˆÏ‰Ï‚ ${filters.dateTo} `;
+            if (filters.source) filterText += `Î Î·Î³Î®: ${filters.source} `;
+            if (filters.insurance) filterText += `Î‘ÏƒÏ†Î¬Î»ÎµÎ¹Î±: ${filters.insurance}`;
             doc.text(filterText, margin, yPos);
             yPos += 8;
         }
@@ -162,12 +162,12 @@ class PDFExportManager {
         doc.setFillColor(240, 240, 240);
         doc.rect(margin, yPos, pageWidth - 2 * margin, 6, 'F');
         
-        doc.text('Ημ/νία', margin + 2, yPos + 4);
-        doc.text('Πηγή', margin + 20, yPos + 4);
-        doc.text('Ασφάλεια', margin + 45, yPos + 4);
-        doc.text('Αρχικό', margin + 70, yPos + 4);
-        doc.text('Κρατ.', margin + 90, yPos + 4);
-        doc.text('Τελικό', margin + 110, yPos + 4);
+        doc.text('Î—Î¼/Î½Î¯Î±', margin + 2, yPos + 4);
+        doc.text('Î Î·Î³Î®', margin + 20, yPos + 4);
+        doc.text('Î‘ÏƒÏ†Î¬Î»ÎµÎ¹Î±', margin + 45, yPos + 4);
+        doc.text('Î‘ÏÏ‡Î¹ÎºÏŒ', margin + 70, yPos + 4);
+        doc.text('ÎšÏÎ±Ï„.', margin + 90, yPos + 4);
+        doc.text('Î¤ÎµÎ»Î¹ÎºÏŒ', margin + 110, yPos + 4);
         yPos += 6;
 
         // Rows
@@ -199,7 +199,7 @@ class PDFExportManager {
         yPos = margin;
 
         doc.setFontSize(12);
-        doc.text('Περίληψη', margin, yPos);
+        doc.text('Î ÎµÏÎ¯Î»Î·ÏˆÎ·', margin, yPos);
         yPos += 10;
 
         const totalOriginal = entries.reduce((sum, e) => {
@@ -218,13 +218,13 @@ class PDFExportManager {
         }, 0);
 
         doc.setFontSize(10);
-        doc.text(`Σύνολο Εγγραφών: ${entries.length}`, margin, yPos);
+        doc.text(`Î£ÏÎ½Î¿Î»Î¿ Î•Î³Î³ÏÎ±Ï†ÏŽÎ½: ${entries.length}`, margin, yPos);
         yPos += 6;
-        doc.text(`Αρχικό Ποσό: ${formatCurrency(totalOriginal)}`, margin, yPos);
+        doc.text(`Î‘ÏÏ‡Î¹ÎºÏŒ Î Î¿ÏƒÏŒ: ${formatCurrency(totalOriginal)}`, margin, yPos);
         yPos += 6;
-        doc.text(`Κρατήσεις: ${formatCurrency(totalDeductions)}`, margin, yPos);
+        doc.text(`ÎšÏÎ±Ï„Î®ÏƒÎµÎ¹Ï‚: ${formatCurrency(totalDeductions)}`, margin, yPos);
         yPos += 6;
-        doc.text(`Τελικό Ποσό: ${formatCurrency(totalFinal)}`, margin, yPos);
+        doc.text(`Î¤ÎµÎ»Î¹ÎºÏŒ Î Î¿ÏƒÏŒ: ${formatCurrency(totalFinal)}`, margin, yPos);
 
         const filename = `entries_${new Date().toISOString().slice(0, 10)}.pdf`;
         doc.save(filename);
@@ -240,7 +240,7 @@ class PDFExportManager {
 
         doc.setFontSize(20);
         doc.setTextColor(37, 99, 235);
-        doc.text('Αναφορά Προβλέψεων', margin, yPos);
+        doc.text('Î‘Î½Î±Ï†Î¿ÏÎ¬ Î ÏÎ¿Î²Î»Î­ÏˆÎµÏ‰Î½', margin, yPos);
         yPos += 15;
 
         doc.setFontSize(10);
@@ -249,7 +249,7 @@ class PDFExportManager {
         yPos += 30;
 
         doc.setFontSize(12);
-        doc.text('Γράφημα Πρόβλεψης', margin, yPos);
+        doc.text('Î“ÏÎ¬Ï†Î·Î¼Î± Î ÏÏŒÎ²Î»ÎµÏˆÎ·Ï‚', margin, yPos);
         yPos += 8;
 
         try {
