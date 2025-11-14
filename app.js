@@ -30,6 +30,19 @@ import ForecastManager from './forecasting.js';
 import { HeatmapGenerator, HeatmapDataProcessor } from './charts.js';
 
 // ========================================
+// DOM Ready Handler
+// ========================================
+function waitForDOM() {
+    return new Promise(resolve => {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', resolve);
+        } else {
+            resolve();
+        }
+    });
+}
+
+// ========================================
 // Configuration
 // ========================================
 const CONFIG = {
@@ -907,664 +920,397 @@ window.changePage = function(page) {
 window.setSortColumn = setSortColumn;
 
 // Initialize when DOM loads
+// Initialize when DOM loads
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Initializing Revenue Management System v5...');
 
-    const cdnStatus = await cdnChecker.checkAll();
-    STATE.cdnAvailable = !cdnStatus.offline;
-    
-    if (cdnStatus.offline) {
-        cdnChecker.showOfflineNotice();
-    }
+    try {
+        // Wait for DOM to be fully ready
+        await waitForDOM();
+        
+        // Initialize storage first
+        await storage.init();
+        console.log('✓ Storage initialized');
 
-    periodicChecker.start();
-
-    await storage.init();
-    await autoLoadBackup();
-    await loadData();
-
-    // Make modals draggable
-    makeModalDraggable('entryModal');
-    makeModalDraggable('importBackupModal');
-
-    // Set default to "Όλα"
-    document.getElementById('dashPeriod').value = 'all';
-    
-    // Set default without Παρακράτηση
-    document.getElementById('dashIncludeParakratisi').checked = false;
-
-    renderDashboard();
-
-// ========================================
-    // REPORTS View Handlers
-    // ========================================
-    document.getElementById('generateReportBtn')?.addEventListener('click', async () => {
-        const dateFrom = document.getElementById('reportDateFrom').value;
-        const dateTo = document.getElementById('reportDateTo').value;
-        const source = document.getElementById('reportSource').value;
-
-        if (!isValidMonthYear(dateFrom) || !isValidMonthYear(dateTo)) {
-            showToast('Μη έγκυρες ημερομηνίες', 'error');
-            return;
+        // Check CDN availability
+        const cdnStatus = await cdnChecker.checkAll();
+        STATE.cdnAvailable = !cdnStatus.offline;
+        
+        if (cdnStatus.offline) {
+            console.warn('CDN libraries unavailable - some features disabled');
+            cdnChecker.showOfflineNotice();
+        } else {
+            console.log('✓ CDN libraries available');
         }
 
-        let filtered = STATE.entries.filter(e => {
-            return compareDates(e.date, dateFrom) >= 0 && compareDates(e.date, dateTo) <= 0;
+        periodicChecker.start();
+
+        // Load data
+        await loadData();
+        console.log('✓ Data loaded:', STATE.entries.length, 'entries');
+
+        // Populate all dropdowns
+        populateDropdowns();
+        console.log('✓ Dropdowns populated');
+
+        // Auto-load backup
+        await autoLoadBackup();
+
+        // Make modals draggable
+        makeModalDraggable('entryModal');
+        makeModalDraggable('importBackupModal');
+
+        // Set default dashboard period
+        const dashPeriod = document.getElementById('dashPeriod');
+        if (dashPeriod) {
+            dashPeriod.value = 'all';
+        }
+        
+        // Set default without Παρακράτηση
+        const includeParakratisi = document.getElementById('dashIncludeParakratisi');
+        if (includeParakratisi) {
+            includeParakratisi.checked = false;
+        }
+
+        // Render initial dashboard
+        renderDashboard();
+        console.log('✓ Dashboard rendered');
+
+        // Setup date auto-format
+        setupDateAutoFormat(document.getElementById('quickDate'));
+        setupDateAutoFormat(document.getElementById('entryDate'));
+        setupDateAutoFormat(document.getElementById('filterDateFrom'));
+        setupDateAutoFormat(document.getElementById('filterDateTo'));
+
+        // Setup event listeners for dashboard controls
+        document.getElementById('dashPeriod')?.addEventListener('change', () => {
+            renderDashboard();
         });
 
-        if (source) {
-            filtered = filtered.filter(e => e.source === source);
-        }
-
-        if (filtered.length === 0) {
-            showToast('Δεν βρέθηκαν εγγραφές', 'warning');
-            return;
-        }
-
-        // Calculate summary
-        const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi: false });
-
-        document.getElementById('reportSummary').innerHTML = `
-            <div class="kpi-grid kpi-grid-compact">
-                <div class="kpi-card kpi-card-compact">
-                    <div class="kpi-label">Σύνολο Εγγραφών</div>
-                    <div class="kpi-value kpi-value-compact">${filtered.length}</div>
-                </div>
-                <div class="kpi-card kpi-card-compact">
-                    <div class="kpi-label">Συνολικά</div>
-                    <div class="kpi-value kpi-value-compact">${formatCurrency(kpis.total)}</div>
-                </div>
-                <div class="kpi-card kpi-card-compact">
-                    <div class="kpi-label">ΕΟΠΥΥ</div>
-                    <div class="kpi-value kpi-value-compact">${formatCurrency(kpis.eopyyTotal)}</div>
-                </div>
-                <div class="kpi-card kpi-card-compact">
-                    <div class="kpi-label">Άλλα</div>
-                    <div class="kpi-value kpi-value-compact">${formatCurrency(kpis.nonEopyyTotal)}</div>
-                </div>
-                <div class="kpi-card kpi-card-compact">
-                    <div class="kpi-label">Κρατήσεις</div>
-                    <div class="kpi-value kpi-value-compact">${formatCurrency(kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis)}</div>
-                </div>
-            </div>
-        `;
-
-        // Render table
-        const thead = document.getElementById('reportTableHead');
-        const tbody = document.getElementById('reportTableBody');
-
-        thead.innerHTML = `
-            <tr>
-                <th>Ημ/νία</th>
-                <th>Διαγνωστικό</th>
-                <th>Ασφάλεια</th>
-                <th class="text-right">Αρχικό</th>
-                <th class="text-right">Κρατήσεις</th>
-                <th class="text-right">Τελικό</th>
-            </tr>
-        `;
-
-        tbody.innerHTML = filtered.map(entry => {
-            const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
-            return `
-                <tr>
-                    <td>${escapeHtml(entry.date)}</td>
-                    <td>${escapeHtml(entry.source)}</td>
-                    <td>${escapeHtml(entry.insurance)}</td>
-                    <td class="text-right">${formatCurrency(amounts.originalAmount)}</td>
-                    <td class="text-right">${formatCurrency(amounts.totalDeductions)}</td>
-                    <td class="text-right"><strong>${formatCurrency(amounts.finalAmount)}</strong></td>
-                </tr>
-            `;
-        }).join('');
-
-        document.getElementById('reportResults').style.display = 'block';
-        showToast('Αναφορά δημιουργήθηκε', 'success');
-    });
-
-    document.getElementById('exportReportPdfBtn')?.addEventListener('click', async () => {
-        const dateFrom = document.getElementById('reportDateFrom').value;
-        const dateTo = document.getElementById('reportDateTo').value;
-        const source = document.getElementById('reportSource').value;
-
-        let filtered = STATE.entries.filter(e => {
-            return compareDates(e.date, dateFrom) >= 0 && compareDates(e.date, dateTo) <= 0;
+        document.getElementById('dashIncludeParakratisi')?.addEventListener('change', () => {
+            renderDashboard();
         });
 
-        if (source) filtered = filtered.filter(e => e.source === source);
-
-        await pdfExportManager.exportEntriesList(filtered, { dateFrom, dateTo, source });
-        showToast('PDF εξήχθη', 'success');
-    });
-
-    document.getElementById('exportReportCsvBtn')?.addEventListener('click', () => {
-        const dateFrom = document.getElementById('reportDateFrom').value;
-        const dateTo = document.getElementById('reportDateTo').value;
-        const source = document.getElementById('reportSource').value;
-
-        let filtered = STATE.entries.filter(e => {
-            return compareDates(e.date, dateFrom) >= 0 && compareDates(e.date, dateTo) <= 0;
+        // Setup insurance/type change listeners for deductions
+        ['quickInsurance', 'quickType'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', showDeductionFields);
         });
 
-        if (source) filtered = filtered.filter(e => e.source === source);
-
-        // Export CSV
-        const csvData = [
-            ['Ημερομηνία', 'Διαγνωστικό', 'Ασφάλεια', 'Τύπος', 'Αρχικό', 'Κρατήσεις', 'Τελικό'],
-            ...filtered.map(entry => {
-                const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
-                return [
-                    entry.date,
-                    entry.source,
-                    entry.insurance,
-                    entry.type === 'cash' ? 'Μετρητά' : 'Τιμολόγια',
-                    amounts.originalAmount.toFixed(2),
-                    amounts.totalDeductions.toFixed(2),
-                    amounts.finalAmount.toFixed(2)
-                ];
-            })
-        ];
-
-        const csv = csvData.map(row => row.join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const filename = `report_${dateFrom}_${dateTo}.csv`;
-        downloadBlob(filename, blob);
-        showToast('CSV εξήχθη', 'success');
-    });
-
-    // ========================================
-    // COMPARISON View Handlers
-    // ========================================
-    document.querySelectorAll('.comparison-quick button').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const preset = btn.dataset.preset;
-            const comparison = new PeriodComparison(STATE.entries);
-            const result = comparison.getPresetComparison(preset);
-
-            renderComparisonResults(result);
+        ['entryInsurance', 'entryType'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', showModalDeductionFields);
         });
-    });
 
-    document.getElementById('compareBtn')?.addEventListener('click', () => {
-        const period1 = {
-            start: document.getElementById('comp1From').value,
-            end: document.getElementById('comp1To').value,
-            label: 'Περίοδος 1'
-        };
+        // Setup amount change listeners for final amount calculation
+        document.getElementById('quickAmount')?.addEventListener('input', () => calculateFinalAmount('quick'));
+        document.getElementById('entryAmount')?.addEventListener('input', () => calculateFinalAmount('entry'));
 
-        const period2 = {
-            start: document.getElementById('comp2From').value,
-            end: document.getElementById('comp2To').value,
-            label: 'Περίοδος 2'
-        };
-
-        if (!isValidMonthYear(period1.start) || !isValidMonthYear(period1.end) ||
-            !isValidMonthYear(period2.start) || !isValidMonthYear(period2.end)) {
-            showToast('Μη έγκυρες ημερομηνίες', 'error');
-            return;
-        }
-
-        const comparison = new PeriodComparison(STATE.entries);
-        const result = comparison.comparePeriods(period1, period2);
-
-        renderComparisonResults(result);
-    });
-
-    function renderComparisonResults(result) {
-        const summary = new PeriodComparison(STATE.entries).generateSummary(result);
-        document.getElementById('comparisonSummary').innerHTML = `<p>${escapeHtml(summary)}</p>`;
-
-        const tableData = new PeriodComparison(STATE.entries).generateComparisonTable(result);
-        const tbody = document.getElementById('comparisonTableBody');
-
-        tbody.innerHTML = tableData.map(row => {
-            const trendIcon = row.trend === 'up' ? '📈' : row.trend === 'down' ? '📉' : '➡️';
-            const trendClass = row.trend === 'up' ? 'trend-up' : row.trend === 'down' ? 'trend-down' : 'trend-neutral';
-
-            return `
-                <tr>
-                    <td>${escapeHtml(row.metric)}</td>
-                    <td class="text-right">${escapeHtml(row.period1)}</td>
-                    <td class="text-right">${escapeHtml(row.period2)}</td>
-                    <td class="text-right">${escapeHtml(row.change)}</td>
-                    <td class="text-right ${trendClass}">${escapeHtml(row.changePercent)}</td>
-                    <td class="text-center">${trendIcon}</td>
-                </tr>
-            `;
-        }).join('');
-
-        // Render charts
-        if (STATE.cdnAvailable && window.Chart) {
-            renderComparisonCharts(result);
-        }
-
-        document.getElementById('comparisonResults').style.display = 'block';
-        showToast('Σύγκριση ολοκληρώθηκε', 'success');
-    }
-
-    function renderComparisonCharts(result) {
-        const ctx1 = document.getElementById('comparisonChart');
-        const ctx2 = document.getElementById('comparisonTrendChart');
-
-        if (comparisonChart) comparisonChart.destroy();
-        if (comparisonTrendChart) comparisonTrendChart.destroy();
-
-        // Side-by-side comparison
-        comparisonChart = new Chart(ctx1, {
-            type: 'bar',
-            data: {
-                labels: ['Συνολικά', 'Μετρητά', 'Τιμολόγια', 'Κρατήσεις'],
-                datasets: [
-                    {
-                        label: result.period1.label,
-                        data: [
-                            result.period1.kpis.total,
-                            result.period1.kpis.cash,
-                            result.period1.kpis.invoices,
-                            result.period1.kpis.retentions
-                        ],
-                        backgroundColor: 'rgba(54, 162, 235, 0.7)'
-                    },
-                    {
-                        label: result.period2.label,
-                        data: [
-                            result.period2.kpis.total,
-                            result.period2.kpis.cash,
-                            result.period2.kpis.invoices,
-                            result.period2.kpis.retentions
-                        ],
-                        backgroundColor: 'rgba(255, 99, 132, 0.7)'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: value => formatCurrency(value)
-                        }
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: context => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`
-                        }
-                    }
-                }
+        // Setup all deduction field listeners
+        [
+            'quickParakratisi', 'quickMDE', 'quickRebate', 'quickKrathseisEopyy', 
+            'quickClawback', 'quickKrathseisOther',
+            'entryParakratisi', 'entryMDE', 'entryRebate', 'entryKrathseisEopyy',
+            'entryClawback', 'entryKrathseisOther'
+        ].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', () => {
+                    const prefix = id.startsWith('quick') ? 'quick' : 'entry';
+                    calculateFinalAmount(prefix);
+                });
             }
         });
 
-        // Trend comparison
-        const trend1 = result.period1.kpis.monthlyTotals || [];
-        const trend2 = result.period2.kpis.monthlyTotals || [];
-        const maxLength = Math.max(trend1.length, trend2.length);
-        const labels = Array.from({ length: maxLength }, (_, i) => `Μήνας ${i + 1}`);
+        // Setup percentage sync
+        const getQuickAmount = () => parseFloat(document.getElementById('quickAmount')?.value) || 0;
+        setupPercentageSync('quickParakratisi', 'quickParakratisiPercent', getQuickAmount);
+        setupPercentageSync('quickMDE', 'quickMDEPercent', getQuickAmount);
+        setupPercentageSync('quickRebate', 'quickRebatePercent', getQuickAmount);
+        setupPercentageSync('quickKrathseisEopyy', 'quickKrathseisEopyyPercent', getQuickAmount);
+        setupPercentageSync('quickClawback', 'quickClawbackPercent', getQuickAmount);
+        setupPercentageSync('quickKrathseisOther', 'quickKrathseisOtherPercent', getQuickAmount);
+        
+        const getModalAmount = () => parseFloat(document.getElementById('entryAmount')?.value) || 0;
+        setupPercentageSync('entryParakratisi', 'entryParakratisiPercent', getModalAmount);
+        setupPercentageSync('entryMDE', 'entryMDEPercent', getModalAmount);
+        setupPercentageSync('entryRebate', 'entryRebatePercent', getModalAmount);
+        setupPercentageSync('entryKrathseisEopyy', 'entryKrathseisEopyyPercent', getModalAmount);
+        setupPercentageSync('entryClawback', 'entryClawbackPercent', getModalAmount);
+        setupPercentageSync('entryKrathseisOther', 'entryKrathseisOtherPercent', getModalAmount);
 
-        comparisonTrendChart = new Chart(ctx2, {
-            type: 'line',
-            data: {
-                labels,
-                datasets: [
-                    {
-                        label: result.period1.label,
-                        data: trend1.map(t => t.amount),
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    },
-                    {
-                        label: result.period2.label,
-                        data: trend2.map(t => t.amount),
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: value => formatCurrency(value)
-                        }
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: context => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`
-                        }
-                    }
-                }
-            }
+        // Setup notes toggle
+        document.getElementById('quickNotesToggle')?.addEventListener('change', (e) => {
+            document.getElementById('quickNotes').style.display = e.target.checked ? 'block' : 'none';
         });
-    }
 
-    // ========================================
-    // FORECASTING View Handlers
-    // ========================================
-    document.getElementById('generateForecastBtn')?.addEventListener('click', () => {
-        const method = document.getElementById('forecastMethod').value;
-        const periods = parseInt(document.getElementById('forecastPeriods').value);
-        const startDate = document.getElementById('forecastStartDate').value;
-        const endDate = document.getElementById('forecastEndDate').value;
-
-        if (startDate && !isValidMonthYear(startDate)) {
-            showToast('Μη έγκυρη ημερομηνία έναρξης', 'error');
-            return;
-        }
-
-        if (endDate && !isValidMonthYear(endDate)) {
-            showToast('Μη έγκυρη ημερομηνία λήξης', 'error');
-            return;
-        }
-
-        try {
-            const manager = new ForecastManager(STATE.entries);
-            const forecast = manager.generateForecast(method, periods, { startDate, endDate });
-
-            renderForecastResults(forecast);
-        } catch (error) {
-            console.error('Forecast error:', error);
-            showToast('Σφάλμα πρόβλεψης: ' + error.message, 'error');
-        }
-    });
-
-    function renderForecastResults(forecast) {
-        document.getElementById('forecastSummary').innerHTML = `<p>${escapeHtml(forecast.summary)}</p>`;
-
-        // Render table
-        const tbody = document.getElementById('forecastTableBody');
-        tbody.innerHTML = forecast.predictions.map(pred => `
-            <tr>
-                <td>${escapeHtml(pred.date)}</td>
-                <td class="text-right"><strong>${formatCurrency(pred.value)}</strong></td>
-                <td class="text-right">${formatCurrency(pred.lower)}</td>
-                <td class="text-right">${formatCurrency(pred.upper)}</td>
-            </tr>
-        `).join('');
-
-        // Render chart
-        if (STATE.cdnAvailable && window.Chart) {
-            renderForecastChart(forecast);
-        }
-
-        document.getElementById('forecastResults').style.display = 'block';
-        showToast('Πρόβλεψη ολοκληρώθηκε', 'success');
-    }
-
-    function renderForecastChart(forecast) {
-        const ctx = document.getElementById('forecastChart');
-        if (forecastChart) forecastChart.destroy();
-
-        const historicalDates = forecast.historical.map(d => d.date);
-        const historicalValues = forecast.historical.map(d => d.value);
-        const predictionDates = forecast.predictions.map(p => p.date);
-        const predictionValues = forecast.predictions.map(p => p.value);
-        const upperBound = forecast.predictions.map(p => p.upper);
-        const lowerBound = forecast.predictions.map(p => p.lower);
-
-        const allDates = [...historicalDates, ...predictionDates];
-
-        forecastChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: allDates,
-                datasets: [
-                    {
-                        label: 'Ιστορικά',
-                        data: [...historicalValues, ...Array(predictionDates.length).fill(null)],
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                        pointRadius: 4
-                    },
-                    {
-                        label: 'Πρόβλεψη',
-                        data: [...Array(historicalDates.length).fill(null), ...predictionValues],
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                        borderDash: [5, 5],
-                        pointRadius: 4
-                    },
-                    {
-                        label: 'Άνω Όριο',
-                        data: [...Array(historicalDates.length).fill(null), ...upperBound],
-                        borderColor: 'rgba(255, 99, 132, 0.3)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.05)',
-                        fill: '+1',
-                        pointRadius: 0,
-                        borderDash: [2, 2]
-                    },
-                    {
-                        label: 'Κάτω Όριο',
-                        data: [...Array(historicalDates.length).fill(null), ...lowerBound],
-                        borderColor: 'rgba(255, 99, 132, 0.3)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.05)',
-                        pointRadius: 0,
-                        borderDash: [2, 2]
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: value => formatCurrency(value)
-                        }
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: context => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`
-                        }
-                    }
-                }
-            }
+        document.getElementById('entryNotesToggle')?.addEventListener('change', (e) => {
+            document.getElementById('entryNotes').style.display = e.target.checked ? 'block' : 'none';
         });
-    }
 
-    document.getElementById('exportForecastPdfBtn')?.addEventListener('click', async () => {
-        const method = document.getElementById('forecastMethod').value;
-        const periods = parseInt(document.getElementById('forecastPeriods').value);
-        const manager = new ForecastManager(STATE.entries);
-        const forecast = manager.generateForecast(method, periods);
-
-        await pdfExportManager.exportForecast(forecast);
-        showToast('Forecast PDF εξήχθη', 'success');
-    });
-
-    document.getElementById('exportForecastCsvBtn')?.addEventListener('click', () => {
-        const method = document.getElementById('forecastMethod').value;
-        const periods = parseInt(document.getElementById('forecastPeriods').value);
-        const manager = new ForecastManager(STATE.entries);
-        const forecast = manager.generateForecast(method, periods);
-
-        const csvData = [
-            ['Περίοδος', 'Πρόβλεψη', 'Κάτω Όριο', 'Άνω Όριο'],
-            ...forecast.predictions.map(pred => [
-                pred.date,
-                pred.value.toFixed(2),
-                pred.lower.toFixed(2),
-                pred.upper.toFixed(2)
-            ])
-        ];
-
-        const csv = csvData.map(row => row.join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        downloadBlob(`forecast_${method}.csv`, blob);
-        showToast('Forecast CSV εξήχθη', 'success');
-    });
-
-    // ========================================
-    // HEATMAPS View Handlers
-    // ========================================
-    document.getElementById('generateHeatmapBtn')?.addEventListener('click', () => {
-        const type = document.getElementById('heatmapType').value;
-        const year = parseInt(document.getElementById('heatmapYear').value) || null;
-        const colorScheme = document.getElementById('heatmapColorScheme').value;
-
-        const processor = new HeatmapDataProcessor(STATE.entries);
-        let data;
-
-        switch (type) {
-            case 'month-year':
-                data = processor.generateMonthYearHeatmap();
-                break;
-            case 'source-month':
-                data = processor.generateSourceMonthHeatmap(year);
-                break;
-            case 'insurance-month':
-                data = processor.generateInsuranceMonthHeatmap(year);
-                break;
-        }
-
-        if (data.length === 0) {
-            showToast('Δεν υπάρχουν δεδομένα για heatmap', 'warning');
-            return;
-        }
-
-        if (!heatmapGenerator) {
-            heatmapGenerator = new HeatmapGenerator('heatmapCanvas', {
-                colorScheme,
-                title: getHeatmapTitle(type, year)
+        // Setup navigation tabs
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const view = tab.dataset.view;
+                
+                // Update active tab
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Show corresponding view
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                const viewElement = document.getElementById(`${view}View`);
+                if (viewElement) {
+                    viewElement.classList.add('active');
+                    STATE.currentView = view;
+                    
+                    // Render view-specific content
+                    if (view === 'dashboard') renderDashboard();
+                    if (view === 'entries') renderEntriesTable();
+                }
             });
-        } else {
-            heatmapGenerator.options.colorScheme = colorScheme;
-            heatmapGenerator.options.title = getHeatmapTitle(type, year);
-        }
-
-        heatmapGenerator.draw(data);
-
-        document.getElementById('heatmapResults').style.display = 'block';
-        showToast('Heatmap δημιουργήθηκε', 'success');
-    });
-
-    function getHeatmapTitle(type, year) {
-        const titles = {
-            'month-year': 'Μήνας × Έτος',
-            'source-month': `Διαγνωστικό × Μήνας ${year || ''}`,
-            'insurance-month': `Ασφάλεια × Μήνας ${year || ''}`
-        };
-        return titles[type] || '';
-    }
-
-    document.getElementById('exportHeatmapPdfBtn')?.addEventListener('click', async () => {
-        await pdfExportManager.exportHeatmap('heatmapCanvas', 'Heatmap Ανάλυση');
-        showToast('Heatmap PDF εξήχθη', 'success');
-    });
-
-    document.getElementById('exportHeatmapPngBtn')?.addEventListener('click', () => {
-        const canvas = document.getElementById('heatmapCanvas');
-        canvas.toBlob(blob => {
-            downloadBlob('heatmap.png', blob);
-            showToast('Heatmap PNG εξήχθη', 'success');
         });
-    });
 
-    // ========================================
-    // Populate Report & Comparison Source Dropdowns
-    // ========================================
-    function populateSourceDropdowns() {
-        const reportSourceSelect = document.getElementById('reportSource');
-        if (reportSourceSelect) {
-            reportSourceSelect.innerHTML = '<option value="">Όλες</option>' +
-                STATE.sources.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
-        }
-    }
-
-    populateSourceDropdowns();
-    
-    // Setup percentage sync
-    const getQuickAmount = () => parseFloat(document.getElementById('quickAmount').value) || 0;
-    setupPercentageSync('quickParakratisi', 'quickParakratisiPercent', getQuickAmount);
-    setupPercentageSync('quickMDE', 'quickMDEPercent', getQuickAmount);
-    setupPercentageSync('quickRebate', 'quickRebatePercent', getQuickAmount);
-    setupPercentageSync('quickKrathseisEopyy', 'quickKrathseisEopyyPercent', getQuickAmount);
-    setupPercentageSync('quickClawback', 'quickClawbackPercent', getQuickAmount);
-    setupPercentageSync('quickKrathseisOther', 'quickKrathseisOtherPercent', getQuickAmount);
-    
-    const getModalAmount = () => parseFloat(document.getElementById('entryAmount').value) || 0;
-    setupPercentageSync('entryParakratisi', 'entryParakratisiPercent', getModalAmount);
-    setupPercentageSync('entryMDE', 'entryMDEPercent', getModalAmount);
-    setupPercentageSync('entryRebate', 'entryRebatePercent', getModalAmount);
-    setupPercentageSync('entryKrathseisEopyy', 'entryKrathseisEopyyPercent', getModalAmount);
-    setupPercentageSync('entryClawback', 'entryClawbackPercent', getModalAmount);
-    setupPercentageSync('entryKrathseisOther', 'entryKrathseisOtherPercent', getModalAmount);
-
-    // Quick form submit - clear final amount after
-    document.getElementById('quickAddForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const insurance = document.getElementById('quickInsurance').value;
-        const isEopyy = insurance.toUpperCase().includes('ΕΟΠΥΥ');
-        const amount = parseFloat(document.getElementById('quickAmount').value);
-        
-        const entry = {
-            date: document.getElementById('quickDate').value,
-            source: document.getElementById('quickSource').value,
-            insurance: insurance,
-            type: document.getElementById('quickType').value,
-            amount: amount,
-            notes: document.getElementById('quickNotes').value
-        };
-
-        if (!isValidMonthYear(entry.date)) {
-            showToast(STRINGS.errors.invalidDate, 'error');
-            return;
-        }
-
-        if (isEopyy) {
-            entry.deductions = {
-                parakratisi: parseFloat(document.getElementById('quickParakratisi').value) || 0,
-                mde: parseFloat(document.getElementById('quickMDE').value) || 0,
-                rebate: parseFloat(document.getElementById('quickRebate').value) || 0,
-                krathseis: parseFloat(document.getElementById('quickKrathseisEopyy').value) || 0,
-                clawback: parseFloat(document.getElementById('quickClawback').value) || 0
-            };
+        // Setup add entry button
+        document.getElementById('addEntryBtn')?.addEventListener('click', () => {
+            STATE.editingEntry = null;
+            document.getElementById('modalTitle').textContent = 'Νέα Εγγραφή';
+            document.getElementById('entryId').value = '';
+            document.getElementById('entryDate').value = '';
+            document.getElementById('entrySource').value = '';
+            document.getElementById('entryInsurance').value = '';
+            document.getElementById('entryType').value = 'cash';
+            document.getElementById('entryAmount').value = '';
+            document.getElementById('entryNotes').value = '';
+            document.getElementById('entryNotesToggle').checked = false;
+            document.getElementById('entryNotes').style.display = 'none';
             
-            entry.deductionPercentages = {
-                parakratisi: parseFloat(document.getElementById('quickParakratisiPercent').value) || 0,
-                mde: parseFloat(document.getElementById('quickMDEPercent').value) || 0,
-                rebate: parseFloat(document.getElementById('quickRebatePercent').value) || 0,
-                krathseis: parseFloat(document.getElementById('quickKrathseisEopyyPercent').value) || 0,
-                clawback: parseFloat(document.getElementById('quickClawbackPercent').value) || 0
-            };
-        } else {
-            entry.krathseis = parseFloat(document.getElementById('quickKrathseisOther').value) || 0;
-            entry.krathseisPercent = parseFloat(document.getElementById('quickKrathseisOtherPercent').value) || 0;
-        }
-
-        const success = await addEntry(entry);
-        if (success) {
-            document.getElementById('quickAmount').value = '';
-            document.getElementById('quickNotes').value = '';
-            document.getElementById('quickNotesToggle').checked = false;
-            document.getElementById('quickNotes').style.display = 'none';
-            
-            // Clear all deduction fields AND FINAL AMOUNT
-            ['quickParakratisi', 'quickParakratisiPercent', 'quickMDE', 'quickMDEPercent', 
-             'quickRebate', 'quickRebatePercent', 'quickKrathseisEopyy', 'quickKrathseisEopyyPercent',
-             'quickClawback', 'quickClawbackPercent', 'quickKrathseisOther', 'quickKrathseisOtherPercent'].forEach(id => {
+            // Clear all deduction fields
+            ['entryParakratisi', 'entryParakratisiPercent', 'entryMDE', 'entryMDEPercent',
+             'entryRebate', 'entryRebatePercent', 'entryKrathseisEopyy', 'entryKrathseisEopyyPercent',
+             'entryClawback', 'entryClawbackPercent', 'entryKrathseisOther', 'entryKrathseisOtherPercent'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
             
-            document.getElementById('quickFinalAmount').textContent = '€ 0,00';
-            
-            showToast(STRINGS.success.entrySaved, 'success');
-            renderDashboard();
-        }
-    });
+            showModalDeductionFields();
+            document.getElementById('entryModal').classList.add('active');
+        });
 
-    console.log('Revenue Management System v5 initialized!');
+        // Setup filters
+        document.getElementById('applyFiltersBtn')?.addEventListener('click', () => {
+            STATE.filters = {
+                dateFrom: document.getElementById('filterDateFrom')?.value,
+                dateTo: document.getElementById('filterDateTo')?.value,
+                source: document.getElementById('filterSource')?.value,
+                insurance: document.getElementById('filterInsurance')?.value,
+                type: document.getElementById('filterType')?.value,
+                amountFrom: document.getElementById('filterAmountFrom')?.value,
+                amountTo: document.getElementById('filterAmountTo')?.value
+            };
+            STATE.currentPage = 1;
+            renderEntriesTable();
+        });
+
+        document.getElementById('clearFiltersBtn')?.addEventListener('click', () => {
+            STATE.filters = {};
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+            document.getElementById('filterSource').value = '';
+            document.getElementById('filterInsurance').value = '';
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterAmountFrom').value = '';
+            document.getElementById('filterAmountTo').value = '';
+            STATE.currentPage = 1;
+            renderEntriesTable();
+        });
+
+        // Setup page size selector
+        document.getElementById('pageSizeSelect')?.addEventListener('change', (e) => {
+            STATE.pageSize = parseInt(e.target.value);
+            CONFIG.pageSize = STATE.pageSize;
+            storage.saveSetting('pageSize', STATE.pageSize);
+            STATE.currentPage = 1;
+            renderEntriesTable();
+        });
+
+        // Setup backup buttons
+        document.getElementById('backupBtn')?.addEventListener('click', async () => {
+            await exportBackup();
+            showToast('Backup δημιουργήθηκε', 'success');
+        });
+
+        document.getElementById('exportBackupBtn')?.addEventListener('click', async () => {
+            await exportBackup();
+            showToast('Backup εξήχθη', 'success');
+        });
+
+        document.getElementById('importBackupBtn')?.addEventListener('click', () => {
+            document.getElementById('backupFileInput').click();
+        });
+
+        document.getElementById('backupFileInput')?.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const report = await importBackup(file, 'merge');
+            if (report.success) {
+                await loadData();
+                populateDropdowns();
+                renderDashboard();
+                showToast(`Import: ${report.inserted} νέες, ${report.updated} ενημερώθηκαν`, 'success');
+            } else {
+                showToast('Import failed', 'error');
+            }
+
+            e.target.value = '';
+        });
+
+        // Setup CSV buttons
+        document.getElementById('importCsvBtn')?.addEventListener('click', () => {
+            document.getElementById('csvFileInput').click();
+        });
+
+        document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
+            const filtered = applyFilters();
+            const csvData = [
+                ['Ημερομηνία', 'Διαγνωστικό', 'Ασφάλεια', 'Τύπος', 'Αρχικό', 'Παρακρ.', 'ΜΔΕ', 'Rebate', 'Κρατ.', 'Clawback', 'Σύνολο Κρατ.', 'Τελικό'],
+                ...filtered.map(entry => {
+                    const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
+                    return [
+                        entry.date,
+                        entry.source,
+                        entry.insurance,
+                        entry.type === 'cash' ? 'Μετρητά' : 'Τιμολόγια',
+                        amounts.originalAmount.toFixed(2),
+                        (amounts.parakratisi || 0).toFixed(2),
+                        (amounts.mde || 0).toFixed(2),
+                        (amounts.rebate || 0).toFixed(2),
+                        (amounts.krathseis || 0).toFixed(2),
+                        (amounts.clawback || 0).toFixed(2),
+                        amounts.totalDeductions.toFixed(2),
+                        amounts.finalAmount.toFixed(2)
+                    ];
+                })
+            ];
+
+            const csv = csvData.map(row => row.join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            downloadBlob('entries.csv', blob);
+            showToast('CSV εξήχθη', 'success');
+        });
+
+        // Setup PDF export
+        document.getElementById('exportEntriesPdfBtn')?.addEventListener('click', async () => {
+            const filtered = applyFilters();
+            await pdfExportManager.exportEntriesList(filtered, STATE.filters);
+            showToast('PDF εξήχθη', 'success');
+        });
+
+        // Setup settings
+        document.getElementById('darkModeToggle')?.addEventListener('change', (e) => {
+            document.body.classList.toggle('dark-mode', e.target.checked);
+            localStorage.setItem('darkMode', e.target.checked);
+        });
+
+        document.getElementById('autosaveEnabled')?.addEventListener('change', (e) => {
+            localStorage.setItem('autosaveEnabled', e.target.checked);
+        });
+
+        document.getElementById('autosaveThreshold')?.addEventListener('change', async (e) => {
+            STATE.autosaveThreshold = parseInt(e.target.value);
+            await storage.saveSetting('autosaveThreshold', STATE.autosaveThreshold);
+        });
+
+        document.getElementById('clearCacheBtn')?.addEventListener('click', async () => {
+            if (!confirm('ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΛΑ τα δεδομένα! Συνέχεια;')) return;
+
+            const report = await storage.clearAllStorage();
+            const reportDiv = document.getElementById('clearCacheReport');
+            reportDiv.innerHTML = `
+                <p>✓ Entries: ${report.entries ? 'Cleared' : 'Failed'}</p>
+                <p>✓ Settings: ${report.settings ? 'Cleared' : 'Failed'}</p>
+                <p>✓ localStorage: ${report.localStorage ? 'Cleared' : 'Failed'}</p>
+                ${report.errors.length > 0 ? `<p class="text-danger">Errors: ${report.errors.join(', ')}</p>` : ''}
+            `;
+
+            setTimeout(() => location.reload(), 2000);
+        });
+
+        // Setup sources/insurances management
+        document.getElementById('addNewSourceBtn')?.addEventListener('click', () => {
+            const input = document.getElementById('newSourceInput');
+            const value = input.value.trim();
+            if (value && !STATE.sources.includes(value)) {
+                STATE.sources.push(value);
+                saveData();
+                populateDropdowns();
+                renderSourcesList();
+                input.value = '';
+            }
+        });
+
+        document.getElementById('addNewInsuranceBtn')?.addEventListener('click', () => {
+            const input = document.getElementById('newInsuranceInput');
+            const value = input.value.trim();
+            if (value && !STATE.insurances.includes(value)) {
+                STATE.insurances.push(value);
+                saveData();
+                populateDropdowns();
+                renderInsurancesList();
+                input.value = '';
+            }
+        });
+
+        renderSourcesList();
+        renderInsurancesList();
+
+        console.log('✅ Revenue Management System v5 initialized successfully!');
+        showToast('Σύστημα φορτώθηκε επιτυχώς', 'success');
+
+    } catch (error) {
+        console.error('❌ Initialization error:', error);
+        showToast('Σφάλμα φόρτωσης: ' + error.message, 'error');
+    }
 });
+
+// Helper functions for settings
+function renderSourcesList() {
+    const list = document.getElementById('sourcesList');
+    if (!list) return;
+    
+    list.innerHTML = STATE.sources.map((source, idx) => `
+        <div class="sortable-item">
+            <span>${escapeHtml(source)}</span>
+            <button class="btn-danger btn-sm" onclick="window.removeSource(${idx})">×</button>
+        </div>
+    `).join('');
+}
+
+function renderInsurancesList() {
+    const list = document.getElementById('insurancesList');
+    if (!list) return;
+    
+    list.innerHTML = STATE.insurances.map((insurance, idx) => `
+        <div class="sortable-item">
+            <span>${escapeHtml(insurance)}</span>
+            <button class="btn-danger btn-sm" onclick="window.removeInsurance(${idx})">×</button>
+        </div>
+    `).join('');
+}
+
+window.removeSource = async function(idx) {
+    if (confirm('Διαγραφή διαγνωστικού;')) {
+        STATE.sources.splice(idx, 1);
+        await saveData();
+        populateDropdowns();
+        renderSourcesList();
+    }
+};
+
+window.removeInsurance = async function(idx) {
+    if (confirm('Διαγραφή ασφάλειας;')) {
+        STATE.insurances.splice(idx, 1);
+        await saveData();
+        populateDropdowns();
+        renderInsurancesList();
+    }
+};
