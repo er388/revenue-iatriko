@@ -331,3 +331,83 @@
         align-items: flex-start;
     }
 }
+
+/* KPI Card Structure Fix */
+.kpi-card {
+    background: var(--bg-secondary, #f9fafb);
+    border-radius: var(--radius-lg, 8px);
+    padding: var(--spacing-md, 1rem);
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.1));
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.kpi-card .kpi-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #6b7280);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.kpi-card .kpi-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary, #111827);
+}
+
+.kpi-card-enhanced {
+    min-height: 100px;
+    justify-content: center;
+}
+
+.kpi-header {
+    width: 100%;
+    text-align: center;
+}
+
+.kpi-content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.kpi-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color, #2563eb);
+}
+
+.kpi-percent {
+    font-size: 0.9rem;
+    color: var(--text-secondary, #6b7280);
+    font-weight: 500;
+}
+
+/* Grid Layout Fix */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md, 1rem);
+    margin-bottom: var(--spacing-lg, 1.5rem);
+}
+
+/* Dropdown Fix */
+select.form-select,
+select.form-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 12px;
+    padding-right: 2rem;
+}
+
+select.form-select option,
+select.form-input option {
+    color: #000;
+    background: #fff;
+}
