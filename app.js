@@ -30,6 +30,20 @@ import ForecastManager from './forecasting.js';
 import { HeatmapGenerator, HeatmapDataProcessor } from './charts.js';
 
 // ========================================
+// Utility: Download Blob (needed early)
+// ========================================
+function downloadBlob(filename, blob) {
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+}
+
+// Make it global
+window.downloadBlob = downloadBlob;
+
+// ========================================
 // DOM Ready Handler
 // ========================================
 function waitForDOM() {
@@ -1270,6 +1284,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('❌ Initialization error:', error);
         showToast('Σφάλμα φόρτωσης: ' + error.message, 'error');
     }
+// Helper functions for settings (MUST BE BEFORE DOMContentLoaded closes)
+function renderSourcesList() {
+    const list = document.getElementById('sourcesList');
+    if (!list) return;
+    
+    list.innerHTML = STATE.sources.map((source, idx) => `
+        <div class="sortable-item">
+            <span>${escapeHtml(source)}</span>
+            <button class="btn-danger btn-sm" onclick="removeSource(${idx})">×</button>
+        </div>
+    `).join('');
+}
+
+function renderInsurancesList() {
+    const list = document.getElementById('insurancesList');
+    if (!list) return;
+    
+    list.innerHTML = STATE.insurances.map((insurance, idx) => `
+        <div class="sortable-item">
+            <span>${escapeHtml(insurance)}</span>
+            <button class="btn-danger btn-sm" onclick="removeInsurance(${idx})">×</button>
+        </div>
+    `).join('');
+}
+
+window.removeSource = async function(idx) {
+    if (confirm('Διαγραφή διαγνωστικού;')) {
+        STATE.sources.splice(idx, 1);
+        await saveData();
+        populateDropdowns();
+        renderSourcesList();
+    }
+};
+
+window.removeInsurance = async function(idx) {
+    if (confirm('Διαγραφή ασφάλειας;')) {
+        STATE.insurances.splice(idx, 1);
+        await saveData();
+        populateDropdowns();
+        renderInsurancesList();
+    }
+};
 });
 
 // Helper functions for settings
