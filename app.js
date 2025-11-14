@@ -100,7 +100,103 @@ let comparisonChart = null;
 let comparisonTrendChart = null;
 let forecastChart = null;
 let heatmapGenerator = null;
+// ========================================
+// Populate Dropdowns Function (Global)
+// ========================================
+function populateDropdowns() {
+    // Quick form dropdowns
+    const quickSource = document.getElementById('quickSource');
+    const quickInsurance = document.getElementById('quickInsurance');
+    
+    if (quickSource) {
+        quickSource.innerHTML = '<option value="">Επιλογή...</option>' +
+            STATE.sources.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+    }
+    
+    if (quickInsurance) {
+        quickInsurance.innerHTML = '<option value="">Επιλογή...</option>' +
+            STATE.insurances.map(i => `<option value="${escapeHtml(i)}">${escapeHtml(i)}</option>`).join('');
+    }
+    
+    // Modal dropdowns
+    const entrySource = document.getElementById('entrySource');
+    const entryInsurance = document.getElementById('entryInsurance');
+    
+    if (entrySource) {
+        entrySource.innerHTML = '<option value="">Επιλογή...</option>' +
+            STATE.sources.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+    }
+    
+    if (entryInsurance) {
+        entryInsurance.innerHTML = '<option value="">Επιλογή...</option>' +
+            STATE.insurances.map(i => `<option value="${escapeHtml(i)}">${escapeHtml(i)}</option>`).join('');
+    }
+    
+    // Filter dropdowns
+    const filterSource = document.getElementById('filterSource');
+    const filterInsurance = document.getElementById('filterInsurance');
+    
+    if (filterSource) {
+        filterSource.innerHTML = '<option value="">Όλα</option>' +
+            STATE.sources.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+    }
+    
+    if (filterInsurance) {
+        filterInsurance.innerHTML = '<option value="">Όλες</option>' +
+            STATE.insurances.map(i => `<option value="${escapeHtml(i)}">${escapeHtml(i)}</option>`).join('');
+    }
+    
+    // Report source dropdown
+    const reportSource = document.getElementById('reportSource');
+    if (reportSource) {
+        reportSource.innerHTML = '<option value="">Όλες</option>' +
+            STATE.sources.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+    }
+}
+// ========================================
+// Settings List Renderers (Global)
+// ========================================
+function renderSourcesList() {
+    const list = document.getElementById('sourcesList');
+    if (!list) return;
+    
+    list.innerHTML = STATE.sources.map((source, idx) => `
+        <div class="sortable-item">
+            <span>${escapeHtml(source)}</span>
+            <button class="btn-danger btn-sm" onclick="window.removeSource(${idx})">×</button>
+        </div>
+    `).join('');
+}
 
+function renderInsurancesList() {
+    const list = document.getElementById('insurancesList');
+    if (!list) return;
+    
+    list.innerHTML = STATE.insurances.map((insurance, idx) => `
+        <div class="sortable-item">
+            <span>${escapeHtml(insurance)}</span>
+            <button class="btn-danger btn-sm" onclick="window.removeInsurance(${idx})">×</button>
+        </div>
+    `).join('');
+}
+
+window.removeSource = async function(idx) {
+    if (confirm('Διαγραφή διαγνωστικού;')) {
+        STATE.sources.splice(idx, 1);
+        await saveData();
+        populateDropdowns();
+        renderSourcesList();
+    }
+};
+
+window.removeInsurance = async function(idx) {
+    if (confirm('Διαγραφή ασφάλειας;')) {
+        STATE.insurances.splice(idx, 1);
+        await saveData();
+        populateDropdowns();
+        renderInsurancesList();
+    }
+};
 // ========================================
 // Modal Draggable Setup
 // ========================================
