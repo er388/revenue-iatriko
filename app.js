@@ -3,6 +3,17 @@
  * ΕΟΠΥΥ: 5 deductions, Others: 1 deduction
  */
 
+import {
+    showDeductionFields,
+    showModalDeductionFields,
+    calculateFinalAmount,
+    setupQuickFormPercentages,
+    setupModalFormPercentages,
+    setupNotesToggle,
+    setupFormEventListeners,
+    resetQuickForm,
+    setupRememberSelections
+} from './formHandlers.js';
 import { 
     showToast,
     renderDashboard, 
@@ -104,88 +115,6 @@ function filterEntriesByPeriod(entries, period) {
     }
 
     return filtered;
-}
-
-// ========================================
-// Form Handlers
-// ========================================
-function showDeductionFields() {
-    const insurance = document.getElementById('quickInsurance').value;
-    const type = document.getElementById('quickType').value;
-    const isEopyy = insurance.toUpperCase().includes('ΕΟΠΥΥ');
-    const isInvoice = type === 'invoice';
-    
-    document.getElementById('quickEopyyDeductions').style.display = (isEopyy && isInvoice) ? 'block' : 'none';
-    document.getElementById('quickNonEopyyDeductions').style.display = (!isEopyy && isInvoice) ? 'block' : 'none';
-    
-    calculateFinalAmount('quick');
-}
-
-function showModalDeductionFields() {
-    const insurance = document.getElementById('entryInsurance').value;
-    const type = document.getElementById('entryType').value;
-    const isEopyy = insurance.toUpperCase().includes('ΕΟΠΥΥ');
-    const isInvoice = type === 'invoice';
-    
-    document.getElementById('modalEopyyDeductions').style.display = (isEopyy && isInvoice) ? 'block' : 'none';
-    document.getElementById('modalNonEopyyDeductions').style.display = (!isEopyy && isInvoice) ? 'block' : 'none';
-    
-    calculateFinalAmount('entry');
-}
-
-function calculateFinalAmount(prefix) {
-    const amountEl = document.getElementById(`${prefix}Amount`);
-    const insuranceEl = document.getElementById(`${prefix}Insurance`);
-    
-    if (!amountEl || !insuranceEl) return;
-    
-    const amount = parseFloat(amountEl.value) || 0;
-    const insurance = insuranceEl.value;
-    const isEopyy = insurance.toUpperCase().includes('ΕΟΠΥΥ');
-    
-    let totalDeductions = 0;
-    
-    if (isEopyy) {
-        totalDeductions += parseFloat(document.getElementById(`${prefix}Parakratisi`)?.value) || 0;
-        totalDeductions += parseFloat(document.getElementById(`${prefix}MDE`)?.value) || 0;
-        totalDeductions += parseFloat(document.getElementById(`${prefix}Rebate`)?.value) || 0;
-        totalDeductions += parseFloat(document.getElementById(`${prefix}KrathseisEopyy`)?.value) || 0;
-        totalDeductions += parseFloat(document.getElementById(`${prefix}Clawback`)?.value) || 0;
-    } else {
-        totalDeductions += parseFloat(document.getElementById(`${prefix}KrathseisOther`)?.value) || 0;
-    }
-    
-    const finalAmount = amount - totalDeductions;
-    const displayId = prefix === 'quick' ? 'quickFinalAmount' : 'modalFinalAmount';
-    const displayEl = document.getElementById(displayId);
-    if (displayEl) {
-        displayEl.textContent = formatCurrency(finalAmount);
-    }
-}
-
-function setupPercentageSync(amountId, percentId, baseAmountGetter) {
-    const amountInput = document.getElementById(amountId);
-    const percentInput = document.getElementById(percentId);
-    
-    if (!amountInput || !percentInput) return;
-    
-    amountInput.addEventListener('input', () => {
-        const baseAmount = baseAmountGetter();
-        const amount = parseFloat(amountInput.value) || 0;
-        if (baseAmount > 0) {
-            percentInput.value = ((amount / baseAmount) * 100).toFixed(2);
-        }
-        const prefix = amountId.startsWith('quick') ? 'quick' : 'entry';
-        calculateFinalAmount(prefix);
-    });
-    
-    percentInput.addEventListener('input', () => {
-        const baseAmount = baseAmountGetter();
-        const percent = parseFloat(percentInput.value) || 0;
-        amountInput.value = ((baseAmount * percent) / 100).toFixed(2);
-        const prefix = amountId.startsWith('quick') ? 'quick' : 'entry';
-        calculateFinalAmount(prefix);
-    });
 }
 
 // ========================================
@@ -347,32 +276,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupDateAutoFormat(document.getElementById('filterDateFrom'));
     setupDateAutoFormat(document.getElementById('filterDateTo'));
 
-    // Setup percentage sync for quick form
-    const getQuickAmount = () => parseFloat(document.getElementById('quickAmount').value) || 0;
-    setupPercentageSync('quickParakratisi', 'quickParakratisiPercent', getQuickAmount);
-    setupPercentageSync('quickMDE', 'quickMDEPercent', getQuickAmount);
-    setupPercentageSync('quickRebate', 'quickRebatePercent', getQuickAmount);
-    setupPercentageSync('quickKrathseisEopyy', 'quickKrathseisEopyyPercent', getQuickAmount);
-    setupPercentageSync('quickClawback', 'quickClawbackPercent', getQuickAmount);
-    setupPercentageSync('quickKrathseisOther', 'quickKrathseisOtherPercent', getQuickAmount);
-    
-    // Setup percentage sync for modal
-    const getModalAmount = () => parseFloat(document.getElementById('entryAmount').value) || 0;
-    setupPercentageSync('entryParakratisi', 'entryParakratisiPercent', getModalAmount);
-    setupPercentageSync('entryMDE', 'entryMDEPercent', getModalAmount);
-    setupPercentageSync('entryRebate', 'entryRebatePercent', getModalAmount);
-    setupPercentageSync('entryKrathseisEopyy', 'entryKrathseisEopyyPercent', getModalAmount);
-    setupPercentageSync('entryClawback', 'entryClawbackPercent', getModalAmount);
-    setupPercentageSync('entryKrathseisOther', 'entryKrathseisOtherPercent', getModalAmount);
-    
-    // Notes toggle
-    document.getElementById('quickNotesToggle')?.addEventListener('change', (e) => {
-        document.getElementById('quickNotes').style.display = e.target.checked ? 'block' : 'none';
-    });
-    
-    document.getElementById('entryNotesToggle')?.addEventListener('change', (e) => {
-        document.getElementById('entryNotes').style.display = e.target.checked ? 'block' : 'none';
-    });
+    // Setup form handlers
+    setupQuickFormPercentages();
+    setupModalFormPercentages();
+    setupNotesToggle();
+    setupFormEventListeners();
+    setupRememberSelections();
     
     // Dark mode toggle
     document.getElementById('darkModeToggle')?.addEventListener('change', (e) => {
@@ -386,19 +295,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (document.getElementById('darkModeToggle')) {
         document.getElementById('darkModeToggle').checked = savedTheme === 'dark';
     }
-    
-    // Remember last selections
-    ['quickSource', 'quickInsurance', 'quickType'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            const savedValue = localStorage.getItem(`last_${id}`);
-            if (savedValue) el.value = savedValue;
-            
-            el.addEventListener('change', () => {
-                localStorage.setItem(`last_${id}`, el.value);
-            });
-        }
-    });
 
     // Quick Add Form
     document.getElementById('quickAddForm').addEventListener('submit', async (e) => {
@@ -435,33 +331,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const success = await addEntry(entry);
         if (success) {
-            // Clear only amount and notes, keep selections
-            document.getElementById('quickAmount').value = '';
-            document.getElementById('quickNotes').value = '';
-            document.getElementById('quickNotesToggle').checked = false;
-            document.getElementById('quickNotes').style.display = 'none';
-            
-            // Clear deduction fields
-            ['quickParakratisi', 'quickParakratisiPercent', 'quickMDE', 'quickMDEPercent', 
-             'quickRebate', 'quickRebatePercent', 'quickKrathseisEopyy', 'quickKrathseisEopyyPercent',
-             'quickClawback', 'quickClawbackPercent', 'quickKrathseisOther', 'quickKrathseisOtherPercent'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-            });
-            
+            resetQuickForm();
             showToast(STRINGS.success.entrySaved, 'success');
             renderDashboard();
         }
     });
-
-    // Type/Insurance change handlers
-    document.getElementById('quickType')?.addEventListener('change', showDeductionFields);
-    document.getElementById('quickInsurance')?.addEventListener('change', showDeductionFields);
-    document.getElementById('quickAmount')?.addEventListener('input', () => calculateFinalAmount('quick'));
-    
-    document.getElementById('entryType')?.addEventListener('change', showModalDeductionFields);
-    document.getElementById('entryInsurance')?.addEventListener('change', showModalDeductionFields);
-    document.getElementById('entryAmount')?.addEventListener('input', () => calculateFinalAmount('entry'));
 
     // Dashboard toggles
     document.getElementById('dashPeriod')?.addEventListener('change', () => renderDashboard());
