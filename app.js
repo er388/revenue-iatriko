@@ -29,39 +29,7 @@ import {
     compareDates,
     setupDateAutoFormat
 } from './utils.js';
-
-// ========================================
-// Configuration
-// ========================================
-const CONFIG = {
-    pageSize: 20,
-    chartColors: {
-        primary: '#2563eb',
-        success: '#10b981',
-        warning: '#f59e0b',
-        danger: '#ef4444',
-        info: '#3b82f6'
-    }
-};
-
-// ========================================
-// Global State
-// ========================================
-const STATE = {
-    entries: [],
-    sources: ['Ταμείο 1', 'Ταμείο 2'],
-    insurances: ['ΕΟΠΥΥ', 'Ιδιωτική'],
-    currentView: 'dashboard',
-    filters: {},
-    currentPage: 1,
-    editingEntry: null,
-    undoStack: [],
-    userLabel: 'Admin',
-    charts: {},
-    cdnAvailable: true,
-    currentKPIs: {},
-    changeCounter: 0
-};
+import { STATE, CONFIG } from './state.js';
 
 // ========================================
 // Toast Notifications
