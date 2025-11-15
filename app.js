@@ -36,7 +36,7 @@ import {
     setupDateAutoFormat
 } from './utils.js';
 import { STATE, CONFIG } from './state.js';
-import { loadData, saveData, addEntry, deleteEntry, setShowToast } from './dataManager.js';
+import { loadData, saveData, addEntry, deleteEntry } from './dataManager.js';
 
 // ========================================
 // Filtering
