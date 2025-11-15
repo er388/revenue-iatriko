@@ -8,10 +8,6 @@ import eopyyDeductionsManager from './eopyyClawback.js';
 import { generateId, STRINGS } from './utils.js';
 import { STATE } from './state.js';
 import { markChangesPending } from './backup.js';
-
-// ========================================
-// Toast Notification (imported from UI later)
-// ========================================
 import { showToast } from './uiRenderers.js';
 
 // ========================================
@@ -83,7 +79,6 @@ export async function saveData() {
 // ========================================
 
 export async function addEntry(entry) {
-    // Check for duplicates
     const duplicate = STATE.entries.find(e => 
         e.date === entry.date && 
         e.source === entry.source &&
@@ -95,10 +90,8 @@ export async function addEntry(entry) {
         return false;
     }
 
-    // Store original amount
     entry.originalAmount = entry.amount;
 
-    // Generate ID and metadata for new entries
     if (!entry.id) {
         entry.id = generateId();
         entry.createdAt = Date.now();
@@ -110,9 +103,7 @@ export async function addEntry(entry) {
 
     const existingIndex = STATE.entries.findIndex(e => e.id === entry.id);
     
-    // Update or insert
     if (existingIndex >= 0) {
-        // Save undo action for update
         await storage.saveUndoAction({
             id: generateId(),
             type: 'update',
@@ -122,7 +113,6 @@ export async function addEntry(entry) {
         
         STATE.entries[existingIndex] = entry;
     } else {
-        // Save undo action for insert
         STATE.entries.push(entry);
         
         await storage.saveUndoAction({
@@ -133,7 +123,6 @@ export async function addEntry(entry) {
         });
     }
 
-    // Apply ΕΟΠΥΥ deductions if applicable
     const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
     
     if (isEopyy && entry.deductions) {
@@ -152,7 +141,6 @@ export async function deleteEntry(id) {
     const index = STATE.entries.findIndex(e => e.id === id);
     
     if (index >= 0) {
-        // Save undo action
         await storage.saveUndoAction({
             id: generateId(),
             type: 'delete',
@@ -160,10 +148,8 @@ export async function deleteEntry(id) {
             data: { ...STATE.entries[index] }
         });
         
-        // Remove ΕΟΠΥΥ deductions
         await eopyyDeductionsManager.removeDeductions(id);
         
-        // Remove entry
         STATE.entries.splice(index, 1);
         
         await saveData();
