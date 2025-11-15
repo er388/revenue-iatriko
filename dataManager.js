@@ -12,19 +12,7 @@ import { markChangesPending } from './backup.js';
 // ========================================
 // Toast Notification (imported from UI later)
 // ========================================
-let showToastFn = null;
-
-export function setShowToast(fn) {
-    showToastFn = fn;
-}
-
-function showToast(message, type) {
-    if (showToastFn) {
-        showToastFn(message, type);
-    } else {
-        console.log(`[${type.toUpperCase()}] ${message}`);
-    }
-}
+import { showToast } from './uiRenderers.js';
 
 // ========================================
 // Data Loading
@@ -275,6 +263,5 @@ export default {
     getEntriesByDateRange,
     getEntriesBySource,
     getEntriesByInsurance,
-    getDataStats,
-    setShowToast
+    getDataStats
 };
