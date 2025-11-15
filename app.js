@@ -30,6 +30,7 @@ import {
     setupDateAutoFormat
 } from './utils.js';
 import { STATE, CONFIG } from './state.js';
+import { loadData, saveData, addEntry, deleteEntry, setShowToast } from './dataManager.js';
 
 // ========================================
 // Toast Notifications
@@ -43,134 +44,8 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// ========================================
-// Data Management
-// ========================================
-async function loadData() {
-    try {
-        STATE.entries = await storage.loadEntries();
-        STATE.sources = (await storage.loadSetting('sources')) || STATE.sources;
-        STATE.insurances = (await storage.loadSetting('insurances')) || STATE.insurances;
-        STATE.userLabel = (await storage.loadSetting('userLabel')) || STATE.userLabel;
-        STATE.undoStack = await storage.loadUndoActions();
-        
-        document.getElementById('userLabel').textContent = `Χρήστης: ${STATE.userLabel}`;
-        
-        await eopyyDeductionsManager.loadDeductions();
-        
-        console.log(`Loaded ${STATE.entries.length} entries`);
-    } catch (error) {
-        console.error('Load data error:', error);
-        showToast('Σφάλμα φόρτωσης δεδομένων', 'error');
-    }
-}
-
-async function saveData() {
-    try {
-        await storage.saveEntries(STATE.entries);
-        await storage.saveSetting('sources', STATE.sources);
-        await storage.saveSetting('insurances', STATE.insurances);
-        
-        STATE.changeCounter++;
-        
-        // Autosave every 5 changes
-        if (STATE.changeCounter >= 5) {
-            const autosaveEnabled = localStorage.getItem('autosaveEnabled') === 'true';
-            if (autosaveEnabled) {
-                await exportBackup();
-                showToast('Auto-backup δημιουργήθηκε', 'success');
-                STATE.changeCounter = 0;
-            }
-        }
-        
-        markChangesPending();
-    } catch (error) {
-        if (error.message === 'QUOTA_EXCEEDED') {
-            showToast(STRINGS.errors.quotaExceeded, 'error');
-        } else {
-            console.error('Save data error:', error);
-            showToast('Σφάλμα αποθήκευσης', 'error');
-        }
-    }
-}
-
-async function addEntry(entry) {
-    const duplicate = STATE.entries.find(e => 
-        e.date === entry.date && 
-        e.source === entry.source &&
-        e.id !== entry.id
-    );
-    
-    if (duplicate) {
-        showToast(STRINGS.errors.duplicateEntry, 'error');
-        return false;
-    }
-
-    entry.originalAmount = entry.amount;
-
-    if (!entry.id) {
-        entry.id = generateId();
-        entry.createdAt = Date.now();
-        entry.createdBy = STATE.userLabel;
-    }
-    
-    entry.updatedAt = Date.now();
-    entry.updatedBy = STATE.userLabel;
-
-    const existingIndex = STATE.entries.findIndex(e => e.id === entry.id);
-    
-    if (existingIndex >= 0) {
-        await storage.saveUndoAction({
-            id: generateId(),
-            type: 'update',
-            timestamp: Date.now(),
-            data: { ...STATE.entries[existingIndex] }
-        });
-        
-        STATE.entries[existingIndex] = entry;
-    } else {
-        STATE.entries.push(entry);
-        
-        await storage.saveUndoAction({
-            id: generateId(),
-            type: 'insert',
-            timestamp: Date.now(),
-            data: { ...entry }
-        });
-    }
-
-    const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
-    
-    if (isEopyy && entry.deductions) {
-        await eopyyDeductionsManager.applyDeductions(
-            entry.id,
-            entry.deductions,
-            entry.notes || ''
-        );
-    }
-
-    await saveData();
-    return true;
-}
-
-async function deleteEntry(id) {
-    const index = STATE.entries.findIndex(e => e.id === id);
-    if (index >= 0) {
-        await storage.saveUndoAction({
-            id: generateId(),
-            type: 'delete',
-            timestamp: Date.now(),
-            data: { ...STATE.entries[index] }
-        });
-        
-        await eopyyDeductionsManager.removeDeductions(id);
-        
-        STATE.entries.splice(index, 1);
-        await saveData();
-        return true;
-    }
-    return false;
-}
+// Register showToast με το dataManager
+setShowToast(showToast);
 
 // ========================================
 // UI Rendering
