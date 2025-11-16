@@ -156,8 +156,10 @@ document.getElementById('applyFiltersBtn')?.addEventListener('click', () => {
         source: document.getElementById('filterSource').value,
         insurance: document.getElementById('filterInsurance').value,
         type: document.getElementById('filterType').value,
-        amountFrom: document.getElementById('filterAmountFrom').value,
-        amountTo: document.getElementById('filterAmountTo').value,
+        originalAmountFrom: document.getElementById('filterOriginalAmountFrom').value,
+        originalAmountTo: document.getElementById('filterOriginalAmountTo').value,
+        finalAmountFrom: document.getElementById('filterFinalAmountFrom').value,
+        finalAmountTo: document.getElementById('filterFinalAmountTo').value,
         deductionPercentFrom: document.getElementById('filterDeductionPercentFrom').value,
         deductionPercentTo: document.getElementById('filterDeductionPercentTo').value
     });
@@ -166,7 +168,9 @@ document.getElementById('applyFiltersBtn')?.addEventListener('click', () => {
 
 document.getElementById('clearFiltersBtn')?.addEventListener('click', () => {
     ['filterDateFrom', 'filterDateTo', 'filterSource', 'filterInsurance', 'filterType',
-     'filterAmountFrom', 'filterAmountTo', 'filterDeductionPercentFrom', 'filterDeductionPercentTo'].forEach(id => {
+     'filterOriginalAmountFrom', 'filterOriginalAmountTo', 
+     'filterFinalAmountFrom', 'filterFinalAmountTo',
+     'filterDeductionPercentFrom', 'filterDeductionPercentTo'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });

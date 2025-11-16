@@ -37,17 +37,31 @@ export function applyFilters() {
         filtered = filtered.filter(e => e.type === STATE.filters.type);
     }
 
-    // Amount filters
-    if (STATE.filters.amountFrom) {
+    // Original Amount filters (Αρχικό Ποσό)
+    if (STATE.filters.originalAmountFrom) {
         filtered = filtered.filter(e => {
             const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
-            return amounts.originalAmount >= parseFloat(STATE.filters.amountFrom);
+            return amounts.originalAmount >= parseFloat(STATE.filters.originalAmountFrom);
         });
     }
-    if (STATE.filters.amountTo) {
+    if (STATE.filters.originalAmountTo) {
         filtered = filtered.filter(e => {
             const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
-            return amounts.originalAmount <= parseFloat(STATE.filters.amountTo);
+            return amounts.originalAmount <= parseFloat(STATE.filters.originalAmountTo);
+        });
+    }
+
+    // Final Amount filters (Τελικό Ποσό)
+    if (STATE.filters.finalAmountFrom) {
+        filtered = filtered.filter(e => {
+            const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
+            return amounts.finalAmount >= parseFloat(STATE.filters.finalAmountFrom);
+        });
+    }
+    if (STATE.filters.finalAmountTo) {
+        filtered = filtered.filter(e => {
+            const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
+            return amounts.finalAmount <= parseFloat(STATE.filters.finalAmountTo);
         });
     }
 
@@ -107,8 +121,10 @@ export function getFiltersSummary() {
     if (STATE.filters.source) active.push(`Πηγή: ${STATE.filters.source}`);
     if (STATE.filters.insurance) active.push(`Ασφάλεια: ${STATE.filters.insurance}`);
     if (STATE.filters.type) active.push(`Τύπος: ${STATE.filters.type === 'cash' ? 'Μετρητά' : 'Τιμολόγια'}`);
-    if (STATE.filters.amountFrom) active.push(`Ποσό από: €${STATE.filters.amountFrom}`);
-    if (STATE.filters.amountTo) active.push(`Ποσό έως: €${STATE.filters.amountTo}`);
+    if (STATE.filters.originalAmountFrom) active.push(`Αρχικό Ποσό από: €${STATE.filters.originalAmountFrom}`);
+    if (STATE.filters.originalAmountTo) active.push(`Αρχικό Ποσό έως: €${STATE.filters.originalAmountTo}`);
+    if (STATE.filters.finalAmountFrom) active.push(`Τελικό Ποσό από: €${STATE.filters.finalAmountFrom}`);
+    if (STATE.filters.finalAmountTo) active.push(`Τελικό Ποσό έως: €${STATE.filters.finalAmountTo}`);
     if (STATE.filters.deductionPercentFrom) active.push(`Κρατήσεις από: ${STATE.filters.deductionPercentFrom}%`);
     if (STATE.filters.deductionPercentTo) active.push(`Κρατήσεις έως: ${STATE.filters.deductionPercentTo}%`);
     
@@ -161,6 +177,10 @@ export const FILTER_PRESETS = {
     
     highDeductions: () => {
         return { deductionPercentFrom: '20' };
+    },
+    
+    highFinalAmount: () => {
+        return { finalAmountFrom: '500' };
     }
 };
 
