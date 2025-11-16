@@ -37,8 +37,22 @@
 
     <main class="container main-content">
         
-            <!-- Dashboard View -->
-            <div id="dashboardView" class="view active">
+        <!-- Dashboard View -->
+        <div id="dashboardView" class="view active">
+            <div class="dashboard-header">
+                <h2>Επισκόπηση</h2>
+                <div class="quick-filters">
+                    <select id="dashPeriod" class="form-select form-compact">
+                        <option value="month" selected>Μήνας</option>
+                        <option value="year">Έτος</option>
+                        <option value="all">Όλα</option>
+                    </select>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="dashIncludeParakratisi" checked>
+                        <span>Με Παρακράτηση</span>
+                    </label>
+                </div>
+            </div>
 
             <!-- Quick Add Form -->
             <div class="card card-compact">
@@ -159,22 +173,6 @@
                 </form>
             </div>
 
-            <!-- Dashboard Header (moved after Quick Add) -->
-            <div class="dashboard-header">
-                <h2>Επισκόπηση</h2>
-                <div class="quick-filters">
-                    <select id="dashPeriod" class="form-select form-compact">
-                        <option value="all" selected>Όλα</option>
-                        <option value="month">Μήνας</option>
-                        <option value="year">Έτος</option>
-                    </select>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="dashIncludeParakratisi">
-                        <span>Με Παρακράτηση</span>
-                    </label>
-                </div>
-            </div>
-            
             <!-- KPI Cards -->
             <div class="kpi-grid kpi-grid-compact">
                 <div class="kpi-card kpi-card-compact">
@@ -231,7 +229,7 @@
                                     <th>Διαγνωστικό</th>
                                     <th>Ασφάλεια</th>
                                     <th>Τύπος</th>
-                                    <th class="text-right">Ποσό</th>
+                                    <th class="text-right">Τελικό Ποσό</th>
                                 </tr>
                             </thead>
                             <tbody id="recentEntriesBody">
@@ -266,8 +264,8 @@
             <div class="view-header">
                 <h2>Εγγραφές</h2>
                 <div class="view-actions">
-                    <button id="importCsvBtn" class="btn-secondary btn-compact">📤 Import CSV</button>
-                    <button id="exportCsvBtn" class="btn-secondary btn-compact">📥 Export CSV</button>
+                    <button id="importCsvBtn" class="btn-secondary btn-compact">📤 CSV</button>
+                    <button id="exportCsvBtn" class="btn-secondary btn-compact">📥 CSV</button>
                     <button id="exportEntriesPdfBtn" class="btn-secondary btn-compact">📄 PDF</button>
                     <button id="addEntryBtn" class="btn-primary btn-compact">+ Νέα</button>
                 </div>
@@ -337,24 +335,23 @@
             <div class="card card-compact">
                 <div class="table-responsive">
                     <table class="data-table data-table-compact">
-                        <thead>
-                            <tr>
-                                <th>Ημ/νία</th>
-                                <th>Διαγνωστικό</th>
-                                <th>Ασφάλεια</th>
-                                <th>Τύπος</th>
-                                <th class="text-right">Αρχικό</th>
-                                <th class="text-right">Τελικό</th>
-                                <th>Σημειώσεις</th>
-                                <th>Ενέργειες</th>
-                            </tr>
-                            <tr class="deductions-row">
-                                <th colspan="4"></th>
-                                <th class="text-right">Κρατήσεις €</th>
-                                <th class="text-right">Κρατήσεις %</th>
-                                <th colspan="2"></th>
-                            </tr>
-                        </thead>
+                            <thead>
+                                <tr>
+                                    <th>Ημ/νία</th>
+                                    <th>Διαγνωστικό</th>
+                                    <th>Ασφάλεια</th>
+                                    <th>Τύπος</th>
+                                    <th class="text-right">Αρχικό</th>
+                                    <th class="text-right">Παρακρ.</th>
+                                    <th class="text-right">ΜΔΕ</th>
+                                    <th class="text-right">Rebate</th>
+                                    <th class="text-right">Κρατ.</th>
+                                    <th class="text-right">Clawback</th>
+                                    <th class="text-right">Τελικό</th>
+                                    <th>Σημειώσεις</th>
+                                    <th>Ενέργειες</th>
+                                </tr>
+                            </thead>
                         <tbody id="entriesTableBody">
                             <tr><td colspan="8" class="text-center">Δεν υπάρχουν εγγραφές</td></tr>
                         </tbody>
