@@ -101,12 +101,26 @@ export async function addEntry(entry) {
     entry.updatedAt = Date.now();
     entry.updatedBy = STATE.userLabel;
 
+    // Calculate and store percentages for ΕΟΠΥΥ entries
+    const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
+    if (isEopyy && entry.deductions) {
+        const originalAmount = entry.originalAmount;
+        entry.deductionPercentages = {
+            parakratisiPercent: originalAmount > 0 ? (entry.deductions.parakratisi / originalAmount) * 100 : 0,
+            mdePercent: originalAmount > 0 ? (entry.deductions.mde / originalAmount) * 100 : 0,
+            rebatePercent: originalAmount > 0 ? (entry.deductions.rebate / originalAmount) * 100 : 0,
+            krathseisPercent: originalAmount > 0 ? (entry.deductions.krathseis / originalAmount) * 100 : 0,
+            clawbackPercent: originalAmount > 0 ? (entry.deductions.clawback / originalAmount) * 100 : 0
+        };
+    } else if (!isEopyy && entry.krathseis) {
+        entry.krathseisPercent = entry.originalAmount > 0 ? (entry.krathseis / entry.originalAmount) * 100 : 0;
+    }
+
     const existingIndex = STATE.entries.findIndex(e => e.id === entry.id);
     
     if (existingIndex >= 0) {
         await storage.saveUndoAction({
             id: generateId(),
-            type: 'update',
             timestamp: Date.now(),
             data: { ...STATE.entries[existingIndex] }
         });
@@ -123,8 +137,6 @@ export async function addEntry(entry) {
         });
     }
 
-    const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
-    
     if (isEopyy && entry.deductions) {
         await eopyyDeductionsManager.applyDeductions(
             entry.id,

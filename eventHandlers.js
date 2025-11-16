@@ -45,17 +45,38 @@ window.editEntry = function(id) {
     const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
     const deduction = eopyyDeductionsManager.getDeductions(entry.id);
     
+    // Clear all deduction fields first
+    ['entryParakratisi', 'entryParakratisiPercent', 'entryMDE', 'entryMDEPercent',
+     'entryRebate', 'entryRebatePercent', 'entryKrathseisEopyy', 'entryKrathseisEopyyPercent',
+     'entryClawback', 'entryClawbackPercent', 'entryKrathseisOther', 'entryKrathseisOtherPercent'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    
     if (isEopyy && deduction) {
         document.getElementById('entryParakratisi').value = deduction.deductions.parakratisi || '';
         document.getElementById('entryMDE').value = deduction.deductions.mde || '';
         document.getElementById('entryRebate').value = deduction.deductions.rebate || '';
         document.getElementById('entryKrathseisEopyy').value = deduction.deductions.krathseis || '';
         document.getElementById('entryClawback').value = deduction.deductions.clawback || '';
+        
+        // Load stored percentages if available
+        if (entry.deductionPercentages) {
+            document.getElementById('entryParakratisiPercent').value = entry.deductionPercentages.parakratisiPercent?.toFixed(2) || '';
+            document.getElementById('entryMDEPercent').value = entry.deductionPercentages.mdePercent?.toFixed(2) || '';
+            document.getElementById('entryRebatePercent').value = entry.deductionPercentages.rebatePercent?.toFixed(2) || '';
+            document.getElementById('entryKrathseisEopyyPercent').value = entry.deductionPercentages.krathseisPercent?.toFixed(2) || '';
+            document.getElementById('entryClawbackPercent').value = entry.deductionPercentages.clawbackPercent?.toFixed(2) || '';
+        }
     } else if (!isEopyy) {
         document.getElementById('entryKrathseisOther').value = entry.krathseis || '';
+        if (entry.krathseisPercent) {
+            document.getElementById('entryKrathseisOtherPercent').value = entry.krathseisPercent.toFixed(2);
+        }
     }
 
     showModalDeductionFields();
+    calculateFinalAmount('entry');
     document.getElementById('entryModal').classList.add('active');
 };
 
