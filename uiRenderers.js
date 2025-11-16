@@ -13,6 +13,7 @@ import {
     parseMonthYear,
     formatMonthYear
 } from './utils.js';
+import { applyFilters } from './filters.js';
 
 // ========================================
 // Toast Notifications
@@ -269,56 +270,6 @@ export function renderEntriesTable() {
     }).join('');
 
     renderPagination(filtered.length, totalPages);
-}
-
-function applyFilters() {
-    let filtered = [...STATE.entries];
-
-    if (STATE.filters.dateFrom) {
-        filtered = filtered.filter(e => compareDates(e.date, STATE.filters.dateFrom) >= 0);
-    }
-    if (STATE.filters.dateTo) {
-        filtered = filtered.filter(e => compareDates(e.date, STATE.filters.dateTo) <= 0);
-    }
-    if (STATE.filters.source) {
-        filtered = filtered.filter(e => e.source === STATE.filters.source);
-    }
-    if (STATE.filters.insurance) {
-        filtered = filtered.filter(e => e.insurance === STATE.filters.insurance);
-    }
-    if (STATE.filters.type) {
-        filtered = filtered.filter(e => e.type === STATE.filters.type);
-    }
-    if (STATE.filters.amountFrom) {
-        filtered = filtered.filter(e => {
-            const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
-            return amounts.originalAmount >= parseFloat(STATE.filters.amountFrom);
-        });
-    }
-    if (STATE.filters.amountTo) {
-        filtered = filtered.filter(e => {
-            const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
-            return amounts.originalAmount <= parseFloat(STATE.filters.amountTo);
-        });
-    }
-    if (STATE.filters.deductionPercentFrom) {
-        filtered = filtered.filter(e => {
-            const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
-            const percent = amounts.originalAmount > 0 ? (amounts.totalDeductions / amounts.originalAmount) * 100 : 0;
-            return percent >= parseFloat(STATE.filters.deductionPercentFrom);
-        });
-    }
-    if (STATE.filters.deductionPercentTo) {
-        filtered = filtered.filter(e => {
-            const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
-            const percent = amounts.originalAmount > 0 ? (amounts.totalDeductions / amounts.originalAmount) * 100 : 0;
-            return percent <= parseFloat(STATE.filters.deductionPercentTo);
-        });
-    }
-
-    filtered.sort((a, b) => compareDates(b.date, a.date));
-
-    return filtered;
 }
 
 // ========================================

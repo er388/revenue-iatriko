@@ -3,6 +3,7 @@
  * ΕΟΠΥΥ: 5 deductions, Others: 1 deduction
  */
 
+import { applyFilters, setFilters, clearFilters } from './filters.js';
 import { initializeEventHandlers } from './eventHandlers.js';
 import {
     showDeductionFields,
@@ -53,55 +54,6 @@ import { loadData, saveData, addEntry, deleteEntry } from './dataManager.js';
 // ========================================
 // Filtering
 // ========================================
-function applyFilters() {
-    let filtered = [...STATE.entries];
-
-    if (STATE.filters.dateFrom) {
-        filtered = filtered.filter(e => compareDates(e.date, STATE.filters.dateFrom) >= 0);
-    }
-    if (STATE.filters.dateTo) {
-        filtered = filtered.filter(e => compareDates(e.date, STATE.filters.dateTo) <= 0);
-    }
-    if (STATE.filters.source) {
-        filtered = filtered.filter(e => e.source === STATE.filters.source);
-    }
-    if (STATE.filters.insurance) {
-        filtered = filtered.filter(e => e.insurance === STATE.filters.insurance);
-    }
-    if (STATE.filters.type) {
-        filtered = filtered.filter(e => e.type === STATE.filters.type);
-    }
-    if (STATE.filters.amountFrom) {
-        filtered = filtered.filter(e => {
-            const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
-            return amounts.originalAmount >= parseFloat(STATE.filters.amountFrom);
-        });
-    }
-    if (STATE.filters.amountTo) {
-        filtered = filtered.filter(e => {
-            const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
-            return amounts.originalAmount <= parseFloat(STATE.filters.amountTo);
-        });
-    }
-    if (STATE.filters.deductionPercentFrom) {
-        filtered = filtered.filter(e => {
-            const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
-            const percent = amounts.originalAmount > 0 ? (amounts.totalDeductions / amounts.originalAmount) * 100 : 0;
-            return percent >= parseFloat(STATE.filters.deductionPercentFrom);
-        });
-    }
-    if (STATE.filters.deductionPercentTo) {
-        filtered = filtered.filter(e => {
-            const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
-            const percent = amounts.originalAmount > 0 ? (amounts.totalDeductions / amounts.originalAmount) * 100 : 0;
-            return percent <= parseFloat(STATE.filters.deductionPercentTo);
-        });
-    }
-
-    filtered.sort((a, b) => compareDates(b.date, a.date));
-
-    return filtered;
-}
 
 function filterEntriesByPeriod(entries, period) {
     const now = new Date();
@@ -196,33 +148,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Filters
-    document.getElementById('applyFiltersBtn')?.addEventListener('click', () => {
-        STATE.filters = {
-            dateFrom: document.getElementById('filterDateFrom').value,
-            dateTo: document.getElementById('filterDateTo').value,
-            source: document.getElementById('filterSource').value,
-            insurance: document.getElementById('filterInsurance').value,
-            type: document.getElementById('filterType').value,
-            amountFrom: document.getElementById('filterAmountFrom').value,
-            amountTo: document.getElementById('filterAmountTo').value,
-            deductionPercentFrom: document.getElementById('filterDeductionPercentFrom').value,
-            deductionPercentTo: document.getElementById('filterDeductionPercentTo').value
-        };
-        STATE.currentPage = 1;
-        renderEntriesTable();
+// Filters
+document.getElementById('applyFiltersBtn')?.addEventListener('click', () => {
+    setFilters({
+        dateFrom: document.getElementById('filterDateFrom').value,
+        dateTo: document.getElementById('filterDateTo').value,
+        source: document.getElementById('filterSource').value,
+        insurance: document.getElementById('filterInsurance').value,
+        type: document.getElementById('filterType').value,
+        amountFrom: document.getElementById('filterAmountFrom').value,
+        amountTo: document.getElementById('filterAmountTo').value,
+        deductionPercentFrom: document.getElementById('filterDeductionPercentFrom').value,
+        deductionPercentTo: document.getElementById('filterDeductionPercentTo').value
     });
+    renderEntriesTable();
+});
 
-    document.getElementById('clearFiltersBtn')?.addEventListener('click', () => {
-        ['filterDateFrom', 'filterDateTo', 'filterSource', 'filterInsurance', 'filterType',
-         'filterAmountFrom', 'filterAmountTo', 'filterDeductionPercentFrom', 'filterDeductionPercentTo'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = '';
-        });
-        STATE.filters = {};
-        STATE.currentPage = 1;
-        renderEntriesTable();
+document.getElementById('clearFiltersBtn')?.addEventListener('click', () => {
+    ['filterDateFrom', 'filterDateTo', 'filterSource', 'filterInsurance', 'filterType',
+     'filterAmountFrom', 'filterAmountTo', 'filterDeductionPercentFrom', 'filterDeductionPercentTo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
     });
+    clearFilters();
+    renderEntriesTable();
+});
 
     // CSV Export
     document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
