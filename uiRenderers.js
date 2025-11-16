@@ -290,7 +290,18 @@ export function renderEntriesTable() {
         `;
     }).join('');
 
-    renderPagination(filtered.length, totalPages);
+renderPagination(filtered.length, totalPages);
+    updateSortIndicators();
+}
+
+function updateSortIndicators() {
+    document.querySelectorAll('.data-table th.sortable').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        const sortKey = th.getAttribute('data-sort');
+        if (sortKey === STATE.sortColumn) {
+            th.classList.add(`sorted-${STATE.sortDirection}`);
+        }
+    });
 }
 
 // ========================================

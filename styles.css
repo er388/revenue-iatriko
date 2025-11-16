@@ -428,6 +428,35 @@ body {
     border-bottom: 2px solid var(--border-color);
 }
 
+.data-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: background-color 0.2s;
+}
+
+.data-table th.sortable:hover {
+    background-color: var(--border-color);
+}
+
+.data-table th.sortable .sort-icon {
+    margin-left: 0.25rem;
+    opacity: 0.5;
+    font-size: 0.8rem;
+}
+
+.data-table th.sortable.sorted-asc .sort-icon::before {
+    content: '↑';
+    opacity: 1;
+    font-weight: bold;
+}
+
+.data-table th.sortable.sorted-desc .sort-icon::before {
+    content: '↓';
+    opacity: 1;
+    font-weight: bold;
+}
+
 .data-table td {
     padding: var(--spacing-md);
     border-bottom: 1px solid var(--border-color);
