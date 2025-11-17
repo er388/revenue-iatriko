@@ -3,8 +3,7 @@
  */
 
 export const CONFIG = {
-    pageSize: 25,
-    pageSizeOptions: [25, 50, 75, 100, 150],
+    pageSize: 20,
     chartColors: {
         primary: '#2563eb',
         success: '#10b981',
@@ -27,9 +26,7 @@ export const STATE = {
     charts: {},
     cdnAvailable: true,
     currentKPIs: {},
-    changeCounter: 0,
-    sortColumn: 'date',
-    sortDirection: 'desc'
+    changeCounter: 0
 };
 
 export function resetState() {

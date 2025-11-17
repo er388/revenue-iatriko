@@ -85,63 +85,10 @@ export function applyFilters() {
         });
     }
 
-// Apply sorting
-    filtered = applySorting(filtered);
+    // Sort by date (newest first)
+    filtered.sort((a, b) => compareDates(b.date, a.date));
 
     return filtered;
-}
-
-function applySorting(entries) {
-    const { sortColumn, sortDirection } = STATE;
-    
-    return entries.sort((a, b) => {
-        let aVal, bVal;
-        
-        switch (sortColumn) {
-            case 'date':
-                return sortDirection === 'asc' 
-                    ? compareDates(a.date, b.date)
-                    : compareDates(b.date, a.date);
-            
-            case 'source':
-                aVal = a.source.toLowerCase();
-                bVal = b.source.toLowerCase();
-                break;
-            
-            case 'insurance':
-                aVal = a.insurance.toLowerCase();
-                bVal = b.insurance.toLowerCase();
-                break;
-            
-            case 'type':
-                aVal = a.type;
-                bVal = b.type;
-                break;
-            
-            case 'original':
-                const amountsA = eopyyDeductionsManager.getAmountsBreakdown(a);
-                const amountsB = eopyyDeductionsManager.getAmountsBreakdown(b);
-                aVal = amountsA.originalAmount;
-                bVal = amountsB.originalAmount;
-                break;
-            
-            case 'final':
-                const finalA = eopyyDeductionsManager.getAmountsBreakdown(a);
-                const finalB = eopyyDeductionsManager.getAmountsBreakdown(b);
-                aVal = finalA.finalAmount;
-                bVal = finalB.finalAmount;
-                break;
-            
-            default:
-                return 0;
-        }
-        
-        if (sortDirection === 'asc') {
-            return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
-        } else {
-            return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
-        }
-    });
 }
 
 // ========================================
