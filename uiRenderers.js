@@ -251,11 +251,17 @@ export function renderEntriesTable() {
     const tbody = document.getElementById('entriesTableBody');
     if (!tbody) return;
 
-    const filtered = applyFilters();
+    let filtered = applyFilters();
     
-    const totalPages = Math.ceil(filtered.length / CONFIG.pageSize);
-    const start = (STATE.currentPage - 1) * CONFIG.pageSize;
-    const end = start + CONFIG.pageSize;
+    // Apply sorting
+    if (STATE.sortField) {
+        filtered = applySorting(filtered, STATE.sortField, STATE.sortDirection);
+    }
+    
+    const pageSize = STATE.pageSize || CONFIG.pageSize;
+    const totalPages = Math.ceil(filtered.length / pageSize);
+    const start = (STATE.currentPage - 1) * pageSize;
+    const end = start + pageSize;
     const pageEntries = filtered.slice(start, end);
 
     if (pageEntries.length === 0) {
@@ -291,6 +297,49 @@ export function renderEntriesTable() {
     }).join('');
 
     renderPagination(filtered.length, totalPages);
+}
+
+// Helper function for sorting
+function applySorting(entries, field, direction) {
+    return [...entries].sort((a, b) => {
+        let aVal, bVal;
+        
+        switch(field) {
+            case 'date':
+                aVal = a.date;
+                bVal = b.date;
+                return direction === 'asc' ? compareDates(aVal, bVal) : compareDates(bVal, aVal);
+            
+            case 'source':
+            case 'insurance':
+            case 'type':
+                aVal = (a[field] || '').toLowerCase();
+                bVal = (b[field] || '').toLowerCase();
+                break;
+            
+            case 'originalAmount':
+                const amountsA = eopyyDeductionsManager.getAmountsBreakdown(a);
+                const amountsB = eopyyDeductionsManager.getAmountsBreakdown(b);
+                aVal = amountsA.originalAmount;
+                bVal = amountsB.originalAmount;
+                break;
+            
+            case 'finalAmount':
+                const finalA = eopyyDeductionsManager.getAmountsBreakdown(a);
+                const finalB = eopyyDeductionsManager.getAmountsBreakdown(b);
+                aVal = finalA.finalAmount;
+                bVal = finalB.finalAmount;
+                break;
+            
+            default:
+                aVal = a[field];
+                bVal = b[field];
+        }
+        
+        if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+        return 0;
+    });
 }
 
 // ========================================
