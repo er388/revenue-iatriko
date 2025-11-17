@@ -60,6 +60,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     await storage.init();
     await loadData();
 
+    // ========================================
+    // Auto-prompt for backup restore on first load
+    // ========================================
+    const hasDataLoaded = STATE.entries.length > 0;
+    const skipAutoPrompt = sessionStorage.getItem('skipBackupPrompt');
+    
+    if (!hasDataLoaded && !skipAutoPrompt) {
+        sessionStorage.setItem('skipBackupPrompt', 'true');
+        
+        setTimeout(() => {
+            const shouldLoadBackup = confirm(
+                '👋 Καλώς ήρθατε!\n\n' +
+                'Θέλετε να φορτώσετε ένα backup αρχείο;\n\n' +
+                'Πατήστε OK για να επιλέξετε backup.json, ή Cancel για να ξεκινήσετε από την αρχή.'
+            );
+            
+            if (shouldLoadBackup) {
+                document.getElementById('backupFileInput')?.click();
+            }
+        }, 500);
+    }
+
     // Render initial UI
     renderSourcesAndInsurances();
     renderDashboard();
@@ -594,7 +616,7 @@ if (autosaveCheckbox && autosaveConfig && autosaveThreshold) {
     // Draggable & Resizable Modals
     // ========================================
     setupDraggableModals();
-    
+
     // ========================================
     // Collapsible Helper Function
     // ========================================
@@ -604,6 +626,50 @@ if (autosaveCheckbox && autosaveConfig && autosaveThreshold) {
             return;
         }
         document.getElementById(contentId)?.classList.toggle('collapsed');
+    };
+    
+    // ========================================
+    // Warn before closing with unsaved changes
+    // ========================================
+    window.addEventListener('beforeunload', (e) => {
+        const autosaveEnabled = localStorage.getItem('autosaveEnabled') === 'true';
+        
+        // If autosave is enabled and there are pending changes
+        if (autosaveEnabled && STATE.changeCounter > 0) {
+            const threshold = STATE.autosaveThreshold || 5;
+            const message = `Έχετε ${STATE.changeCounter} μη αποθηκευμένες αλλαγές.\n\n` +
+                          `Το επόμενο auto-backup θα γίνει στις ${threshold} αλλαγές.\n\n` +
+                          `Είστε σίγουροι ότι θέλετε να κλείσετε;`;
+            
+            e.preventDefault();
+            e.returnValue = message;
+            return message;
+        }
+        
+        // If autosave is disabled and there are entries
+        if (!autosaveEnabled && STATE.entries.length > 0) {
+            const lastBackup = localStorage.getItem('lastManualBackup');
+            const now = Date.now();
+            
+            // If no backup in last 30 minutes
+            if (!lastBackup || (now - parseInt(lastBackup)) > 30 * 60 * 1000) {
+                const message = 'Το Autosave είναι απενεργοποιημένο.\n\n' +
+                              'Έχετε κάνει πρόσφατο backup;\n\n' +
+                              'Είστε σίγουροι ότι θέλετε να κλείσετε;';
+                
+                e.preventDefault();
+                e.returnValue = message;
+                return message;
+            }
+        }
+    });
+
+    // Track manual backups
+    const originalExportBackup = window.exportBackup || (() => {});
+    window.exportBackup = async function() {
+        const result = await originalExportBackup();
+        localStorage.setItem('lastManualBackup', Date.now().toString());
+        return result;
     };
 });
 

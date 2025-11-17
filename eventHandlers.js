@@ -45,10 +45,15 @@ window.editEntry = function(id) {
     const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
     const deduction = eopyyDeductionsManager.getDeductions(entry.id);
     
-    // Clear all deduction fields first
-    ['entryParakratisi', 'entryParakratisiPercent', 'entryMDE', 'entryMDEPercent',
-     'entryRebate', 'entryRebatePercent', 'entryKrathseisEopyy', 'entryKrathseisEopyyPercent',
-     'entryClawback', 'entryClawbackPercent', 'entryKrathseisOther', 'entryKrathseisOtherPercent'].forEach(id => {
+    // CRITICAL: Clear ALL deduction fields first
+    [
+        'entryParakratisi', 'entryParakratisiPercent', 
+        'entryMDE', 'entryMDEPercent',
+        'entryRebate', 'entryRebatePercent', 
+        'entryKrathseisEopyy', 'entryKrathseisEopyyPercent',
+        'entryClawback', 'entryClawbackPercent', 
+        'entryKrathseisOther', 'entryKrathseisOtherPercent'
+    ].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -58,30 +63,52 @@ window.editEntry = function(id) {
     if (isEopyy && deduction) {
         const amounts = deduction.deductions;
         
+        // Set amounts
         document.getElementById('entryParakratisi').value = amounts.parakratisi || '';
         document.getElementById('entryMDE').value = amounts.mde || '';
         document.getElementById('entryRebate').value = amounts.rebate || '';
         document.getElementById('entryKrathseisEopyy').value = amounts.krathseis || '';
         document.getElementById('entryClawback').value = amounts.clawback || '';
         
-        // Calculate percentages from amounts
+        // Calculate and set percentages from stored amounts
         if (originalAmount > 0) {
-            document.getElementById('entryParakratisiPercent').value = amounts.parakratisi ? ((amounts.parakratisi / originalAmount) * 100).toFixed(2) : '';
-            document.getElementById('entryMDEPercent').value = amounts.mde ? ((amounts.mde / originalAmount) * 100).toFixed(2) : '';
-            document.getElementById('entryRebatePercent').value = amounts.rebate ? ((amounts.rebate / originalAmount) * 100).toFixed(2) : '';
-            document.getElementById('entryKrathseisEopyyPercent').value = amounts.krathseis ? ((amounts.krathseis / originalAmount) * 100).toFixed(2) : '';
-            document.getElementById('entryClawbackPercent').value = amounts.clawback ? ((amounts.clawback / originalAmount) * 100).toFixed(2) : '';
+            if (amounts.parakratisi) {
+                document.getElementById('entryParakratisiPercent').value = 
+                    ((amounts.parakratisi / originalAmount) * 100).toFixed(2);
+            }
+            if (amounts.mde) {
+                document.getElementById('entryMDEPercent').value = 
+                    ((amounts.mde / originalAmount) * 100).toFixed(2);
+            }
+            if (amounts.rebate) {
+                document.getElementById('entryRebatePercent').value = 
+                    ((amounts.rebate / originalAmount) * 100).toFixed(2);
+            }
+            if (amounts.krathseis) {
+                document.getElementById('entryKrathseisEopyyPercent').value = 
+                    ((amounts.krathseis / originalAmount) * 100).toFixed(2);
+            }
+            if (amounts.clawback) {
+                document.getElementById('entryClawbackPercent').value = 
+                    ((amounts.clawback / originalAmount) * 100).toFixed(2);
+            }
         }
     } else if (!isEopyy) {
         const krathseis = entry.krathseis || 0;
         document.getElementById('entryKrathseisOther').value = krathseis || '';
         if (originalAmount > 0 && krathseis) {
-            document.getElementById('entryKrathseisOtherPercent').value = ((krathseis / originalAmount) * 100).toFixed(2);
+            document.getElementById('entryKrathseisOtherPercent').value = 
+                ((krathseis / originalAmount) * 100).toFixed(2);
         }
     }
 
+    // Show appropriate deduction fields
     showModalDeductionFields();
+    
+    // Calculate final amount with loaded values
     calculateFinalAmount('entry');
+    
+    // Open modal
     document.getElementById('entryModal').classList.add('active');
 };
 
