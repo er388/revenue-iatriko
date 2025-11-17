@@ -188,9 +188,12 @@
 
             <!-- Recent Entries -->
             <div class="card card-compact">
-                <div class="collapsible-header" onclick="document.getElementById('recentEntriesContent').classList.toggle('collapsed')">
+                <div class="collapsible-header" onclick="handleCollapsibleClick(event, 'recentEntriesContent')">
                     <h3>Πρόσφατες Εγγραφές</h3>
-                    <button type="button" class="btn-secondary btn-compact btn-sm" id="exportDashboardPdfBtn">📄 PDF</button>
+                    <div class="collapsible-actions">
+                        <button type="button" class="btn-secondary btn-compact btn-sm" id="exportDashboardPdfBtn" 
+                                onclick="event.stopPropagation()">📄 PDF</button>
+                    </div>
                     <span class="collapse-icon">▼</span>
                 </div>
                 <div id="recentEntriesContent" class="collapsible-content collapsed">
@@ -216,16 +219,18 @@
             <!-- Charts -->
             <div class="charts-grid charts-grid-compact">
                 <div class="card card-compact">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="chart-header">
                         <h3>Έσοδα ανά Τύπο</h3>
-                        <button type="button" class="btn-secondary btn-compact btn-sm" onclick="window.exportChartPDF('typeChart')">📄 PDF</button>
+                        <button type="button" class="btn-secondary btn-compact btn-sm" 
+                                onclick="window.exportChartPDF('typeChart')">📄 PDF</button>
                     </div>
                     <canvas id="typeChart"></canvas>
                 </div>
                 <div class="card card-compact">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="chart-header">
                         <h3>Μηνιαία Εξέλιξη</h3>
-                        <button type="button" class="btn-secondary btn-compact btn-sm" onclick="window.exportChartPDF('monthlyChart')">📄 PDF</button>
+                        <button type="button" class="btn-secondary btn-compact btn-sm" 
+                                onclick="window.exportChartPDF('monthlyChart')">📄 PDF</button>
                     </div>
                     <canvas id="monthlyChart"></canvas>
                 </div>
@@ -410,13 +415,21 @@
                     <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
                 </div>
                 
-                <h4>Autosave</h4>
                 <div class="autosave-settings">
                     <label class="checkbox-label">
                         <input type="checkbox" id="autosaveEnabled">
-                        <span>Αυτόματη Αποθήκευση (κάθε 5 αλλαγές)</span>
+                        <span>Αυτόματη Αποθήκευση Backup</span>
                     </label>
-                    <div id="autosaveStatus" class="autosave-status"></div>
+                    <div class="autosave-config" id="autosaveConfig" style="margin-top: 0.75rem; display: none;">
+                        <div class="form-row form-row-tight">
+                            <div class="form-group form-group-compact">
+                                <label>Backup μετά από (αλλαγές):</label>
+                                <input type="number" id="autosaveThreshold" class="form-input form-input-compact" 
+                                    min="1" max="100" value="5" style="max-width: 100px;">
+                            </div>
+                        </div>
+                        <div id="autosaveStatus" class="autosave-status"></div>
+                    </div>
                 </div>
             </div>
 
@@ -439,7 +452,7 @@
             </div>
 
             <!-- Danger Zone at the end -->
-            <div class="card card-compact">
+            <div class="card card-compact danger-zone-card">
                 <h3 style="color: var(--danger-color);">⚠️ Επικίνδυνη Ζώνη</h3>
                 <div style="background-color: #fef2f2; border: 2px solid #ef4444; padding: 0.75rem; border-radius: 6px; margin-bottom: 0.75rem;">
                     <p style="color: #991b1b; margin-bottom: 0.25rem; font-size: 0.9rem;"><strong>ΠΡΟΣΟΧΗ:</strong> Διαγραφή όλων των δεδομένων!</p>

@@ -345,19 +345,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // ========================================
-    // Autosave
-    // ========================================
-    const autosaveCheckbox = document.getElementById('autosaveEnabled');
-    if (autosaveCheckbox) {
-        const savedAutosave = localStorage.getItem('autosaveEnabled') === 'true';
-        autosaveCheckbox.checked = savedAutosave;
+// ========================================
+// Autosave με ρυθμιζόμενο threshold
+// ========================================
+const autosaveCheckbox = document.getElementById('autosaveEnabled');
+const autosaveConfig = document.getElementById('autosaveConfig');
+const autosaveThreshold = document.getElementById('autosaveThreshold');
 
-        autosaveCheckbox.addEventListener('change', (e) => {
-            localStorage.setItem('autosaveEnabled', e.target.checked ? 'true' : 'false');
-            showToast(e.target.checked ? 'Autosave ενεργοποιήθηκε' : 'Autosave απενεργοποιήθηκε', 'info');
-        });
-    }
+if (autosaveCheckbox && autosaveConfig && autosaveThreshold) {
+    // Load saved settings
+    const savedAutosave = localStorage.getItem('autosaveEnabled') === 'true';
+    const savedThreshold = localStorage.getItem('autosaveThreshold') || '5';
+    
+    autosaveCheckbox.checked = savedAutosave;
+    autosaveThreshold.value = savedThreshold;
+    STATE.autosaveThreshold = parseInt(savedThreshold);
+    autosaveConfig.style.display = savedAutosave ? 'block' : 'none';
+    
+    // Toggle config visibility
+    autosaveCheckbox.addEventListener('change', (e) => {
+        const isEnabled = e.target.checked;
+        localStorage.setItem('autosaveEnabled', isEnabled ? 'true' : 'false');
+        autosaveConfig.style.display = isEnabled ? 'block' : 'none';
+        
+        showToast(
+            isEnabled 
+                ? `Autosave ενεργοποιήθηκε (κάθε ${STATE.autosaveThreshold} αλλαγές)` 
+                : 'Autosave απενεργοποιήθηκε', 
+            'info'
+        );
+    });
+    
+    // Update threshold
+    autosaveThreshold.addEventListener('change', (e) => {
+        const value = parseInt(e.target.value) || 5;
+        STATE.autosaveThreshold = value;
+        localStorage.setItem('autosaveThreshold', value.toString());
+        showToast(`Autosave θα γίνεται κάθε ${value} αλλαγές`, 'info');
+    });
+}
 
     // ========================================
     // Clear Cache
@@ -568,6 +594,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Draggable & Resizable Modals
     // ========================================
     setupDraggableModals();
+    
+    // ========================================
+    // Collapsible Helper Function
+    // ========================================
+    window.handleCollapsibleClick = function(event, contentId) {
+        // Don't collapse if clicking on buttons
+        if (event.target.tagName === 'BUTTON' || event.target.closest('button')) {
+            return;
+        }
+        document.getElementById(contentId)?.classList.toggle('collapsed');
+    };
 });
 
 // ========================================
