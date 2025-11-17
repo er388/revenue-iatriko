@@ -1635,3 +1635,56 @@ body {
 .chart-header button {
     flex-shrink: 0;
 }
+
+/* ========================================
+   Chart Filters
+   ======================================== */
+
+.chart-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+    align-items: center;
+}
+
+.chart-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.chart-filter-group label {
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.chart-filter-group .form-select,
+.chart-filter-group .form-input {
+    min-width: 120px;
+}
+
+.chart-filter-group span {
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .chart-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .chart-filter-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .chart-filter-group .form-select,
+    .chart-filter-group .form-input {
+        width: 100%;
+    }
+}

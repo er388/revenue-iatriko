@@ -627,7 +627,7 @@ if (autosaveCheckbox && autosaveConfig && autosaveThreshold) {
         }
         document.getElementById(contentId)?.classList.toggle('collapsed');
     };
-    
+
     // ========================================
     // Warn before closing with unsaved changes
     // ========================================
@@ -671,6 +671,62 @@ if (autosaveCheckbox && autosaveConfig && autosaveThreshold) {
         localStorage.setItem('lastManualBackup', Date.now().toString());
         return result;
     };
+
+    // ========================================
+    // Chart Filters
+    // ========================================
+    const chartFilterSource = document.getElementById('chartFilterSource');
+    const chartFilterInsurance = document.getElementById('chartFilterInsurance');
+    const chartFilterPeriod = document.getElementById('chartFilterPeriod');
+    const chartFilterDateFrom = document.getElementById('chartFilterDateFrom');
+    const chartFilterDateTo = document.getElementById('chartFilterDateTo');
+    const customPeriodGroup = document.getElementById('customPeriodGroup');
+    const chartIncludeParakratisi = document.getElementById('chartIncludeParakratisi');
+    
+    // Populate chart filter dropdowns
+    function populateChartFilters() {
+        if (chartFilterSource) {
+            chartFilterSource.innerHTML = '<option value="">Όλες</option>' +
+                STATE.sources.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+        }
+        if (chartFilterInsurance) {
+            chartFilterInsurance.innerHTML = '<option value="">Όλες</option>' +
+                STATE.insurances.map(i => `<option value="${escapeHtml(i)}">${escapeHtml(i)}</option>`).join('');
+        }
+    }
+    
+    populateChartFilters();
+    
+    // Show/hide custom period inputs
+    if (chartFilterPeriod && customPeriodGroup) {
+        chartFilterPeriod.addEventListener('change', (e) => {
+            customPeriodGroup.style.display = e.target.value === 'custom' ? 'flex' : 'none';
+        });
+    }
+    
+    // Apply chart filters
+    document.getElementById('applyChartFilters')?.addEventListener('click', () => {
+        renderDashboard();
+        showToast('Φίλτρα γραφημάτων εφαρμόστηκαν', 'success');
+    });
+    
+    // Clear chart filters
+    document.getElementById('clearChartFilters')?.addEventListener('click', () => {
+        if (chartFilterSource) chartFilterSource.value = '';
+        if (chartFilterInsurance) chartFilterInsurance.value = '';
+        if (chartFilterPeriod) chartFilterPeriod.value = 'year';
+        if (chartFilterDateFrom) chartFilterDateFrom.value = '';
+        if (chartFilterDateTo) chartFilterDateTo.value = '';
+        if (chartIncludeParakratisi) chartIncludeParakratisi.checked = false;
+        if (customPeriodGroup) customPeriodGroup.style.display = 'none';
+        
+        renderDashboard();
+        showToast('Φίλτρα γραφημάτων καθαρίστηκαν', 'info');
+    });
+    
+    // Setup date auto-format for chart filters
+    if (chartFilterDateFrom) setupDateAutoFormat(chartFilterDateFrom);
+    if (chartFilterDateTo) setupDateAutoFormat(chartFilterDateTo);
 });
 
 // ========================================

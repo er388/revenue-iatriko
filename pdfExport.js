@@ -1,6 +1,6 @@
 /**
- * pdfExport.js - Advanced PDF Export Module
- * Updated Î³Î¹Î± Î½Î­Î¿ ÏƒÏÏƒÏ„Î·Î¼Î± ÎºÏÎ±Ï„Î®ÏƒÎµÏ‰Î½
+ * pdfExport.js - Advanced PDF Export Module with Greek Support
+ * Διορθωμένη έκδοση με σωστή κωδικοποίηση Ελληνικών
  */
 
 import { formatCurrency, formatDateTime } from './utils.js';
@@ -15,7 +15,7 @@ class PDFExportManager {
         this.html2canvas = null;
     }
 
-async init() {
+    async init() {
         if (typeof window.jspdf !== 'undefined') {
             this.jsPDF = window.jspdf.jsPDF;
         }
@@ -28,22 +28,6 @@ async init() {
         }
     }
 
-    // Helper: Convert Greek text to Latin transliteration for PDF
-    greekToLatin(text) {
-        const greekMap = {
-            'Α': 'A', 'Β': 'V', 'Γ': 'G', 'Δ': 'D', 'Ε': 'E', 'Ζ': 'Z', 'Η': 'I', 'Θ': 'Th',
-            'Ι': 'I', 'Κ': 'K', 'Λ': 'L', 'Μ': 'M', 'Ν': 'N', 'Ξ': 'X', 'Ο': 'O', 'Π': 'P',
-            'Ρ': 'R', 'Σ': 'S', 'Τ': 'T', 'Υ': 'Y', 'Φ': 'F', 'Χ': 'Ch', 'Ψ': 'Ps', 'Ω': 'O',
-            'α': 'a', 'β': 'v', 'γ': 'g', 'δ': 'd', 'ε': 'e', 'ζ': 'z', 'η': 'i', 'θ': 'th',
-            'ι': 'i', 'κ': 'k', 'λ': 'l', 'μ': 'm', 'ν': 'n', 'ξ': 'x', 'ο': 'o', 'π': 'p',
-            'ρ': 'r', 'σ': 's', 'ς': 's', 'τ': 't', 'υ': 'y', 'φ': 'f', 'χ': 'ch', 'ψ': 'ps', 'ω': 'o',
-            'ά': 'a', 'έ': 'e', 'ή': 'i', 'ί': 'i', 'ό': 'o', 'ύ': 'y', 'ώ': 'o',
-            'Ά': 'A', 'Έ': 'E', 'Ή': 'I', 'Ί': 'I', 'Ό': 'O', 'Ύ': 'Y', 'Ώ': 'O'
-        };
-        
-        return text.split('').map(char => greekMap[char] || char).join('');
-    }
-
     async exportDashboard(data) {
         await this.init();
 
@@ -53,29 +37,29 @@ async init() {
         const margin = 15;
         let yPos = margin;
 
-// Header
+        // Header
         doc.setFontSize(20);
         doc.setTextColor(37, 99, 235);
-        doc.text(this.greekToLatin('Αναφορά Εσόδων'), margin, yPos);
+        doc.text('Anafora Esodon', margin, yPos);
         yPos += 10;
 
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
-        doc.text(this.greekToLatin(`Δημιουργήθηκε: ${formatDateTime(Date.now())}`), margin, yPos);
+        doc.text(`Dimiourgitheike: ${formatDateTime(Date.now())}`, margin, yPos);
         yPos += 15;
 
-// Main KPIs
+        // Main KPIs
         doc.setFontSize(14);
         doc.setTextColor(0, 0, 0);
-        doc.text(this.greekToLatin('Βασικοί Δείκτες'), margin, yPos);
+        doc.text('Vasikoi Deiktes', margin, yPos);
         yPos += 8;
 
         doc.setFontSize(10);
         const mainKpis = [
-            [this.greekToLatin('Συνολικά Έσοδα:'), formatCurrency(data.kpis.total)],
-            [this.greekToLatin('ΕΟΠΥΥ (Τελικό):'), formatCurrency(data.kpis.eopyyTotal)],
-            [this.greekToLatin('Άλλα Ταμεία:'), formatCurrency(data.kpis.nonEopyyTotal)],
-            [this.greekToLatin('Σύνολο Κρατήσεων:'), formatCurrency(data.kpis.eopyyTotalDeductions + data.kpis.nonEopyyKrathseis)]
+            ['Synolika Esoda:', formatCurrency(data.kpis.total)],
+            ['EOPYY (Teliko):', formatCurrency(data.kpis.eopyyTotal)],
+            ['Alla Tameia:', formatCurrency(data.kpis.nonEopyyTotal)],
+            ['Synolo Kratiseon:', formatCurrency(data.kpis.eopyyTotalDeductions + data.kpis.nonEopyyKrathseis)]
         ];
 
         mainKpis.forEach(([label, value]) => {
@@ -86,20 +70,20 @@ async init() {
 
         yPos += 10;
 
-// ΕΟΠΥΥ Deductions Breakdown
+        // ΕΟΠΥΥ Deductions Breakdown
         doc.setFontSize(14);
-        doc.text(this.greekToLatin('Ανάλυση Κρατήσεων ΕΟΠΥΥ'), margin, yPos);
+        doc.text('Analysi Kratiseon EOPYY', margin, yPos);
         yPos += 8;
 
         doc.setFontSize(10);
         const eopyyDeductions = [
-            [this.greekToLatin('Αρχικό Ποσό:'), formatCurrency(data.kpis.eopyyOriginal)],
-            [this.greekToLatin('Παρακράτηση:'), formatCurrency(data.kpis.eopyyParakratisi)],
-            [this.greekToLatin('ΜΔΕ:'), formatCurrency(data.kpis.eopyyMDE)],
+            ['Arxiko Poso:', formatCurrency(data.kpis.eopyyOriginal)],
+            ['Parakratisi:', formatCurrency(data.kpis.eopyyParakratisi)],
+            ['MDE:', formatCurrency(data.kpis.eopyyMDE)],
             ['Rebate:', formatCurrency(data.kpis.eopyyRebate)],
-            [this.greekToLatin('Κρατήσεις:'), formatCurrency(data.kpis.eopyyKrathseis)],
+            ['Kratiseis:', formatCurrency(data.kpis.eopyyKrathseis)],
             ['Clawback:', formatCurrency(data.kpis.eopyyClawback)],
-            [this.greekToLatin('Τελικό:'), formatCurrency(data.kpis.eopyyFinal)]
+            ['Teliko:', formatCurrency(data.kpis.eopyyFinal)]
         ];
 
         eopyyDeductions.forEach(([label, value]) => {
@@ -121,7 +105,7 @@ async init() {
                 }
 
                 doc.setFontSize(12);
-                doc.text(chart.title, margin, yPos);
+                doc.text(this.transliterate(chart.title), margin, yPos);
                 yPos += 8;
 
                 try {
@@ -154,18 +138,18 @@ async init() {
 
         // Header
         doc.setFontSize(16);
-        doc.text('Î›Î¯ÏƒÏ„Î± Î•Î³Î³ÏÎ±Ï†ÏŽÎ½', margin, yPos);
+        doc.text('Lista Egrafon', margin, yPos);
         yPos += 10;
 
         // Filters info
         if (Object.keys(filters).length > 0) {
             doc.setFontSize(9);
             doc.setTextColor(100, 100, 100);
-            let filterText = 'Î¦Î¯Î»Ï„ÏÎ±: ';
-            if (filters.dateFrom) filterText += `Î‘Ï€ÏŒ ${filters.dateFrom} `;
-            if (filters.dateTo) filterText += `ÎˆÏ‰Ï‚ ${filters.dateTo} `;
-            if (filters.source) filterText += `Î Î·Î³Î®: ${filters.source} `;
-            if (filters.insurance) filterText += `Î‘ÏƒÏ†Î¬Î»ÎµÎ¹Î±: ${filters.insurance}`;
+            let filterText = 'Filtra: ';
+            if (filters.dateFrom) filterText += `Apo ${filters.dateFrom} `;
+            if (filters.dateTo) filterText += `Eos ${filters.dateTo} `;
+            if (filters.source) filterText += `Pigi: ${this.transliterate(filters.source)} `;
+            if (filters.insurance) filterText += `Asfaleia: ${this.transliterate(filters.insurance)}`;
             doc.text(filterText, margin, yPos);
             yPos += 8;
         }
@@ -178,12 +162,12 @@ async init() {
         doc.setFillColor(240, 240, 240);
         doc.rect(margin, yPos, pageWidth - 2 * margin, 6, 'F');
         
-        doc.text('Î—Î¼/Î½Î¯Î±', margin + 2, yPos + 4);
-        doc.text('Î Î·Î³Î®', margin + 20, yPos + 4);
-        doc.text('Î‘ÏƒÏ†Î¬Î»ÎµÎ¹Î±', margin + 45, yPos + 4);
-        doc.text('Î‘ÏÏ‡Î¹ÎºÏŒ', margin + 70, yPos + 4);
-        doc.text('ÎšÏÎ±Ï„.', margin + 90, yPos + 4);
-        doc.text('Î¤ÎµÎ»Î¹ÎºÏŒ', margin + 110, yPos + 4);
+        doc.text('Im/nia', margin + 2, yPos + 4);
+        doc.text('Pigi', margin + 20, yPos + 4);
+        doc.text('Asfaleia', margin + 45, yPos + 4);
+        doc.text('Arxiko', margin + 70, yPos + 4);
+        doc.text('Krat.', margin + 90, yPos + 4);
+        doc.text('Teliko', margin + 110, yPos + 4);
         yPos += 6;
 
         // Rows
@@ -201,8 +185,8 @@ async init() {
             const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
 
             doc.text(entry.date, margin + 2, yPos + 3.5);
-            doc.text(entry.source.substring(0, 10), margin + 20, yPos + 3.5);
-            doc.text(entry.insurance.substring(0, 10), margin + 45, yPos + 3.5);
+            doc.text(this.transliterate(entry.source.substring(0, 10)), margin + 20, yPos + 3.5);
+            doc.text(this.transliterate(entry.insurance.substring(0, 10)), margin + 45, yPos + 3.5);
             doc.text(formatCurrency(amounts.originalAmount), margin + 70, yPos + 3.5);
             doc.text(formatCurrency(amounts.totalDeductions), margin + 90, yPos + 3.5);
             doc.text(formatCurrency(amounts.finalAmount), margin + 110, yPos + 3.5);
@@ -215,7 +199,7 @@ async init() {
         yPos = margin;
 
         doc.setFontSize(12);
-        doc.text('Î ÎµÏÎ¯Î»Î·ÏˆÎ·', margin, yPos);
+        doc.text('Perilipsi', margin, yPos);
         yPos += 10;
 
         const totalOriginal = entries.reduce((sum, e) => {
@@ -234,55 +218,15 @@ async init() {
         }, 0);
 
         doc.setFontSize(10);
-        doc.text(`Î£ÏÎ½Î¿Î»Î¿ Î•Î³Î³ÏÎ±Ï†ÏŽÎ½: ${entries.length}`, margin, yPos);
+        doc.text(`Synolo Egrafon: ${entries.length}`, margin, yPos);
         yPos += 6;
-        doc.text(`Î‘ÏÏ‡Î¹ÎºÏŒ Î Î¿ÏƒÏŒ: ${formatCurrency(totalOriginal)}`, margin, yPos);
+        doc.text(`Arxiko Poso: ${formatCurrency(totalOriginal)}`, margin, yPos);
         yPos += 6;
-        doc.text(`ÎšÏÎ±Ï„Î®ÏƒÎµÎ¹Ï‚: ${formatCurrency(totalDeductions)}`, margin, yPos);
+        doc.text(`Kratiseis: ${formatCurrency(totalDeductions)}`, margin, yPos);
         yPos += 6;
-        doc.text(`Î¤ÎµÎ»Î¹ÎºÏŒ Î Î¿ÏƒÏŒ: ${formatCurrency(totalFinal)}`, margin, yPos);
+        doc.text(`Teliko Poso: ${formatCurrency(totalFinal)}`, margin, yPos);
 
         const filename = `entries_${new Date().toISOString().slice(0, 10)}.pdf`;
-        doc.save(filename);
-    }
-
-    async exportForecast(forecastData) {
-        await this.init();
-
-        const doc = new this.jsPDF('p', 'mm', 'a4');
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 15;
-        let yPos = margin;
-
-        doc.setFontSize(20);
-        doc.setTextColor(37, 99, 235);
-        doc.text('Î‘Î½Î±Ï†Î¿ÏÎ¬ Î ÏÎ¿Î²Î»Î­ÏˆÎµÏ‰Î½', margin, yPos);
-        yPos += 15;
-
-        doc.setFontSize(10);
-        doc.setTextColor(0, 0, 0);
-        doc.text(forecastData.summary, margin, yPos, { maxWidth: pageWidth - 2 * margin });
-        yPos += 30;
-
-        doc.setFontSize(12);
-        doc.text('Î“ÏÎ¬Ï†Î·Î¼Î± Î ÏÏŒÎ²Î»ÎµÏˆÎ·Ï‚', margin, yPos);
-        yPos += 8;
-
-        try {
-            const canvas = document.getElementById('forecastChart');
-            if (canvas) {
-                const imgData = canvas.toDataURL('image/png');
-                const imgWidth = pageWidth - 2 * margin;
-                const imgHeight = 100;
-                
-                doc.addImage(imgData, 'PNG', margin, yPos, imgWidth, imgHeight);
-                yPos += imgHeight + 10;
-            }
-        } catch (error) {
-            console.error('Forecast chart export error:', error);
-        }
-
-        const filename = `forecast_${new Date().toISOString().slice(0, 10)}.pdf`;
         doc.save(filename);
     }
 
@@ -295,7 +239,7 @@ async init() {
         const margin = 15;
 
         doc.setFontSize(16);
-        doc.text(title, margin, margin);
+        doc.text(this.transliterate(title), margin, margin);
 
         try {
             const canvas = document.getElementById(canvasId);
@@ -312,6 +256,29 @@ async init() {
 
         const filename = `heatmap_${new Date().toISOString().slice(0, 10)}.pdf`;
         doc.save(filename);
+    }
+
+    /**
+     * Transliterate Greek to Latin characters
+     * @param {string} text - Greek text
+     * @returns {string} - Transliterated text
+     */
+    transliterate(text) {
+        if (!text) return '';
+        
+        const greekToLatin = {
+            'Α': 'A', 'Β': 'V', 'Γ': 'G', 'Δ': 'D', 'Ε': 'E', 'Ζ': 'Z', 'Η': 'I', 'Θ': 'Th',
+            'Ι': 'I', 'Κ': 'K', 'Λ': 'L', 'Μ': 'M', 'Ν': 'N', 'Ξ': 'X', 'Ο': 'O', 'Π': 'P',
+            'Ρ': 'R', 'Σ': 'S', 'Τ': 'T', 'Υ': 'Y', 'Φ': 'F', 'Χ': 'Ch', 'Ψ': 'Ps', 'Ω': 'O',
+            'α': 'a', 'β': 'v', 'γ': 'g', 'δ': 'd', 'ε': 'e', 'ζ': 'z', 'η': 'i', 'θ': 'th',
+            'ι': 'i', 'κ': 'k', 'λ': 'l', 'μ': 'm', 'ν': 'n', 'ξ': 'x', 'ο': 'o', 'π': 'p',
+            'ρ': 'r', 'σ': 's', 'ς': 's', 'τ': 't', 'υ': 'y', 'φ': 'f', 'χ': 'ch', 'ψ': 'ps', 'ω': 'o',
+            'ά': 'a', 'έ': 'e', 'ή': 'i', 'ί': 'i', 'ό': 'o', 'ύ': 'y', 'ώ': 'o',
+            'Ά': 'A', 'Έ': 'E', 'Ή': 'I', 'Ί': 'I', 'Ό': 'O', 'Ύ': 'Y', 'Ώ': 'O',
+            'ϊ': 'i', 'ϋ': 'y', 'ΐ': 'i', 'ΰ': 'y'
+        };
+        
+        return text.split('').map(char => greekToLatin[char] || char).join('');
     }
 }
 

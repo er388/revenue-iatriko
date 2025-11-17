@@ -145,13 +145,43 @@ export function renderCharts(entries) {
         return;
     }
 
-    const eopyyTotal = entries.filter(e => eopyyDeductionsManager.isEopyyEntry(e))
+    // Apply chart filters
+    let filtered = [...entries];
+    
+    const sourceFilter = document.getElementById('chartFilterSource')?.value;
+    const insuranceFilter = document.getElementById('chartFilterInsurance')?.value;
+    const periodFilter = document.getElementById('chartFilterPeriod')?.value;
+    const dateFrom = document.getElementById('chartFilterDateFrom')?.value;
+    const dateTo = document.getElementById('chartFilterDateTo')?.value;
+    
+    if (sourceFilter) {
+        filtered = filtered.filter(e => e.source === sourceFilter);
+    }
+    
+    if (insuranceFilter) {
+        filtered = filtered.filter(e => e.insurance === insuranceFilter);
+    }
+    
+    if (periodFilter === 'month') {
+        const now = new Date();
+        const currentMonth = formatMonthYear(now.getMonth() + 1, now.getFullYear());
+        filtered = filtered.filter(e => e.date === currentMonth);
+    } else if (periodFilter === 'year') {
+        const currentYear = new Date().getFullYear();
+        filtered = filtered.filter(e => e.date.endsWith(`/${currentYear}`));
+    } else if (periodFilter === 'custom' && dateFrom && dateTo) {
+        filtered = filtered.filter(e => 
+            compareDates(e.date, dateFrom) >= 0 && compareDates(e.date, dateTo) <= 0
+        );
+    }
+
+    const eopyyTotal = filtered.filter(e => eopyyDeductionsManager.isEopyyEntry(e))
         .reduce((sum, e) => {
             const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
             return sum + amounts.finalAmount;
         }, 0);
     
-    const othersTotal = entries.filter(e => !eopyyDeductionsManager.isEopyyEntry(e))
+    const othersTotal = filtered.filter(e => !eopyyDeductionsManager.isEopyyEntry(e))
         .reduce((sum, e) => {
             const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
             return sum + amounts.finalAmount;
@@ -161,7 +191,7 @@ export function renderCharts(entries) {
     renderTypeChart(eopyyTotal, othersTotal);
     
     // Monthly Chart (Line)
-    renderMonthlyChart(entries);
+    renderMonthlyChart(filtered);
 }
 
 function renderTypeChart(eopyyTotal, othersTotal) {
