@@ -56,23 +56,20 @@ class BackupManager {
     }
 
     async exportBackup() {
-            try {
-                const backup = await this.createBackup();
-                const json = JSON.stringify(backup, null, 2);
-                const blob = new Blob([json], { type: 'application/json' });
-                const filename = `backup_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
-                
-                downloadBlob(filename, blob);
-                
-                // Track manual backup time
-                localStorage.setItem('lastManualBackup', Date.now().toString());
-                
-                return { success: true, filename };
-            } catch (error) {
-                logError('Export backup', error);
-                throw error;
-            }
+        try {
+            const backup = await this.createBackup();
+            const json = JSON.stringify(backup, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const filename = `backup_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+            
+            downloadBlob(filename, blob);
+            
+            return { success: true, filename };
+        } catch (error) {
+            logError('Export backup', error);
+            throw error;
         }
+    }
 
     async importBackup(file, mode = 'overwrite', onProgress = null) {
         const report = {

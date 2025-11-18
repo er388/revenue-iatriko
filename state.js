@@ -48,9 +48,6 @@ export function resetState() {
     STATE.cdnAvailable = true;
     STATE.currentKPIs = {};
     STATE.changeCounter = 0;
-        
-    // Clear session flags
-    sessionStorage.removeItem('skipBackupPrompt');
 }
 
 export function getState() {

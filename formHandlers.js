@@ -247,9 +247,15 @@ export function resetQuickForm() {
 }
 
 export function resetModalForm() {
-    // Clear all fields
     const fields = [
-        'entryId', 'entryDate', 'entryAmount'
+        'entryId', 'entryDate', 'entryAmount',
+        'entryParakratisi', 'entryParakratisiPercent',
+        'entryMDE', 'entryMDEPercent',
+        'entryRebate', 'entryRebatePercent',
+        'entryKrathseisEopyy', 'entryKrathseisEopyyPercent',
+        'entryClawback', 'entryClawbackPercent',
+        'entryKrathseisOther', 'entryKrathseisOtherPercent',
+        'entryNotes'
     ];
     
     fields.forEach(id => {
@@ -257,47 +263,19 @@ export function resetModalForm() {
         if (el) el.value = '';
     });
     
-    // CRITICAL: Clear ALL deduction fields thoroughly
-    const deductionFields = [
-        'entryParakratisi', 'entryParakratisiPercent',
-        'entryMDE', 'entryMDEPercent',
-        'entryRebate', 'entryRebatePercent',
-        'entryKrathseisEopyy', 'entryKrathseisEopyyPercent',
-        'entryClawback', 'entryClawbackPercent',
-        'entryKrathseisOther', 'entryKrathseisOtherPercent'
-    ];
-    
-    deductionFields.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.value = '';
-            el.dispatchEvent(new Event('input', { bubbles: true })); // Trigger recalculation
-        }
-    });
-    
-    // Reset notes
     const entryNotesToggle = document.getElementById('entryNotesToggle');
     const entryNotes = document.getElementById('entryNotes');
     
     if (entryNotesToggle) entryNotesToggle.checked = false;
-    if (entryNotes) {
-        entryNotes.value = '';
-        entryNotes.style.display = 'none';
-    }
+    if (entryNotes) entryNotes.style.display = 'none';
     
-    // Hide deduction sections
     const eopyyDeductions = document.getElementById('modalEopyyDeductions');
     const nonEopyyDeductions = document.getElementById('modalNonEopyyDeductions');
     
     if (eopyyDeductions) eopyyDeductions.style.display = 'none';
     if (nonEopyyDeductions) nonEopyyDeductions.style.display = 'none';
     
-    // Reset final amount display
-    const modalFinalAmount = document.getElementById('modalFinalAmount');
-    if (modalFinalAmount) modalFinalAmount.textContent = '€ 0,00';
-    
-    // Clear STATE.editingEntry
-    STATE.editingEntry = null;
+    calculateFinalAmount('entry');
 }
 
 // ========================================
