@@ -30,7 +30,7 @@ export const STATE = {
     charts: {},
     cdnAvailable: true,
     currentKPIs: {},
-    changeCounter: 0,
+    changeCounter: 0
     autosaveThreshold: 5
 };
 
