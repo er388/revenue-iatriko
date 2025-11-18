@@ -1,5 +1,5 @@
 /**
- * uiRenderers.js - UI Rendering Module (FIXED)
+ * uiRenderers.js - UI Rendering Module
  * All rendering functions for dashboard, tables, charts, etc.
  */
 
@@ -21,10 +21,7 @@ import { applyFilters } from './filters.js';
 
 export function showToast(message, type = 'info') {
     const toast = document.getElementById('toast');
-    if (!toast) {
-        console.warn('Toast element not found');
-        return;
-    }
+    if (!toast) return;
     
     toast.textContent = message;
     toast.className = `toast toast-compact ${type} show`;
@@ -38,8 +35,6 @@ export function showToast(message, type = 'info') {
 // ========================================
 
 export function renderDashboard() {
-    console.log('📊 renderDashboard called, entries:', STATE.entries.length);
-    
     const period = document.getElementById('dashPeriod')?.value || 'all';
     const includeParakratisi = document.getElementById('dashIncludeParakratisi')?.checked || false;
     const filtered = filterEntriesByPeriod(STATE.entries, period);
@@ -47,6 +42,7 @@ export function renderDashboard() {
     const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi });
     STATE.currentKPIs = kpis;
 
+    // Calculate percentages for each KPI (relative to total)
     const total = kpis.total;
     const percentages = {
         total: 100,
@@ -60,6 +56,7 @@ export function renderDashboard() {
         clawback: kpis.eopyyOriginal > 0 ? (kpis.eopyyClawback / kpis.eopyyOriginal) * 100 : 0
     };
 
+    // Update KPI cards with new structure
     updateKPICard('kpiTotal', 'Συνολικά', kpis.total, percentages.total);
     updateKPICard('kpiEopyy', 'ΕΟΠΥΥ', kpis.eopyyTotal, percentages.eopyy);
     updateKPICard('kpiOthers', 'Άλλα', kpis.nonEopyyTotal, percentages.others);
@@ -78,6 +75,7 @@ function updateKPICard(id, label, amount, percentage) {
     const container = document.getElementById(id);
     if (!container) return;
     
+    // Clear and rebuild structure
     container.innerHTML = `
         <div class="kpi-label">${escapeHtml(label)}</div>
         <div class="kpi-content">
@@ -85,6 +83,11 @@ function updateKPICard(id, label, amount, percentage) {
             <div class="kpi-percentage">${percentage.toFixed(2)}%</div>
         </div>
     `;
+}
+
+function updateElementText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
 }
 
 function filterEntriesByPeriod(entries, period) {
@@ -142,6 +145,7 @@ export function renderCharts(entries) {
         return;
     }
 
+    // Apply chart filters
     let filtered = [...entries];
     
     const sourceFilter = document.getElementById('chartFilterSource')?.value;
@@ -150,8 +154,13 @@ export function renderCharts(entries) {
     const dateFrom = document.getElementById('chartFilterDateFrom')?.value;
     const dateTo = document.getElementById('chartFilterDateTo')?.value;
     
-    if (sourceFilter) filtered = filtered.filter(e => e.source === sourceFilter);
-    if (insuranceFilter) filtered = filtered.filter(e => e.insurance === insuranceFilter);
+    if (sourceFilter) {
+        filtered = filtered.filter(e => e.source === sourceFilter);
+    }
+    
+    if (insuranceFilter) {
+        filtered = filtered.filter(e => e.insurance === insuranceFilter);
+    }
     
     if (periodFilter === 'month') {
         const now = new Date();
@@ -178,7 +187,10 @@ export function renderCharts(entries) {
             return sum + amounts.finalAmount;
         }, 0);
 
+    // Type Chart (Pie)
     renderTypeChart(eopyyTotal, othersTotal);
+    
+    // Monthly Chart (Line)
     renderMonthlyChart(filtered);
 }
 
@@ -266,19 +278,12 @@ function renderMonthlyChart(entries) {
 // ========================================
 
 export function renderEntriesTable() {
-    console.log('📋 renderEntriesTable called');
-    
     const tbody = document.getElementById('entriesTableBody');
-    if (!tbody) {
-        console.error('❌ entriesTableBody not found!');
-        return;
-    }
-    
-    console.log('✅ tbody found, filtering entries...');
+    if (!tbody) return;
 
     let filtered = applyFilters();
-    console.log('Filtered entries:', filtered.length);
     
+    // Apply sorting
     if (STATE.sortField) {
         filtered = applySorting(filtered, STATE.sortField, STATE.sortDirection);
     }
@@ -288,8 +293,6 @@ export function renderEntriesTable() {
     const start = (STATE.currentPage - 1) * pageSize;
     const end = start + pageSize;
     const pageEntries = filtered.slice(start, end);
-
-    console.log(`Rendering ${pageEntries.length} entries (page ${STATE.currentPage}/${totalPages})`);
 
     if (pageEntries.length === 0) {
         tbody.innerHTML = '<tr><td colspan="13" class="text-center">Δεν υπάρχουν εγγραφές</td></tr>';
@@ -323,10 +326,10 @@ export function renderEntriesTable() {
         `;
     }).join('');
 
-    console.log('✅ Table HTML rendered');
     renderPagination(filtered.length, totalPages);
 }
 
+// Helper function for sorting
 function applySorting(entries, field, direction) {
     return [...entries].sort((a, b) => {
         let aVal, bVal;
