@@ -1,5 +1,5 @@
 /**
- * app.js - Main Application Orchestrator (v4 - Refactored)
+ * app.js - Main Application Orchestrator (v4 - Fixed)
  * ΕΟΠΥΥ: 5 deductions, Others: 1 deduction
  */
 
@@ -39,8 +39,7 @@ import {
     setupRememberSelections
 } from './formHandlers.js';
 import { initializeEventHandlers } from './eventHandlers.js';
-import { setFilters, clearFilters } from './filters.js';
-import { applyFilters } from './filters.js';
+import { setFilters, clearFilters, applyFilters } from './filters.js';
 
 // ========================================
 // Initialization
@@ -63,9 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await storage.init();
     await loadData();
 
-    // ========================================
     // Auto-prompt for backup restore on first load
-    // ========================================
     const hasDataLoaded = STATE.entries.length > 0;
     const skipAutoPrompt = sessionStorage.getItem('skipBackupPrompt');
     
@@ -376,7 +373,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const autosaveThreshold = document.getElementById('autosaveThreshold');
 
     if (autosaveCheckbox && autosaveConfig && autosaveThreshold) {
-        // Load saved settings
         const savedAutosave = localStorage.getItem('autosaveEnabled') === 'true';
         const savedThreshold = localStorage.getItem('autosaveThreshold') || '5';
         
@@ -385,7 +381,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         STATE.autosaveThreshold = parseInt(savedThreshold);
         autosaveConfig.style.display = savedAutosave ? 'block' : 'none';
         
-        // Toggle config visibility
         autosaveCheckbox.addEventListener('change', (e) => {
             const isEnabled = e.target.checked;
             localStorage.setItem('autosaveEnabled', isEnabled ? 'true' : 'false');
@@ -399,7 +394,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             );
         });
         
-        // Update threshold
         autosaveThreshold.addEventListener('change', (e) => {
             const value = parseInt(e.target.value) || 5;
             STATE.autosaveThreshold = value;
@@ -571,7 +565,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderEntriesTable();
     });
     
-    // Load saved page size
     const savedPageSize = localStorage.getItem('pageSize');
     if (savedPageSize) {
         STATE.pageSize = parseInt(savedPageSize);
@@ -593,7 +586,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 STATE.sortDirection = 'asc';
             }
             
-            // Update UI
             document.querySelectorAll('.sortable').forEach(h => {
                 h.classList.remove('sorted-asc', 'sorted-desc');
             });
@@ -612,7 +604,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Collapsible Helper Function
     // ========================================
     window.handleCollapsibleClick = function(event, contentId) {
-        // Don't collapse if clicking on buttons
         if (event.target.tagName === 'BUTTON' || event.target.closest('button')) {
             return;
         }
@@ -625,7 +616,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('beforeunload', (e) => {
         const autosaveEnabled = localStorage.getItem('autosaveEnabled') === 'true';
         
-        // If autosave is enabled and there are pending changes
         if (autosaveEnabled && STATE.changeCounter > 0) {
             const threshold = STATE.autosaveThreshold || 5;
             const message = `Έχετε ${STATE.changeCounter} μη αποθηκευμένες αλλαγές.\n\n` +
@@ -637,12 +627,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             return message;
         }
         
-        // If autosave is disabled and there are entries
         if (!autosaveEnabled && STATE.entries.length > 0) {
             const lastBackup = localStorage.getItem('lastManualBackup');
             const now = Date.now();
             
-            // If no backup in last 30 minutes
             if (!lastBackup || (now - parseInt(lastBackup)) > 30 * 60 * 1000) {
                 const message = 'Το Autosave είναι απενεργοποιημένο.\n\n' +
                               'Έχετε κάνει πρόσφατο backup;\n\n' +
@@ -674,7 +662,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const customPeriodGroup = document.getElementById('customPeriodGroup');
     const chartIncludeParakratisi = document.getElementById('chartIncludeParakratisi');
     
-    // Populate chart filter dropdowns
     function populateChartFilters() {
         if (chartFilterSource) {
             chartFilterSource.innerHTML = '<option value="">Όλες</option>' + STATE.sources.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
@@ -687,20 +674,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     populateChartFilters();
     
-    // Show/hide custom period inputs
     if (chartFilterPeriod && customPeriodGroup) {
         chartFilterPeriod.addEventListener('change', (e) => {
             customPeriodGroup.style.display = e.target.value === 'custom' ? 'flex' : 'none';
         });
     }
     
-    // Apply chart filters
     document.getElementById('applyChartFilters')?.addEventListener('click', () => {
         renderDashboard();
         showToast('Φίλτρα γραφημάτων εφαρμόστηκαν', 'success');
     });
     
-    // Clear chart filters
     document.getElementById('clearChartFilters')?.addEventListener('click', () => {
         if (chartFilterSource) chartFilterSource.value = '';
         if (chartFilterInsurance) chartFilterInsurance.value = '';
@@ -714,19 +698,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         showToast('Φίλτρα γραφημάτων καθαρίστηκαν', 'info');
     });
     
-    // Setup date auto-format for chart filters
     if (chartFilterDateFrom) setupDateAutoFormat(chartFilterDateFrom);
     if (chartFilterDateTo) setupDateAutoFormat(chartFilterDateTo);
 
     console.log('Revenue Management System v4 initialized successfully!');
     console.log('CDN Status:', STATE.cdnAvailable ? 'Online' : 'Offline');
     console.log('Modules loaded:', {
-        state: '✔',
-        dataManager: '✔',
-        uiRenderers: '✔',
-        formHandlers: '✔',
-        eventHandlers: '✔',
-        filters: '✔'
+        state: '✓',
+        dataManager: '✓',
+        uiRenderers: '✓',
+        formHandlers: '✓',
+        eventHandlers: '✓',
+        filters: '✓'
     });
 });
 
