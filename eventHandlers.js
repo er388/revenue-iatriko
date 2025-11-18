@@ -235,31 +235,47 @@ export function setupNavigationHandlers() {
     document.querySelectorAll('.nav-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             const viewName = tab.getAttribute('data-view');
-            console.log('Tab clicked:', viewName);
+            console.log('🔷 Tab clicked:', viewName);
             
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            // Remove active from all tabs
+            document.querySelectorAll('.nav-tab').forEach(t => {
+                t.classList.remove('active');
+                console.log('  Removed active from tab:', t.getAttribute('data-view'));
+            });
             
+            // Remove active from all views
+            document.querySelectorAll('.view').forEach(v => {
+                v.classList.remove('active');
+                console.log('  Removed active from view:', v.id);
+            });
+            
+            // Add active to clicked tab
             tab.classList.add('active');
+            console.log('✅ Added active to tab:', viewName);
             
+            // Find and show corresponding view
             const viewId = viewName + 'View';
             const view = document.getElementById(viewId);
             
+            console.log('🔍 Looking for view:', viewId);
+            
             if (view) {
                 view.classList.add('active');
+                console.log('✅ Added active class to view:', viewId);
+                console.log('View classes:', view.className);
+                console.log('View display style:', window.getComputedStyle(view).display);
+                
                 STATE.currentView = viewName;
                 
-                console.log('Switching to view:', viewName);
-                
                 if (viewName === 'entries') {
-                    console.log('Rendering entries table...');
+                    console.log('📋 Calling renderEntriesTable...');
                     renderEntriesTable();
                 } else if (viewName === 'dashboard') {
-                    console.log('Rendering dashboard...');
+                    console.log('📊 Calling renderDashboard...');
                     renderDashboard();
                 }
             } else {
-                console.error('View not found:', viewId);
+                console.error('❌ View not found:', viewId);
             }
         });
     });
