@@ -15,7 +15,7 @@ class PDFExportManager {
         this.html2canvas = null;
     }
 
-async init() {
+    async init() {
         if (typeof window.jspdf !== 'undefined') {
             this.jsPDF = window.jspdf.jsPDF;
         }
@@ -28,22 +28,6 @@ async init() {
         }
     }
 
-    // Helper: Convert Greek text to Latin transliteration for PDF
-    greekToLatin(text) {
-        const greekMap = {
-            'Α': 'A', 'Β': 'V', 'Γ': 'G', 'Δ': 'D', 'Ε': 'E', 'Ζ': 'Z', 'Η': 'I', 'Θ': 'Th',
-            'Ι': 'I', 'Κ': 'K', 'Λ': 'L', 'Μ': 'M', 'Ν': 'N', 'Ξ': 'X', 'Ο': 'O', 'Π': 'P',
-            'Ρ': 'R', 'Σ': 'S', 'Τ': 'T', 'Υ': 'Y', 'Φ': 'F', 'Χ': 'Ch', 'Ψ': 'Ps', 'Ω': 'O',
-            'α': 'a', 'β': 'v', 'γ': 'g', 'δ': 'd', 'ε': 'e', 'ζ': 'z', 'η': 'i', 'θ': 'th',
-            'ι': 'i', 'κ': 'k', 'λ': 'l', 'μ': 'm', 'ν': 'n', 'ξ': 'x', 'ο': 'o', 'π': 'p',
-            'ρ': 'r', 'σ': 's', 'ς': 's', 'τ': 't', 'υ': 'y', 'φ': 'f', 'χ': 'ch', 'ψ': 'ps', 'ω': 'o',
-            'ά': 'a', 'έ': 'e', 'ή': 'i', 'ί': 'i', 'ό': 'o', 'ύ': 'y', 'ώ': 'o',
-            'Ά': 'A', 'Έ': 'E', 'Ή': 'I', 'Ί': 'I', 'Ό': 'O', 'Ύ': 'Y', 'Ώ': 'O'
-        };
-        
-        return text.split('').map(char => greekMap[char] || char).join('');
-    }
-
     async exportDashboard(data) {
         await this.init();
 
@@ -53,29 +37,29 @@ async init() {
         const margin = 15;
         let yPos = margin;
 
-// Header
+        // Header
         doc.setFontSize(20);
         doc.setTextColor(37, 99, 235);
-        doc.text(this.greekToLatin('Αναφορά Εσόδων'), margin, yPos);
+        doc.text('Î‘Î½Î±Ï†Î¿ÏÎ¬ Î•ÏƒÏŒÎ´Ï‰Î½', margin, yPos);
         yPos += 10;
 
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
-        doc.text(this.greekToLatin(`Δημιουργήθηκε: ${formatDateTime(Date.now())}`), margin, yPos);
+        doc.text(`Î”Î·Î¼Î¹Î¿Ï…ÏÎ³Î®Î¸Î·ÎºÎµ: ${formatDateTime(Date.now())}`, margin, yPos);
         yPos += 15;
 
-// Main KPIs
+        // Main KPIs
         doc.setFontSize(14);
         doc.setTextColor(0, 0, 0);
-        doc.text(this.greekToLatin('Βασικοί Δείκτες'), margin, yPos);
+        doc.text('Î’Î±ÏƒÎ¹ÎºÎ¿Î¯ Î”ÎµÎ¯ÎºÏ„ÎµÏ‚', margin, yPos);
         yPos += 8;
 
         doc.setFontSize(10);
         const mainKpis = [
-            [this.greekToLatin('Συνολικά Έσοδα:'), formatCurrency(data.kpis.total)],
-            [this.greekToLatin('ΕΟΠΥΥ (Τελικό):'), formatCurrency(data.kpis.eopyyTotal)],
-            [this.greekToLatin('Άλλα Ταμεία:'), formatCurrency(data.kpis.nonEopyyTotal)],
-            [this.greekToLatin('Σύνολο Κρατήσεων:'), formatCurrency(data.kpis.eopyyTotalDeductions + data.kpis.nonEopyyKrathseis)]
+            ['Î£Ï…Î½Î¿Î»Î¹ÎºÎ¬ ÎˆÏƒÎ¿Î´Î±:', formatCurrency(data.kpis.total)],
+            ['Î•ÎŸÎ Î¥Î¥ (Î¤ÎµÎ»Î¹ÎºÏŒ):', formatCurrency(data.kpis.eopyyTotal)],
+            ['Î†Î»Î»Î± Î¤Î±Î¼ÎµÎ¯Î±:', formatCurrency(data.kpis.nonEopyyTotal)],
+            ['Î£ÏÎ½Î¿Î»Î¿ ÎšÏÎ±Ï„Î®ÏƒÎµÏ‰Î½:', formatCurrency(data.kpis.eopyyTotalDeductions + data.kpis.nonEopyyKrathseis)]
         ];
 
         mainKpis.forEach(([label, value]) => {
@@ -86,20 +70,20 @@ async init() {
 
         yPos += 10;
 
-// ΕΟΠΥΥ Deductions Breakdown
+        // Î•ÎŸÎ Î¥Î¥ Deductions Breakdown
         doc.setFontSize(14);
-        doc.text(this.greekToLatin('Ανάλυση Κρατήσεων ΕΟΠΥΥ'), margin, yPos);
+        doc.text('Î‘Î½Î¬Î»Ï…ÏƒÎ· ÎšÏÎ±Ï„Î®ÏƒÎµÏ‰Î½ Î•ÎŸÎ Î¥Î¥', margin, yPos);
         yPos += 8;
 
         doc.setFontSize(10);
         const eopyyDeductions = [
-            [this.greekToLatin('Αρχικό Ποσό:'), formatCurrency(data.kpis.eopyyOriginal)],
-            [this.greekToLatin('Παρακράτηση:'), formatCurrency(data.kpis.eopyyParakratisi)],
-            [this.greekToLatin('ΜΔΕ:'), formatCurrency(data.kpis.eopyyMDE)],
+            ['Î‘ÏÏ‡Î¹ÎºÏŒ Î Î¿ÏƒÏŒ:', formatCurrency(data.kpis.eopyyOriginal)],
+            ['Î Î±ÏÎ±ÎºÏÎ¬Ï„Î·ÏƒÎ·:', formatCurrency(data.kpis.eopyyParakratisi)],
+            ['ÎœÎ”Î•:', formatCurrency(data.kpis.eopyyMDE)],
             ['Rebate:', formatCurrency(data.kpis.eopyyRebate)],
-            [this.greekToLatin('Κρατήσεις:'), formatCurrency(data.kpis.eopyyKrathseis)],
+            ['ÎšÏÎ±Ï„Î®ÏƒÎµÎ¹Ï‚:', formatCurrency(data.kpis.eopyyKrathseis)],
             ['Clawback:', formatCurrency(data.kpis.eopyyClawback)],
-            [this.greekToLatin('Τελικό:'), formatCurrency(data.kpis.eopyyFinal)]
+            ['Î¤ÎµÎ»Î¹ÎºÏŒ:', formatCurrency(data.kpis.eopyyFinal)]
         ];
 
         eopyyDeductions.forEach(([label, value]) => {
