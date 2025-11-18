@@ -19,7 +19,9 @@ import {
     escapeHtml,
     setupDateAutoFormat,
     STRINGS,
-    isValidMonthYear
+    isValidMonthYear,
+    compareDates,
+    formatMonthYear
 } from './utils.js';
 import { 
     showToast,
@@ -38,6 +40,7 @@ import {
 } from './formHandlers.js';
 import { initializeEventHandlers } from './eventHandlers.js';
 import { setFilters, clearFilters } from './filters.js';
+import { applyFilters } from './filters.js';
 
 // ========================================
 // Initialization
@@ -181,7 +184,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // CSV Export
     // ========================================
     document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
-        const { applyFilters } = require('./filters.js');
         const filtered = applyFilters();
         
         const csv = [
@@ -252,7 +254,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         showToast('Δημιουργία PDF...', 'info');
         
         try {
-            const { applyFilters } = require('./filters.js');
             const filtered = applyFilters();
             await pdfExportManager.exportEntriesList(filtered, STATE.filters);
             showToast('PDF δημιουργήθηκε επιτυχώς!', 'success');
@@ -367,45 +368,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-// ========================================
-// Autosave με ρυθμιζόμενο threshold
-// ========================================
-const autosaveCheckbox = document.getElementById('autosaveEnabled');
-const autosaveConfig = document.getElementById('autosaveConfig');
-const autosaveThreshold = document.getElementById('autosaveThreshold');
+    // ========================================
+    // Autosave με ρυθμιζόμενο threshold
+    // ========================================
+    const autosaveCheckbox = document.getElementById('autosaveEnabled');
+    const autosaveConfig = document.getElementById('autosaveConfig');
+    const autosaveThreshold = document.getElementById('autosaveThreshold');
 
-if (autosaveCheckbox && autosaveConfig && autosaveThreshold) {
-    // Load saved settings
-    const savedAutosave = localStorage.getItem('autosaveEnabled') === 'true';
-    const savedThreshold = localStorage.getItem('autosaveThreshold') || '5';
-    
-    autosaveCheckbox.checked = savedAutosave;
-    autosaveThreshold.value = savedThreshold;
-    STATE.autosaveThreshold = parseInt(savedThreshold);
-    autosaveConfig.style.display = savedAutosave ? 'block' : 'none';
-    
-    // Toggle config visibility
-    autosaveCheckbox.addEventListener('change', (e) => {
-        const isEnabled = e.target.checked;
-        localStorage.setItem('autosaveEnabled', isEnabled ? 'true' : 'false');
-        autosaveConfig.style.display = isEnabled ? 'block' : 'none';
+    if (autosaveCheckbox && autosaveConfig && autosaveThreshold) {
+        // Load saved settings
+        const savedAutosave = localStorage.getItem('autosaveEnabled') === 'true';
+        const savedThreshold = localStorage.getItem('autosaveThreshold') || '5';
         
-        showToast(
-            isEnabled 
-                ? `Autosave ενεργοποιήθηκε (κάθε ${STATE.autosaveThreshold} αλλαγές)` 
-                : 'Autosave απενεργοποιήθηκε', 
-            'info'
-        );
-    });
-    
-    // Update threshold
-    autosaveThreshold.addEventListener('change', (e) => {
-        const value = parseInt(e.target.value) || 5;
-        STATE.autosaveThreshold = value;
-        localStorage.setItem('autosaveThreshold', value.toString());
-        showToast(`Autosave θα γίνεται κάθε ${value} αλλαγές`, 'info');
-    });
-}
+        autosaveCheckbox.checked = savedAutosave;
+        autosaveThreshold.value = savedThreshold;
+        STATE.autosaveThreshold = parseInt(savedThreshold);
+        autosaveConfig.style.display = savedAutosave ? 'block' : 'none';
+        
+        // Toggle config visibility
+        autosaveCheckbox.addEventListener('change', (e) => {
+            const isEnabled = e.target.checked;
+            localStorage.setItem('autosaveEnabled', isEnabled ? 'true' : 'false');
+            autosaveConfig.style.display = isEnabled ? 'block' : 'none';
+            
+            showToast(
+                isEnabled 
+                    ? `Autosave ενεργοποιήθηκε (κάθε ${STATE.autosaveThreshold} αλλαγές)` 
+                    : 'Autosave απενεργοποιήθηκε', 
+                'info'
+            );
+        });
+        
+        // Update threshold
+        autosaveThreshold.addEventListener('change', (e) => {
+            const value = parseInt(e.target.value) || 5;
+            STATE.autosaveThreshold = value;
+            localStorage.setItem('autosaveThreshold', value.toString());
+            showToast(`Autosave θα γίνεται κάθε ${value} αλλαγές`, 'info');
+        });
+    }
 
     // ========================================
     // Clear Cache
@@ -560,16 +561,6 @@ if (autosaveCheckbox && autosaveConfig && autosaveThreshold) {
         }
     });
 
-    console.log('Revenue Management System v4 initialized successfully!');
-    console.log('CDN Status:', STATE.cdnAvailable ? 'Online' : 'Offline');
-    console.log('Modules loaded:', {
-        state: '✓',
-        dataManager: '✓',
-        uiRenderers: '✓',
-        formHandlers: '✓',
-        eventHandlers: '✓',
-        filters: '✓'
-    });
     // ========================================
     // Page Size Selector
     // ========================================
@@ -665,7 +656,7 @@ if (autosaveCheckbox && autosaveConfig && autosaveThreshold) {
     });
 
     // Track manual backups
-    const originalExportBackup = window.exportBackup || (() => {});
+    const originalExportBackup = exportBackup;
     window.exportBackup = async function() {
         const result = await originalExportBackup();
         localStorage.setItem('lastManualBackup', Date.now().toString());
@@ -686,8 +677,7 @@ if (autosaveCheckbox && autosaveConfig && autosaveThreshold) {
     // Populate chart filter dropdowns
     function populateChartFilters() {
         if (chartFilterSource) {
-            chartFilterSource.innerHTML = '<option value="">Όλες</option>' +
-                STATE.sources.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+            chartFilterSource.innerHTML = '<option value="">Όλες</option>' + STATE.sources.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
         }
         if (chartFilterInsurance) {
             chartFilterInsurance.innerHTML = '<option value="">Όλες</option>' +
@@ -727,6 +717,17 @@ if (autosaveCheckbox && autosaveConfig && autosaveThreshold) {
     // Setup date auto-format for chart filters
     if (chartFilterDateFrom) setupDateAutoFormat(chartFilterDateFrom);
     if (chartFilterDateTo) setupDateAutoFormat(chartFilterDateTo);
+
+    console.log('Revenue Management System v4 initialized successfully!');
+    console.log('CDN Status:', STATE.cdnAvailable ? 'Online' : 'Offline');
+    console.log('Modules loaded:', {
+        state: '✔',
+        dataManager: '✔',
+        uiRenderers: '✔',
+        formHandlers: '✔',
+        eventHandlers: '✔',
+        filters: '✔'
+    });
 });
 
 // ========================================
