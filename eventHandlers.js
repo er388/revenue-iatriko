@@ -45,7 +45,7 @@ window.editEntry = function(id) {
     const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
     const deduction = eopyyDeductionsManager.getDeductions(entry.id);
     
-    // Clear ALL deduction fields first
+    // CRITICAL: Clear ALL deduction fields first
     [
         'entryParakratisi', 'entryParakratisiPercent', 
         'entryMDE', 'entryMDEPercent',
@@ -63,12 +63,14 @@ window.editEntry = function(id) {
     if (isEopyy && deduction) {
         const amounts = deduction.deductions;
         
+        // Set amounts
         document.getElementById('entryParakratisi').value = amounts.parakratisi || '';
         document.getElementById('entryMDE').value = amounts.mde || '';
         document.getElementById('entryRebate').value = amounts.rebate || '';
         document.getElementById('entryKrathseisEopyy').value = amounts.krathseis || '';
         document.getElementById('entryClawback').value = amounts.clawback || '';
         
+        // Calculate and set percentages from stored amounts
         if (originalAmount > 0) {
             if (amounts.parakratisi) {
                 document.getElementById('entryParakratisiPercent').value = 
@@ -100,9 +102,13 @@ window.editEntry = function(id) {
         }
     }
 
+    // Show appropriate deduction fields
     showModalDeductionFields();
+    
+    // Calculate final amount with loaded values
     calculateFinalAmount('entry');
     
+    // Open modal
     document.getElementById('entryModal').classList.add('active');
 };
 
@@ -210,7 +216,7 @@ window.exportChartPDF = async function(canvasId) {
 // ========================================
 
 export function setupModalHandlers() {
-    // Close modal on X button
+    // Close modal on X button or outside click
     document.querySelectorAll('.modal-close').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const modal = e.target.closest('.modal');
@@ -234,8 +240,10 @@ export function setupModalHandlers() {
             STATE.editingEntry = null;
             document.getElementById('modalTitle').textContent = 'Νέα Εγγραφή';
             
+            // Reset form
             resetModalForm();
             
+            // Keep last selections
             const lastSource = localStorage.getItem('last_quickSource');
             const lastInsurance = localStorage.getItem('last_quickInsurance');
             const lastType = localStorage.getItem('last_quickType') || 'cash';
@@ -256,26 +264,16 @@ export function setupModalHandlers() {
 export function setupNavigationHandlers() {
     document.querySelectorAll('.nav-tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            // Remove active class from all tabs and views
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             
-            // Add active class to clicked tab
             tab.classList.add('active');
-            
-            // Show corresponding view
             const viewId = tab.getAttribute('data-view') + 'View';
-            const view = document.getElementById(viewId);
-            if (view) {
-                view.classList.add('active');
-                STATE.currentView = tab.getAttribute('data-view');
-                
-                // Render content based on view
-                if (STATE.currentView === 'entries') {
-                    renderEntriesTable();
-                } else if (STATE.currentView === 'dashboard') {
-                    renderDashboard();
-                }
+            document.getElementById(viewId).classList.add('active');
+            STATE.currentView = tab.getAttribute('data-view');
+
+            if (STATE.currentView === 'entries') {
+                renderEntriesTable();
             }
         });
     });
@@ -326,8 +324,6 @@ export function initializeEventHandlers() {
     setupNavigationHandlers();
     setupDashboardHandlers();
     setupDarkModeHandler();
-    
-    console.log('Event handlers initialized');
 }
 
 // ========================================
