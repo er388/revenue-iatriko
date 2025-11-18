@@ -42,47 +42,21 @@ export function renderDashboard() {
     const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi });
     STATE.currentKPIs = kpis;
 
-    // Calculate percentages for each KPI (relative to total)
-    const total = kpis.total;
-    const percentages = {
-        total: 100,
-        eopyy: total > 0 ? (kpis.eopyyTotal / total) * 100 : 0,
-        others: total > 0 ? (kpis.nonEopyyTotal / total) * 100 : 0,
-        deductions: total > 0 ? ((kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis) / total) * 100 : 0,
-        parakratisi: kpis.eopyyOriginal > 0 ? (kpis.eopyyParakratisi / kpis.eopyyOriginal) * 100 : 0,
-        mde: kpis.eopyyOriginal > 0 ? (kpis.eopyyMDE / kpis.eopyyOriginal) * 100 : 0,
-        rebate: kpis.eopyyOriginal > 0 ? (kpis.eopyyRebate / kpis.eopyyOriginal) * 100 : 0,
-        krathseis: kpis.eopyyOriginal > 0 ? (kpis.eopyyKrathseis / kpis.eopyyOriginal) * 100 : 0,
-        clawback: kpis.eopyyOriginal > 0 ? (kpis.eopyyClawback / kpis.eopyyOriginal) * 100 : 0
-    };
+    // Update KPI cards
+    updateElementText('kpiTotal', formatCurrency(kpis.total));
+    updateElementText('kpiEopyy', formatCurrency(kpis.eopyyTotal));
+    updateElementText('kpiOthers', formatCurrency(kpis.nonEopyyTotal));
+    updateElementText('kpiDeductions', formatCurrency(kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis));
 
-    // Update KPI cards with new structure
-    updateKPICard('kpiTotal', 'Συνολικά', kpis.total, percentages.total);
-    updateKPICard('kpiEopyy', 'ΕΟΠΥΥ', kpis.eopyyTotal, percentages.eopyy);
-    updateKPICard('kpiOthers', 'Άλλα', kpis.nonEopyyTotal, percentages.others);
-    updateKPICard('kpiDeductions', 'Κρατήσεις', kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis, percentages.deductions);
-    updateKPICard('kpiParakratisi', 'Παρακράτηση', kpis.eopyyParakratisi, percentages.parakratisi);
-    updateKPICard('kpiMDE', 'ΜΔΕ', kpis.eopyyMDE, percentages.mde);
-    updateKPICard('kpiRebate', 'Rebate', kpis.eopyyRebate, percentages.rebate);
-    updateKPICard('kpiKrathseis', 'Κρατήσεις', kpis.eopyyKrathseis, percentages.krathseis);
-    updateKPICard('kpiClawback', 'Clawback', kpis.eopyyClawback, percentages.clawback);
+    // ΕΟΠΥΥ Breakdown
+    updateElementText('kpiParakratisi', formatCurrency(kpis.eopyyParakratisi));
+    updateElementText('kpiMDE', formatCurrency(kpis.eopyyMDE));
+    updateElementText('kpiRebate', formatCurrency(kpis.eopyyRebate));
+    updateElementText('kpiKrathseis', formatCurrency(kpis.eopyyKrathseis));
+    updateElementText('kpiClawback', formatCurrency(kpis.eopyyClawback));
 
     renderRecentEntries();
     renderCharts(filtered);
-}
-
-function updateKPICard(id, label, amount, percentage) {
-    const container = document.getElementById(id);
-    if (!container) return;
-    
-    // Clear and rebuild structure
-    container.innerHTML = `
-        <div class="kpi-label">${escapeHtml(label)}</div>
-        <div class="kpi-content">
-            <div class="kpi-value">${formatCurrency(amount)}</div>
-            <div class="kpi-percentage">${percentage.toFixed(2)}%</div>
-        </div>
-    `;
 }
 
 function updateElementText(id, text) {
@@ -259,14 +233,18 @@ export function renderEntriesTable() {
     const pageEntries = filtered.slice(start, end);
 
     if (pageEntries.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="13" class="text-center">Δεν υπάρχουν εγγραφές</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center">Δεν υπάρχουν εγγραφές</td></tr>';
         renderPagination(0, 0);
         return;
     }
 
     tbody.innerHTML = pageEntries.map(entry => {
         const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
-        const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
+        
+        const deductionsAmount = amounts.totalDeductions;
+        const deductionsPercent = amounts.originalAmount > 0 
+            ? ((deductionsAmount / amounts.originalAmount) * 100).toFixed(2) 
+            : '0.00';
         
         return `
             <tr>
@@ -275,17 +253,18 @@ export function renderEntriesTable() {
                 <td>${escapeHtml(entry.insurance)}</td>
                 <td>${entry.type === 'cash' ? 'Μετρητά' : 'Τιμολόγια'}</td>
                 <td class="text-right">${formatCurrency(amounts.originalAmount)}</td>
-                <td class="text-right">${isEopyy ? formatCurrency(amounts.parakratisi || 0) : '-'}</td>
-                <td class="text-right">${isEopyy ? formatCurrency(amounts.mde || 0) : '-'}</td>
-                <td class="text-right">${isEopyy ? formatCurrency(amounts.rebate || 0) : '-'}</td>
-                <td class="text-right">${formatCurrency(amounts.krathseis || 0)}</td>
-                <td class="text-right">${isEopyy ? formatCurrency(amounts.clawback || 0) : '-'}</td>
                 <td class="text-right"><strong>${formatCurrency(amounts.finalAmount)}</strong></td>
-                <td>${entry.notes ? escapeHtml(entry.notes.substring(0, 20)) + '...' : '-'}</td>
+                <td>${entry.notes ? escapeHtml(entry.notes.substring(0, 20)) : '-'}</td>
                 <td>
                     <button class="btn-secondary btn-compact btn-sm" onclick="window.editEntry('${entry.id}')">✏️</button>
                     <button class="btn-danger btn-compact btn-sm" onclick="window.confirmDelete('${entry.id}')">🗑️</button>
                 </td>
+            </tr>
+            <tr class="deductions-row">
+                <td colspan="4"></td>
+                <td class="text-right">${formatCurrency(deductionsAmount)}</td>
+                <td class="text-right">${deductionsPercent}%</td>
+                <td colspan="2"></td>
             </tr>
         `;
     }).join('');
