@@ -222,7 +222,7 @@ export function resetQuickForm() {
     if (notesToggle) notesToggle.checked = false;
     if (notesField) notesField.style.display = 'none';
     
-    // Clear ALL deduction fields thoroughly
+    // Clear deduction fields
     const deductionFields = [
         'quickParakratisi', 'quickParakratisiPercent',
         'quickMDE', 'quickMDEPercent',
@@ -234,19 +234,15 @@ export function resetQuickForm() {
     
     deductionFields.forEach(id => {
         const el = document.getElementById(id);
-        if (el) {
-            el.value = '';
-            el.dispatchEvent(new Event('input', { bubbles: true })); // Trigger recalculation
-        }
+        if (el) el.value = '';
     });
     
-    // CRITICAL: Reset final amount display to zero
+    // Reset final amount display
     const finalAmountDisplay = document.getElementById('quickFinalAmount');
     if (finalAmountDisplay) {
         finalAmountDisplay.textContent = '€ 0,00';
     }
     
-    // Force recalculation
     calculateFinalAmount('quick');
 }
 

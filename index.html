@@ -219,44 +219,6 @@
             <!-- Charts -->
             <div class="charts-grid charts-grid-compact">
                 <div class="card card-compact">
-                    <!-- Φίλτρα Γραφημάτων -->
-                    <div class="chart-filters">
-                        <div class="chart-filter-group">
-                            <label>Πηγή:</label>
-                            <select id="chartFilterSource" class="form-select form-select-compact">
-                                <option value="">Όλες</option>
-                            </select>
-                        </div>
-                        <div class="chart-filter-group">
-                            <label>Ασφάλεια:</label>
-                            <select id="chartFilterInsurance" class="form-select form-select-compact">
-                                <option value="">Όλες</option>
-                            </select>
-                        </div>
-                        <div class="chart-filter-group">
-                            <label>Περίοδος:</label>
-                            <select id="chartFilterPeriod" class="form-select form-select-compact">
-                                <option value="all">Όλες</option>
-                                <option value="month">Τρέχων Μήνας</option>
-                                <option value="year" selected>Τρέχον Έτος</option>
-                                <option value="custom">Προσαρμοσμένη</option>
-                            </select>
-                        </div>
-                        <div class="chart-filter-group" id="customPeriodGroup" style="display: none;">
-                            <input type="text" id="chartFilterDateFrom" class="form-input form-input-compact" placeholder="MM/YYYY">
-                            <span>έως</span>
-                            <input type="text" id="chartFilterDateTo" class="form-input form-input-compact" placeholder="MM/YYYY">
-                        </div>
-                        <div class="chart-filter-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="chartIncludeParakratisi">
-                                <span>Με Παρακράτηση</span>
-                            </label>
-                        </div>
-                        <button id="applyChartFilters" class="btn-primary btn-compact btn-sm">Εφαρμογή</button>
-                        <button id="clearChartFilters" class="btn-secondary btn-compact btn-sm">Καθαρισμός</button>
-                    </div>
-                    
                     <div class="chart-header">
                         <h3>Έσοδα ανά Τύπο</h3>
                         <button type="button" class="btn-secondary btn-compact btn-sm" 
@@ -273,6 +235,7 @@
                     <canvas id="monthlyChart"></canvas>
                 </div>
             </div>
+        </div>
 
         <!-- Entries View -->
         <div id="entriesView" class="view">
