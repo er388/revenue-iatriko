@@ -4,7 +4,6 @@
 
 export const CONFIG = {
     pageSize: 20,
-    defaultPageSize: 20,
     chartColors: {
         primary: '#2563eb',
         success: '#10b981',
@@ -21,9 +20,6 @@ export const STATE = {
     currentView: 'dashboard',
     filters: {},
     currentPage: 1,
-    pageSize: 20,
-    sortField: null,
-    sortDirection: 'asc',
     editingEntry: null,
     undoStack: [],
     userLabel: 'Admin',
