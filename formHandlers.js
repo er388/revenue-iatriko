@@ -237,12 +237,6 @@ export function resetQuickForm() {
         if (el) el.value = '';
     });
     
-    // Reset final amount display
-    const finalAmountDisplay = document.getElementById('quickFinalAmount');
-    if (finalAmountDisplay) {
-        finalAmountDisplay.textContent = '€ 0,00';
-    }
-    
     calculateFinalAmount('quick');
 }
 
