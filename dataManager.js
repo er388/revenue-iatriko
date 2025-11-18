@@ -50,14 +50,13 @@ export async function saveData() {
         
         STATE.changeCounter++;
         
-        // Autosave με ρυθμιζόμενο threshold
-        const threshold = STATE.autosaveThreshold || 5;
-        if (STATE.changeCounter >= threshold) {
+        // Autosave every 5 changes
+        if (STATE.changeCounter >= 5) {
             const autosaveEnabled = localStorage.getItem('autosaveEnabled') === 'true';
             if (autosaveEnabled) {
                 const { exportBackup } = await import('./backup.js');
                 await exportBackup();
-                showToast(`Auto-backup δημιουργήθηκε (${threshold} αλλαγές)`, 'success');
+                showToast('Auto-backup δημιουργήθηκε', 'success');
                 STATE.changeCounter = 0;
             }
         }

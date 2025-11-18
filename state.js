@@ -31,7 +31,6 @@ export const STATE = {
     cdnAvailable: true,
     currentKPIs: {},
     changeCounter: 0
-    autosaveThreshold: 5
 };
 
 export function resetState() {
