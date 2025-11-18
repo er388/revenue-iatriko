@@ -53,30 +53,25 @@ window.editEntry = function(id) {
         if (el) el.value = '';
     });
     
-    const originalAmount = entry.originalAmount || entry.amount;
-    
     if (isEopyy && deduction) {
-        const amounts = deduction.deductions;
+        document.getElementById('entryParakratisi').value = deduction.deductions.parakratisi || '';
+        document.getElementById('entryMDE').value = deduction.deductions.mde || '';
+        document.getElementById('entryRebate').value = deduction.deductions.rebate || '';
+        document.getElementById('entryKrathseisEopyy').value = deduction.deductions.krathseis || '';
+        document.getElementById('entryClawback').value = deduction.deductions.clawback || '';
         
-        document.getElementById('entryParakratisi').value = amounts.parakratisi || '';
-        document.getElementById('entryMDE').value = amounts.mde || '';
-        document.getElementById('entryRebate').value = amounts.rebate || '';
-        document.getElementById('entryKrathseisEopyy').value = amounts.krathseis || '';
-        document.getElementById('entryClawback').value = amounts.clawback || '';
-        
-        // Calculate percentages from amounts
-        if (originalAmount > 0) {
-            document.getElementById('entryParakratisiPercent').value = amounts.parakratisi ? ((amounts.parakratisi / originalAmount) * 100).toFixed(2) : '';
-            document.getElementById('entryMDEPercent').value = amounts.mde ? ((amounts.mde / originalAmount) * 100).toFixed(2) : '';
-            document.getElementById('entryRebatePercent').value = amounts.rebate ? ((amounts.rebate / originalAmount) * 100).toFixed(2) : '';
-            document.getElementById('entryKrathseisEopyyPercent').value = amounts.krathseis ? ((amounts.krathseis / originalAmount) * 100).toFixed(2) : '';
-            document.getElementById('entryClawbackPercent').value = amounts.clawback ? ((amounts.clawback / originalAmount) * 100).toFixed(2) : '';
+        // Load stored percentages if available
+        if (entry.deductionPercentages) {
+            document.getElementById('entryParakratisiPercent').value = entry.deductionPercentages.parakratisiPercent?.toFixed(2) || '';
+            document.getElementById('entryMDEPercent').value = entry.deductionPercentages.mdePercent?.toFixed(2) || '';
+            document.getElementById('entryRebatePercent').value = entry.deductionPercentages.rebatePercent?.toFixed(2) || '';
+            document.getElementById('entryKrathseisEopyyPercent').value = entry.deductionPercentages.krathseisPercent?.toFixed(2) || '';
+            document.getElementById('entryClawbackPercent').value = entry.deductionPercentages.clawbackPercent?.toFixed(2) || '';
         }
     } else if (!isEopyy) {
-        const krathseis = entry.krathseis || 0;
-        document.getElementById('entryKrathseisOther').value = krathseis || '';
-        if (originalAmount > 0 && krathseis) {
-            document.getElementById('entryKrathseisOtherPercent').value = ((krathseis / originalAmount) * 100).toFixed(2);
+        document.getElementById('entryKrathseisOther').value = entry.krathseis || '';
+        if (entry.krathseisPercent) {
+            document.getElementById('entryKrathseisOtherPercent').value = entry.krathseisPercent.toFixed(2);
         }
     }
 
