@@ -1,5 +1,5 @@
 /**
- * app.js - Main Application Orchestrator (v4 - Refactored)
+  * app.js - Main Application Orchestrator (v4 - Refactored)
  * ΕΟΠΥΥ: 5 deductions, Others: 1 deduction
  */
 
@@ -18,8 +18,7 @@ import { cdnChecker, periodicChecker } from './cdnChecker.js';
 import {
     escapeHtml,
     setupDateAutoFormat,
-    STRINGS,
-    isValidMonthYear
+    STRINGS,    isValidMonthYear
 } from './utils.js';
 import { 
     showToast,
@@ -38,6 +37,9 @@ import {
 } from './formHandlers.js';
 import { initializeEventHandlers } from './eventHandlers.js';
 import { setFilters, clearFilters } from './filters.js';
+import { initializeComparisonView } from './comparisonHandler.js';
+import { initializeReportsView } from './reportsHandler.js';
+import { initializeHeatmapsView } from './heatmapsHandler.js';
 
 // ========================================
 // Initialization
@@ -60,7 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await storage.init();
     await loadData();
 
-    // Render initial UI
+     // Render initial UI
     renderSourcesAndInsurances();
     renderDashboard();
 
@@ -79,6 +81,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize event handlers
     initializeEventHandlers();
+
+    initializeComparisonView();
+console.log('Comparison view initialized');
+
+initializeReportsView();
+console.log('Reports view initialized');
+
+    // Initialize Heatmaps View
+    initializeHeatmapsView();
+    console.log('Heatmaps view initialized');
 
     // ========================================
     // Quick Add Form
