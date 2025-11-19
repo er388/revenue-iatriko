@@ -68,15 +68,44 @@ export function calculateFinalAmount(prefix) {
     let totalDeductions = 0;
     
     if (isEopyy) {
-        totalDeductions += parseFloat(document.getElementById(`${prefix}Parakratisi`)?.value) || 0;
-        totalDeductions += parseFloat(document.getElementById(`${prefix}MDE`)?.value) || 0;
-        totalDeductions += parseFloat(document.getElementById(`${prefix}Rebate`)?.value) || 0;
-        totalDeductions += parseFloat(document.getElementById(`${prefix}KrathseisEopyy`)?.value) || 0;
-        totalDeductions += parseFloat(document.getElementById(`${prefix}Clawback`)?.value) || 0;
+        // 🆕 ΑΛΛΑΓΗ: Υπολογίζουμε ποσοστά αυτόματα
+        const parakratisi = parseFloat(document.getElementById(`${prefix}Parakratisi`)?.value) || 0;
+        const mde = parseFloat(document.getElementById(`${prefix}MDE`)?.value) || 0;
+        const rebate = parseFloat(document.getElementById(`${prefix}Rebate`)?.value) || 0;
+        const krathseis = parseFloat(document.getElementById(`${prefix}KrathseisEopyy`)?.value) || 0;
+        const clawback = parseFloat(document.getElementById(`${prefix}Clawback`)?.value) || 0;
+        
+        // Ενημέρωση ποσοστών αυτόματα
+        if (amount > 0) {
+            const parakratisiPercentEl = document.getElementById(`${prefix}ParakratisiPercent`);
+            const mdePercentEl = document.getElementById(`${prefix}MDEPercent`);
+            const rebatePercentEl = document.getElementById(`${prefix}RebatePercent`);
+            const krathseisPercentEl = document.getElementById(`${prefix}KrathseisEopyyPercent`);
+            const clawbackPercentEl = document.getElementById(`${prefix}ClawbackPercent`);
+            
+            if (parakratisiPercentEl && !document.activeElement.id.includes('Percent')) {
+                parakratisiPercentEl.value = ((parakratisi / amount) * 100).toFixed(2);
+            }
+            if (mdePercentEl && !document.activeElement.id.includes('Percent')) {
+                mdePercentEl.value = ((mde / amount) * 100).toFixed(2);
+            }
+            if (rebatePercentEl && !document.activeElement.id.includes('Percent')) {
+                rebatePercentEl.value = ((rebate / amount) * 100).toFixed(2);
+            }
+            if (krathseisPercentEl && !document.activeElement.id.includes('Percent')) {
+                krathseisPercentEl.value = ((krathseis / amount) * 100).toFixed(2);
+            }
+            if (clawbackPercentEl && !document.activeElement.id.includes('Percent')) {
+                clawbackPercentEl.value = ((clawback / amount) * 100).toFixed(2);
+            }
+        }
+        
+        totalDeductions = parakratisi + mde + rebate + krathseis + clawback;
     } else {
         totalDeductions += parseFloat(document.getElementById(`${prefix}KrathseisOther`)?.value) || 0;
     }
     
+    // 🆕 ΑΛΛΑΓΗ: Default χωρίς παρακράτηση
     const finalAmount = amount - totalDeductions;
     const displayId = prefix === 'quick' ? 'quickFinalAmount' : 'modalFinalAmount';
     const displayEl = document.getElementById(displayId);

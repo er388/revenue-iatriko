@@ -54,31 +54,40 @@ class EopyyDeductionsManager {
      * @returns {Promise<Object>}
      */
     async applyDeductions(entryId, deductionAmounts, notes = '') {
-        const existingIndex = this.deductions.findIndex(d => d.entryId === entryId);
-        
-        const deduction = {
-            id: existingIndex >= 0 ? this.deductions[existingIndex].id : generateId(),
-            entryId,
-            deductions: {
-                parakratisi: parseFloat(deductionAmounts.parakratisi) || 0,
-                mde: parseFloat(deductionAmounts.mde) || 0,
-                rebate: parseFloat(deductionAmounts.rebate) || 0,
-                krathseis: parseFloat(deductionAmounts.krathseis) || 0,
-                clawback: parseFloat(deductionAmounts.clawback) || 0
-            },
-            appliedDate: Date.now(),
-            notes
-        };
+    const existingIndex = this.deductions.findIndex(d => d.entryId === entryId);
+    
+    const deduction = {
+        id: existingIndex >= 0 ? this.deductions[existingIndex].id : generateId(),
+        entryId,
+        deductions: {
+            parakratisi: parseFloat(deductionAmounts.parakratisi) || 0,
+            mde: parseFloat(deductionAmounts.mde) || 0,
+            rebate: parseFloat(deductionAmounts.rebate) || 0,
+            krathseis: parseFloat(deductionAmounts.krathseis) || 0,
+            clawback: parseFloat(deductionAmounts.clawback) || 0
+        },
+        // 🆕 ΝΕΕΣ ΓΡΑΜΜΕΣ: Αποθήκευση ποσοστών
+        percentages: {
+            parakratisiPercent: parseFloat(deductionAmounts.parakratisiPercent) || 0,
+            mdePercent: parseFloat(deductionAmounts.mdePercent) || 0,
+            rebatePercent: parseFloat(deductionAmounts.rebatePercent) || 0,
+            krathseisPercent: parseFloat(deductionAmounts.krathseisPercent) || 0,
+            clawbackPercent: parseFloat(deductionAmounts.clawbackPercent) || 0
+        },
+        clawbackPeriod: deductionAmounts.clawbackPeriod || 'monthly', // 🆕 monthly, quarterly, semi-annual, annual
+        appliedDate: Date.now(),
+        notes
+    };
 
-        if (existingIndex >= 0) {
-            this.deductions[existingIndex] = deduction;
-        } else {
-            this.deductions.push(deduction);
-        }
-
-        await this.saveDeductions();
-        return deduction;
+    if (existingIndex >= 0) {
+        this.deductions[existingIndex] = deduction;
+    } else {
+        this.deductions.push(deduction);
     }
+
+    await this.saveDeductions();
+    return deduction;
+}
 
     /**
      * Remove deductions από entry
