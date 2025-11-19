@@ -1183,6 +1183,18 @@ body {
     grid-template-rows: auto auto;
     gap: 0.5rem 1rem;
     padding: 0.8rem;
+    position: relative;
+    cursor: grab;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.kpi-card-compact:active {
+    cursor: grabbing;
+}
+
+.kpi-card-compact.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
 }
 
 .kpi-label {

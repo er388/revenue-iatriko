@@ -171,20 +171,38 @@
                 </form>
             </div>
 
-            <div class="dashboard-header">
-                <h3>Επισκόπηση</h3>
-                <div class="quick-filters">
-                    <select id="dashPeriod" class="form-select form-compact">
-                        <option value="all" selected>Όλα</option> <!-- 🆕 ΑΛΛΑΓΗ: Όλα selected -->
-                        <option value="month">Μήνας</option>
-                        <option value="year">Έτος</option>
-                    </select>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="dashIncludeParakratisi"> <!-- 🆕 ΑΦΑΙΡΕΣΗ: checked -->
-                        <span>Με Παρακράτηση</span>
-                    </label>
+            <!-- Dashboard View -->
+            <div id="dashboardView" class="view active">
+                <h2>Επισκόπηση</h2>
+
+                <!-- Quick Add Form -->
+                <div class="card card-compact">
+                    <h3>Γρήγορη Καταχώριση</h3>
+                    <form id="quickAddForm">
+                        <!-- ... (το υπάρχον form περιεχόμενο παραμένει ως έχει) -->
+                    </form>
                 </div>
-            </div>
+
+                <!-- ΜΕΤΑΚΙΝΗΣΗ: Dashboard Header ΕΔΩ -->
+                <div class="dashboard-header">
+                    <h3>Επισκόπηση</h3>
+                    <div class="quick-filters">
+                        <select id="dashPeriod" class="form-select form-compact">
+                            <option value="all" selected>Όλα</option>
+                            <option value="month">Μήνας</option>
+                            <option value="year">Έτος</option>
+                        </select>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="dashIncludeParakratisi">
+                            <span>Με Παρακράτηση</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="kpi-grid kpi-grid-compact" id="kpiGrid">
+                    <!-- ... (τα υπάρχοντα KPI cards) -->
+                </div>
 
             <!-- KPI Cards -->
             <div class="kpi-grid kpi-grid-compact">
@@ -242,7 +260,7 @@
                                     <th>Διαγνωστικό</th>
                                     <th>Ασφάλεια</th>
                                     <th>Τύπος</th>
-                                    <th class="text-right">Ποσό</th>
+                                    <th class="text-right">Τελικό Ποσό</th>
                                 </tr>
                             </thead>
                             <tbody id="recentEntriesBody">
