@@ -51,6 +51,22 @@ window.editEntry = function(id) {
         document.getElementById('entryRebate').value = deduction.deductions.rebate || '';
         document.getElementById('entryKrathseisEopyy').value = deduction.deductions.krathseis || '';
         document.getElementById('entryClawback').value = deduction.deductions.clawback || '';
+            if (isEopyy && deduction) {
+            document.getElementById('entryParakratisi').value = deduction.deductions.parakratisi || '';
+            document.getElementById('entryMDE').value = deduction.deductions.mde || '';
+            document.getElementById('entryRebate').value = deduction.deductions.rebate || '';
+            document.getElementById('entryKrathseisEopyy').value = deduction.deductions.krathseis || '';
+            document.getElementById('entryClawback').value = deduction.deductions.clawback || '';
+            
+            // 🆕 ΠΡΟΣΘΗΚΗ: Φόρτωση ποσοστών
+            if (deduction.percentages) {
+                document.getElementById('entryParakratisiPercent').value = deduction.percentages.parakratisiPercent || '';
+                document.getElementById('entryMDEPercent').value = deduction.percentages.mdePercent || '';
+                document.getElementById('entryRebatePercent').value = deduction.percentages.rebatePercent || '';
+                document.getElementById('entryKrathseisEopyyPercent').value = deduction.percentages.krathseisPercent || '';
+                document.getElementById('entryClawbackPercent').value = deduction.percentages.clawbackPercent || '';
+            }
+        } 
     } else if (!isEopyy) {
         document.getElementById('entryKrathseisOther').value = entry.krathseis || '';
     }
@@ -84,7 +100,11 @@ window.saveEntry = async function() {
             mde: parseFloat(document.getElementById('entryMDE').value) || 0,
             rebate: parseFloat(document.getElementById('entryRebate').value) || 0,
             krathseis: parseFloat(document.getElementById('entryKrathseisEopyy').value) || 0,
-            clawback: parseFloat(document.getElementById('entryClawback').value) || 0
+            clawback: parseFloat(document.getElementById('entryClawback').value) || 0,
+            parakratisiPercent: parseFloat(document.getElementById('entryParakratisiPercent').value) || 0,
+            mdePercent: parseFloat(document.getElementById('entryMDEPercent').value) || 0,
+            rebatePercent: parseFloat(document.getElementById('entryRebatePercent').value) || 0,
+            krathseisPercent: parseFloat(document.getElementById('entryKrathseisEopyyPercent').value) || 0
         };
     } else {
         entry.krathseis = parseFloat(document.getElementById('entryKrathseisOther').value) || 0;

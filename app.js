@@ -116,10 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             mdePercent: parseFloat(document.getElementById('quickMDEPercent').value) || 0,
             rebatePercent: parseFloat(document.getElementById('quickRebatePercent').value) || 0,
             krathseisPercent: parseFloat(document.getElementById('quickKrathseisEopyyPercent').value) || 0,
-            clawbackPercent: parseFloat(document.getElementById('quickClawbackPercent').value) || 0,
-            // 🆕 Περίοδος Clawback
-            clawbackPeriod: document.getElementById('quickClawbackPeriod')?.value || 'monthly'
-        };
+       };
     } else {
         entry.krathseis = parseFloat(document.getElementById('quickKrathseisOther').value) || 0;
         entry.krathseisPercent = parseFloat(document.getElementById('quickKrathseisOtherPercent').value) || 0;

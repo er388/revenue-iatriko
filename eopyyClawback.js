@@ -74,7 +74,6 @@ class EopyyDeductionsManager {
             krathseisPercent: parseFloat(deductionAmounts.krathseisPercent) || 0,
             clawbackPercent: parseFloat(deductionAmounts.clawbackPercent) || 0
         },
-        clawbackPeriod: deductionAmounts.clawbackPeriod || 'monthly', // 🆕 monthly, quarterly, semi-annual, annual
         appliedDate: Date.now(),
         notes
     };
