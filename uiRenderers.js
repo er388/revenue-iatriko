@@ -37,23 +37,48 @@ export function showToast(message, type = 'info') {
 export function renderDashboard() {
     const period = document.getElementById('dashPeriod')?.value || 'all';
     const includeParakratisi = document.getElementById('dashIncludeParakratisi')?.checked || false;
-    const filtered = filterEntriesByPeriod(STATE.entries, period);
+    
+    let filtered = [...STATE.entries];
+    const now = new Date();
+
+    if (period === 'month') {
+        const thisMonth = formatMonthYear(now.getMonth() + 1, now.getFullYear());
+        filtered = filtered.filter(e => e.date === thisMonth);
+    } else if (period === 'year') {
+        const thisYear = now.getFullYear();
+        filtered = filtered.filter(e => e.date.endsWith(`/${thisYear}`));
+    }
 
     const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi });
     STATE.currentKPIs = kpis;
 
-    // Update KPI cards με ποσοστά
-    updateKPICard('kpiTotal', kpis.total, null);
-    updateKPICard('kpiEopyy', kpis.eopyyTotal, kpis.total);
-    updateKPICard('kpiOthers', kpis.nonEopyyTotal, kpis.total);
-    updateKPICard('kpiDeductions', kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis, kpis.total);
+    // Simple updates - χωρίς ποσοστά προς το παρόν
+    const el1 = document.getElementById('kpiTotal');
+    if (el1) el1.textContent = formatCurrency(kpis.total);
     
-    // ΕΟΠΥΥ Breakdown
-    updateKPICard('kpiParakratisi', kpis.eopyyParakratisi, kpis.eopyyOriginal);
-    updateKPICard('kpiMDE', kpis.eopyyMDE, kpis.eopyyOriginal);
-    updateKPICard('kpiRebate', kpis.eopyyRebate, kpis.eopyyOriginal);
-    updateKPICard('kpiKrathseis', kpis.eopyyKrathseis, kpis.eopyyOriginal);
-    updateKPICard('kpiClawback', kpis.eopyyClawback, kpis.eopyyOriginal);
+    const el2 = document.getElementById('kpiEopyy');
+    if (el2) el2.textContent = formatCurrency(kpis.eopyyTotal);
+    
+    const el3 = document.getElementById('kpiOthers');
+    if (el3) el3.textContent = formatCurrency(kpis.nonEopyyTotal);
+    
+    const el4 = document.getElementById('kpiDeductions');
+    if (el4) el4.textContent = formatCurrency(kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis);
+    
+    const el5 = document.getElementById('kpiParakratisi');
+    if (el5) el5.textContent = formatCurrency(kpis.eopyyParakratisi);
+    
+    const el6 = document.getElementById('kpiMDE');
+    if (el6) el6.textContent = formatCurrency(kpis.eopyyMDE);
+    
+    const el7 = document.getElementById('kpiRebate');
+    if (el7) el7.textContent = formatCurrency(kpis.eopyyRebate);
+    
+    const el8 = document.getElementById('kpiKrathseis');
+    if (el8) el8.textContent = formatCurrency(kpis.eopyyKrathseis);
+    
+    const el9 = document.getElementById('kpiClawback');
+    if (el9) el9.textContent = formatCurrency(kpis.eopyyClawback);
 
     renderRecentEntries();
     renderCharts(filtered);
