@@ -52,6 +52,57 @@ export function renderDashboard() {
     const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi });
     STATE.currentKPIs = kpis;
 
+        // Update KPI values με ποσοστά
+    updateKPIWithPercent('kpiTotal', kpis.total, null);
+    updateKPIWithPercent('kpiEopyy', kpis.eopyyTotal, kpis.total);
+    updateKPIWithPercent('kpiOthers', kpis.nonEopyyTotal, kpis.total);
+    updateKPIWithPercent('kpiDeductions', kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis, kpis.total);
+    updateKPIWithPercent('kpiParakratisi', kpis.eopyyParakratisi, kpis.eopyyOriginal);
+    updateKPIWithPercent('kpiMDE', kpis.eopyyMDE, kpis.eopyyOriginal);
+    updateKPIWithPercent('kpiRebate', kpis.eopyyRebate, kpis.eopyyOriginal);
+    updateKPIWithPercent('kpiKrathseis', kpis.eopyyKrathseis, kpis.eopyyOriginal);
+    updateKPIWithPercent('kpiClawback', kpis.eopyyClawback, kpis.eopyyOriginal);
+
+    renderRecentEntries();
+    renderCharts(filtered);
+}
+
+// Helper function για ενημέρωση KPI με ποσοστό
+function updateKPIWithPercent(valueId, amount, totalForPercent) {
+    const valueEl = document.getElementById(valueId);
+    if (!valueEl) return;
+    
+    valueEl.textContent = formatCurrency(amount);
+    
+    const card = valueEl.closest('.kpi-card-compact');
+    if (!card) return;
+    
+    let percentEl = card.querySelector('.kpi-percent');
+    
+    if (totalForPercent && totalForPercent > 0) {
+        const percent = ((amount / totalForPercent) * 100).toFixed(2);
+        
+        if (!percentEl) {
+            percentEl = document.createElement('div');
+            percentEl.className = 'kpi-percent';
+            card.appendChild(percentEl);
+        }
+        
+        percentEl.textContent = `${percent}%`;
+        
+        // Χρωματισμός
+        if (parseFloat(percent) > 50) {
+            percentEl.className = 'kpi-percent positive';
+        } else if (parseFloat(percent) < 20) {
+            percentEl.className = 'kpi-percent negative';
+        } else {
+            percentEl.className = 'kpi-percent neutral';
+        }
+    } else if (percentEl) {
+        percentEl.remove();
+    }
+}
+
     // Update KPI values
     const kpiTotal = document.getElementById('kpiTotal');
     if (kpiTotal) kpiTotal.textContent = formatCurrency(kpis.total);
