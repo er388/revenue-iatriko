@@ -1,5 +1,6 @@
 /**
- * uiRenderers.js - UI Rendering Module (Minimal Working Version)
+ * uiRenderers.js - UI Rendering Module
+ * All rendering functions for dashboard, tables, charts, etc.
  */
 
 import { STATE, CONFIG } from './state.js';
@@ -14,7 +15,10 @@ import {
 } from './utils.js';
 import { applyFilters } from './filters.js';
 
+// ========================================
 // Toast Notifications
+// ========================================
+
 export function showToast(message, type = 'info') {
     const toast = document.getElementById('toast');
     if (!toast) return;
@@ -26,34 +30,14 @@ export function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// Recent Entries Rendering
-export function renderRecentEntries() {
-    const tbody = document.getElementById('recentEntriesBody');
-    if (!tbody) return;
+// ========================================
+// Dashboard Rendering
+// ========================================
 
-    const recent = STATE.entries.slice(-10).reverse();
-
-    if (recent.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Δεν υπάρχουν εγγραφές</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = recent.map(entry => {
-        const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
-        
-        return `
-            <tr>
-                <td>${escapeHtml(entry.date)}</td>
-                <td>${escapeHtml(entry.source)}</td>
-                <td>${escapeHtml(entry.insurance)}</td>
-                <td>${entry.type === 'cash' ? 'Μετρητά' : 'Τιμολόγια'}</td>
-                <td class="text-right">${formatCurrency(amounts.finalAmount)}</td>
-            </tr>
-        `;
-    }).join('');
-}
-
+// ========================================
 // Charts Rendering
+// ========================================
+
 export function renderCharts(entries) {
     if (!STATE.cdnAvailable || !window.Chart) {
         console.warn('Charts disabled - CDN unavailable');
@@ -72,85 +56,89 @@ export function renderCharts(entries) {
             return sum + amounts.finalAmount;
         }, 0);
 
-    // Type Chart
-    const typeCtx = document.getElementById('typeChart');
-    if (typeCtx) {
-        if (STATE.charts.typeChart) STATE.charts.typeChart.destroy();
-        
-        STATE.charts.typeChart = new Chart(typeCtx, {
-            type: 'pie',
-            data: {
-                labels: ['ΕΟΠΥΥ', 'Άλλα Ταμεία'],
-                datasets: [{
-                    data: [eopyyTotal, othersTotal],
-                    backgroundColor: [CONFIG.chartColors.primary, CONFIG.chartColors.success]
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'bottom' },
-                    tooltip: {
-                        callbacks: {
-                            label: (context) => `${context.label}: ${formatCurrency(context.parsed)}`
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // Monthly Chart
-    const monthlyCtx = document.getElementById('monthlyChart');
-    if (monthlyCtx) {
-        const monthlyData = {};
-        entries.forEach(entry => {
-            if (!monthlyData[entry.date]) monthlyData[entry.date] = 0;
-            const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
-            monthlyData[entry.date] += amounts.finalAmount;
-        });
-
-        const sortedMonths = Object.keys(monthlyData).sort((a, b) => compareDates(a, b));
-        const monthlyValues = sortedMonths.map(m => monthlyData[m]);
-
-        if (STATE.charts.monthlyChart) STATE.charts.monthlyChart.destroy();
-        
-        STATE.charts.monthlyChart = new Chart(monthlyCtx, {
-            type: 'line',
-            data: {
-                labels: sortedMonths,
-                datasets: [{
-                    label: 'Έσοδα',
-                    data: monthlyValues,
-                    borderColor: CONFIG.chartColors.primary,
-                    backgroundColor: CONFIG.chartColors.primary + '20',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: value => formatCurrency(value)
-                        }
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: (context) => formatCurrency(context.parsed.y)
-                        }
-                    }
-                }
-            }
-        });
-    }
+    renderTypeChart(eopyyTotal, othersTotal);
+    renderMonthlyChart(entries);
 }
 
-// Dashboard Rendering
+function renderTypeChart(eopyyTotal, othersTotal) {
+    const typeCtx = document.getElementById('typeChart');
+    if (!typeCtx) return;
+
+    if (STATE.charts.typeChart) STATE.charts.typeChart.destroy();
+    
+    STATE.charts.typeChart = new Chart(typeCtx, {
+        type: 'pie',
+        data: {
+            labels: ['ΕΟΠΥΥ', 'Άλλα Ταμεία'],
+            datasets: [{
+                data: [eopyyTotal, othersTotal],
+                backgroundColor: [CONFIG.chartColors.primary, CONFIG.chartColors.success]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `${context.label}: ${formatCurrency(context.parsed)}`
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderMonthlyChart(entries) {
+    const monthlyCtx = document.getElementById('monthlyChart');
+    if (!monthlyCtx) return;
+
+    const monthlyData = {};
+    entries.forEach(entry => {
+        if (!monthlyData[entry.date]) monthlyData[entry.date] = 0;
+        const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
+        monthlyData[entry.date] += amounts.finalAmount;
+    });
+
+    const sortedMonths = Object.keys(monthlyData).sort((a, b) => compareDates(a, b));
+    const monthlyValues = sortedMonths.map(m => monthlyData[m]);
+
+    if (STATE.charts.monthlyChart) STATE.charts.monthlyChart.destroy();
+    
+    STATE.charts.monthlyChart = new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+            labels: sortedMonths,
+            datasets: [{
+                label: 'Έσοδα',
+                data: monthlyValues,
+                borderColor: CONFIG.chartColors.primary,
+                backgroundColor: CONFIG.chartColors.primary + '20',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: value => formatCurrency(value)
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: (context) => formatCurrency(context.parsed.y)
+                    }
+                }
+            }
+        }
+    });
+}
+
 export function renderDashboard() {
     const period = document.getElementById('dashPeriod')?.value || 'all';
     const includeParakratisi = document.getElementById('dashIncludeParakratisi')?.checked || false;
@@ -169,29 +157,42 @@ export function renderDashboard() {
     const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi });
     STATE.currentKPIs = kpis;
 
-    // Update KPIs
-    const updates = [
-        ['kpiTotal', kpis.total],
-        ['kpiEopyy', kpis.eopyyTotal],
-        ['kpiOthers', kpis.nonEopyyTotal],
-        ['kpiDeductions', kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis],
-        ['kpiParakratisi', kpis.eopyyParakratisi],
-        ['kpiMDE', kpis.eopyyMDE],
-        ['kpiRebate', kpis.eopyyRebate],
-        ['kpiKrathseis', kpis.eopyyKrathseis],
-        ['kpiClawback', kpis.eopyyClawback]
-    ];
-
-    updates.forEach(([id, value]) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = formatCurrency(value);
-    });
+    // Simple updates
+    const kpiTotal = document.getElementById('kpiTotal');
+    if (kpiTotal) kpiTotal.textContent = formatCurrency(kpis.total);
+    
+    const kpiEopyy = document.getElementById('kpiEopyy');
+    if (kpiEopyy) kpiEopyy.textContent = formatCurrency(kpis.eopyyTotal);
+    
+    const kpiOthers = document.getElementById('kpiOthers');
+    if (kpiOthers) kpiOthers.textContent = formatCurrency(kpis.nonEopyyTotal);
+    
+    const kpiDeductions = document.getElementById('kpiDeductions');
+    if (kpiDeductions) kpiDeductions.textContent = formatCurrency(kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis);
+    
+    const kpiParakratisi = document.getElementById('kpiParakratisi');
+    if (kpiParakratisi) kpiParakratisi.textContent = formatCurrency(kpis.eopyyParakratisi);
+    
+    const kpiMDE = document.getElementById('kpiMDE');
+    if (kpiMDE) kpiMDE.textContent = formatCurrency(kpis.eopyyMDE);
+    
+    const kpiRebate = document.getElementById('kpiRebate');
+    if (kpiRebate) kpiRebate.textContent = formatCurrency(kpis.eopyyRebate);
+    
+    const kpiKrathseis = document.getElementById('kpiKrathseis');
+    if (kpiKrathseis) kpiKrathseis.textContent = formatCurrency(kpis.eopyyKrathseis);
+    
+    const kpiClawback = document.getElementById('kpiClawback');
+    if (kpiClawback) kpiClawback.textContent = formatCurrency(kpis.eopyyClawback);
 
     renderRecentEntries();
     renderCharts(filtered);
 }
 
+// ========================================
 // Entries Table Rendering
+// ========================================
+
 export function renderEntriesTable() {
     const tbody = document.getElementById('entriesTableBody');
     if (!tbody) return;
@@ -211,8 +212,10 @@ export function renderEntriesTable() {
 
     tbody.innerHTML = pageEntries.map(entry => {
         const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
+        
+        const deductionsAmount = amounts.totalDeductions;
         const deductionsPercent = amounts.originalAmount > 0 
-            ? ((amounts.totalDeductions / amounts.originalAmount) * 100).toFixed(2) 
+            ? ((deductionsAmount / amounts.originalAmount) * 100).toFixed(2) 
             : '0.00';
         
         return `
@@ -231,7 +234,7 @@ export function renderEntriesTable() {
             </tr>
             <tr class="deductions-row">
                 <td colspan="4"></td>
-                <td class="text-right">${formatCurrency(amounts.totalDeductions)}</td>
+                <td class="text-right">${formatCurrency(deductionsAmount)}</td>
                 <td class="text-right">${deductionsPercent}%</td>
                 <td colspan="2"></td>
             </tr>
@@ -241,7 +244,10 @@ export function renderEntriesTable() {
     renderPagination(filtered.length, totalPages);
 }
 
+// ========================================
 // Pagination Rendering
+// ========================================
+
 export function renderPagination(totalItems, totalPages) {
     const pagination = document.getElementById('pagination');
     if (!pagination) return;
@@ -276,7 +282,10 @@ export function renderPagination(totalItems, totalPages) {
     pagination.innerHTML = html;
 }
 
+// ========================================
 // Sources & Insurances Rendering
+// ========================================
+
 export function renderSourcesAndInsurances() {
     const sourceSelects = ['quickSource', 'filterSource', 'entrySource'];
     sourceSelects.forEach(id => {
@@ -331,7 +340,10 @@ export function renderSourcesAndInsurances() {
     }
 }
 
-// Sortable Setup
+// ========================================
+// Sortable Lists
+// ========================================
+
 export function setupSortable(container, arrayName) {
     let draggedItem = null;
     
@@ -350,6 +362,12 @@ export function setupSortable(container, arrayName) {
     
     container.addEventListener('dragover', (e) => {
         e.preventDefault();
+        const afterElement = getDragAfterElement(container, e.clientY);
+        if (afterElement == null) {
+            container.appendChild(draggedItem);
+        } else {
+            container.insertBefore(draggedItem, afterElement);
+        }
     });
     
     container.addEventListener('drop', async (e) => {
@@ -361,6 +379,25 @@ export function setupSortable(container, arrayName) {
         renderSourcesAndInsurances();
     });
 }
+
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.sortable-item:not(.dragging)')];
+    
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+// ========================================
+// Exports
+// ========================================
 
 export default {
     showToast,
