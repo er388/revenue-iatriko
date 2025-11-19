@@ -84,6 +84,103 @@ export function renderDashboard() {
     renderCharts(filtered);
 }
 
+// Helper function για ενημέρωση KPI με ποσοστό
+function updateKPIWithPercent(valueId, amount, totalForPercent) {
+    const valueEl = document.getElementById(valueId);
+    if (!valueEl) return;
+    
+    valueEl.textContent = formatCurrency(amount);
+    
+    const card = valueEl.closest('.kpi-card-compact');
+    if (!card) return;
+    
+    let percentEl = card.querySelector('.kpi-percent');
+    
+    if (totalForPercent && totalForPercent > 0) {
+        const percent = ((amount / totalForPercent) * 100).toFixed(2);
+        
+        if (!percentEl) {
+            percentEl = document.createElement('div');
+            percentEl.className = 'kpi-percent';
+            card.appendChild(percentEl);
+        }
+        
+        percentEl.textContent = `${percent}%`;
+        
+        // Χρωματισμός
+        if (parseFloat(percent) > 50) {
+            percentEl.className = 'kpi-percent positive';
+        } else if (parseFloat(percent) < 20) {
+            percentEl.className = 'kpi-percent negative';
+        } else {
+            percentEl.className = 'kpi-percent neutral';
+        }
+    } else if (percentEl) {
+        percentEl.remove();
+    }
+}
+
+    // Update KPI values
+    const kpiTotal = document.getElementById('kpiTotal');
+    if (kpiTotal) kpiTotal.textContent = formatCurrency(kpis.total);
+    
+    const kpiEopyy = document.getElementById('kpiEopyy');
+    if (kpiEopyy) kpiEopyy.textContent = formatCurrency(kpis.eopyyTotal);
+    
+    const kpiOthers = document.getElementById('kpiOthers');
+    if (kpiOthers) kpiOthers.textContent = formatCurrency(kpis.nonEopyyTotal);
+    
+    const kpiDeductions = document.getElementById('kpiDeductions');
+    if (kpiDeductions) kpiDeductions.textContent = formatCurrency(kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis);
+    
+    const kpiParakratisi = document.getElementById('kpiParakratisi');
+    if (kpiParakratisi) kpiParakratisi.textContent = formatCurrency(kpis.eopyyParakratisi);
+    
+    const kpiMDE = document.getElementById('kpiMDE');
+    if (kpiMDE) kpiMDE.textContent = formatCurrency(kpis.eopyyMDE);
+    
+    const kpiRebate = document.getElementById('kpiRebate');
+    if (kpiRebate) kpiRebate.textContent = formatCurrency(kpis.eopyyRebate);
+    
+    const kpiKrathseis = document.getElementById('kpiKrathseis');
+    if (kpiKrathseis) kpiKrathseis.textContent = formatCurrency(kpis.eopyyKrathseis);
+    
+    const kpiClawback = document.getElementById('kpiClawback');
+    if (kpiClawback) kpiClawback.textContent = formatCurrency(kpis.eopyyClawback);
+
+    renderRecentEntries();
+    renderCharts(filtered);
+
+// ========================================
+// Recent Entries Rendering
+// ========================================
+
+export function renderRecentEntries() {
+    const tbody = document.getElementById('recentEntriesBody');
+    if (!tbody) return;
+
+    const recent = STATE.entries.slice(-10).reverse();
+
+    if (recent.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Δεν υπάρχουν εγγραφές</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = recent.map(entry => {
+        const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
+        
+        return `
+            <tr>
+                <td>${escapeHtml(entry.date)}</td>
+                <td>${escapeHtml(entry.source)}</td>
+                <td>${escapeHtml(entry.insurance)}</td>
+                <td>${entry.type === 'cash' ? 'Μετρητά' : 'Τιμολόγια'}</td>
+                <td class="text-right">${formatCurrency(amounts.finalAmount)}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
 // ========================================
 // Charts Rendering
 // ========================================
