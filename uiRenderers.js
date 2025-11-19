@@ -52,140 +52,36 @@ export function renderDashboard() {
     const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi });
     STATE.currentKPIs = kpis;
 
-    // Simple updates - χωρίς ποσοστά προς το παρόν
-    const el1 = document.getElementById('kpiTotal');
-    if (el1) el1.textContent = formatCurrency(kpis.total);
+    // Update KPI values
+    const kpiTotal = document.getElementById('kpiTotal');
+    if (kpiTotal) kpiTotal.textContent = formatCurrency(kpis.total);
     
-    const el2 = document.getElementById('kpiEopyy');
-    if (el2) el2.textContent = formatCurrency(kpis.eopyyTotal);
+    const kpiEopyy = document.getElementById('kpiEopyy');
+    if (kpiEopyy) kpiEopyy.textContent = formatCurrency(kpis.eopyyTotal);
     
-    const el3 = document.getElementById('kpiOthers');
-    if (el3) el3.textContent = formatCurrency(kpis.nonEopyyTotal);
+    const kpiOthers = document.getElementById('kpiOthers');
+    if (kpiOthers) kpiOthers.textContent = formatCurrency(kpis.nonEopyyTotal);
     
-    const el4 = document.getElementById('kpiDeductions');
-    if (el4) el4.textContent = formatCurrency(kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis);
+    const kpiDeductions = document.getElementById('kpiDeductions');
+    if (kpiDeductions) kpiDeductions.textContent = formatCurrency(kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis);
     
-    const el5 = document.getElementById('kpiParakratisi');
-    if (el5) el5.textContent = formatCurrency(kpis.eopyyParakratisi);
+    const kpiParakratisi = document.getElementById('kpiParakratisi');
+    if (kpiParakratisi) kpiParakratisi.textContent = formatCurrency(kpis.eopyyParakratisi);
     
-    const el6 = document.getElementById('kpiMDE');
-    if (el6) el6.textContent = formatCurrency(kpis.eopyyMDE);
+    const kpiMDE = document.getElementById('kpiMDE');
+    if (kpiMDE) kpiMDE.textContent = formatCurrency(kpis.eopyyMDE);
     
-    const el7 = document.getElementById('kpiRebate');
-    if (el7) el7.textContent = formatCurrency(kpis.eopyyRebate);
+    const kpiRebate = document.getElementById('kpiRebate');
+    if (kpiRebate) kpiRebate.textContent = formatCurrency(kpis.eopyyRebate);
     
-    const el8 = document.getElementById('kpiKrathseis');
-    if (el8) el8.textContent = formatCurrency(kpis.eopyyKrathseis);
+    const kpiKrathseis = document.getElementById('kpiKrathseis');
+    if (kpiKrathseis) kpiKrathseis.textContent = formatCurrency(kpis.eopyyKrathseis);
     
-    const el9 = document.getElementById('kpiClawback');
-    if (el9) el9.textContent = formatCurrency(kpis.eopyyClawback);
+    const kpiClawback = document.getElementById('kpiClawback');
+    if (kpiClawback) kpiClawback.textContent = formatCurrency(kpis.eopyyClawback);
 
     renderRecentEntries();
     renderCharts(filtered);
-}
-
-// Helper function για ενημέρωση KPI με ποσοστό
-function updateKPICard(valueId, amount, totalForPercent) {
-    const valueEl = document.getElementById(valueId);
-    if (!valueEl) return;
-    
-    valueEl.textContent = formatCurrency(amount);
-    
-    // Προσθήκη/ενημέρωση ποσοστού
-    const card = valueEl.closest('.kpi-card-compact');
-    if (!card) return;
-    
-    let percentEl = card.querySelector('.kpi-percent');
-    
-    if (totalForPercent && totalForPercent > 0) {
-        const percent = ((amount / totalForPercent) * 100).toFixed(2);
-        
-        if (!percentEl) {
-            percentEl = document.createElement('div');
-            percentEl.className = 'kpi-percent';
-            card.appendChild(percentEl);
-        }
-        
-        percentEl.textContent = `${percent}%`;
-        
-        // Χρωματισμός
-        if (percent > 50) {
-            percentEl.className = 'kpi-percent positive';
-        } else if (percent < 20) {
-            percentEl.className = 'kpi-percent negative';
-        } else {
-            percentEl.className = 'kpi-percent neutral';
-        }
-    } else if (percentEl) {
-        percentEl.remove();
-    }
-}
-
-function filterEntriesByPeriod(entries, period) {
-    const now = new Date();
-    let filtered = [...entries];
-
-    if (period === 'month') {
-        const thisMonth = formatMonthYear(now.getMonth() + 1, now.getFullYear());
-        filtered = filtered.filter(e => e.date === thisMonth);
-    } else if (period === 'year') {
-        const thisYear = now.getFullYear();
-        filtered = filtered.filter(e => e.date.endsWith(`/${thisYear}`));
-    }
-
-    return filtered;
-}
-
-// 🆕 ΝΕΕΣ ΓΡΑΜΜΕΣ: Helper function για ενημέρωση KPI με ποσοστό
-function updateKPICard(valueId, amount, totalForPercent) {
-    const valueEl = document.getElementById(valueId);
-    if (!valueEl) return;
-    
-    valueEl.textContent = formatCurrency(amount);
-    
-    // Προσθήκη/ενημέρωση ποσοστού
-    const card = valueEl.closest('.kpi-card-compact');
-    if (!card) return;
-    
-    let percentEl = card.querySelector('.kpi-percent');
-    
-    if (totalForPercent && totalForPercent > 0) {
-        const percent = ((amount / totalForPercent) * 100).toFixed(2);
-        
-        if (!percentEl) {
-            percentEl = document.createElement('div');
-            percentEl.className = 'kpi-percent';
-            card.appendChild(percentEl);
-        }
-        
-        percentEl.textContent = `${percent}%`;
-        
-        // Χρωματισμός
-        if (percent > 50) {
-            percentEl.className = 'kpi-percent positive';
-        } else if (percent < 20) {
-            percentEl.className = 'kpi-percent negative';
-        } else {
-            percentEl.className = 'kpi-percent neutral';
-        }
-    } else if (percentEl) {
-        percentEl.remove();
-    }
-}
-
-function filterEntriesByPeriod(entries, period) {
-    const now = new Date();
-    let filtered = [...entries];
-
-    if (period === 'month') {
-        const thisMonth = formatMonthYear(now.getMonth() + 1, now.getFullYear());
-        filtered = filtered.filter(e => e.date === thisMonth);
-    } else if (period === 'year') {
-        const thisYear = now.getFullYear();
-        filtered = filtered.filter(e => e.date.endsWith(`/${thisYear}`));
-    }
-
-    return filtered;
 }
 
 // ========================================
@@ -240,10 +136,7 @@ export function renderCharts(entries) {
             return sum + amounts.finalAmount;
         }, 0);
 
-    // Type Chart (Pie)
     renderTypeChart(eopyyTotal, othersTotal);
-    
-    // Monthly Chart (Line)
     renderMonthlyChart(entries);
 }
 
