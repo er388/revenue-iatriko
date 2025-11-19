@@ -265,6 +265,12 @@ export function resetQuickForm() {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
+        
+    // 🆕 ΠΡΟΣΘΗΚΗ: Μηδενισμός Τελικού Ποσού
+    const finalAmountDisplay = document.getElementById('quickFinalAmount');
+    if (finalAmountDisplay) {
+        finalAmountDisplay.textContent = '€ 0,00';
+    }
     
     calculateFinalAmount('quick');
 }

@@ -171,17 +171,16 @@
                 </form>
             </div>
 
-            <!-- Dashboard Header with Filters (MOVED HERE) -->
             <div class="dashboard-header">
                 <h3>Επισκόπηση</h3>
                 <div class="quick-filters">
                     <select id="dashPeriod" class="form-select form-compact">
-                        <option value="month" selected>Μήνας</option>
+                        <option value="all" selected>Όλα</option> <!-- 🆕 ΑΛΛΑΓΗ: Όλα selected -->
+                        <option value="month">Μήνας</option>
                         <option value="year">Έτος</option>
-                        <option value="all">Όλα</option>
                     </select>
                     <label class="checkbox-label">
-                        <input type="checkbox" id="dashIncludeParakratisi" checked>
+                        <input type="checkbox" id="dashIncludeParakratisi"> <!-- 🆕 ΑΦΑΙΡΕΣΗ: checked -->
                         <span>Με Παρακράτηση</span>
                     </label>
                 </div>

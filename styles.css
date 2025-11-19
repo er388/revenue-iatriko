@@ -1178,15 +1178,56 @@ body {
 }
 
 .kpi-card-compact {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 0.5rem 1rem;
     padding: 0.8rem;
 }
 
 .kpi-label {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    text-align: center;
     font-size: 0.75rem;
+    opacity: 0.9;
+    margin-bottom: 0.2rem;
+    font-weight: 600;
 }
 
 .kpi-value-compact {
+    grid-column: 1;
+    grid-row: 2;
+    text-align: left;
     font-size: 1.4rem;
+    font-weight: 700;
+    align-self: center;
+}
+
+.kpi-percent {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: right;
+    font-size: 0.85rem;
+    font-weight: 600;
+    align-self: center;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.kpi-percent.positive {
+    color: #10b981;
+    background-color: rgba(16, 185, 129, 0.1);
+}
+
+.kpi-percent.negative {
+    color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+.kpi-percent.neutral {
+    color: var(--text-secondary);
 }
 
 .data-table-compact {

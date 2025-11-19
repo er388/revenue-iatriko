@@ -59,9 +59,41 @@ export function renderDashboard() {
     renderCharts(filtered);
 }
 
-function updateElementText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
+// 🆕 ΝΕΕΣ ΓΡΑΜΜΕΣ: Helper function για ενημέρωση KPI με ποσοστό
+function updateKPICard(valueId, amount, totalForPercent) {
+    const valueEl = document.getElementById(valueId);
+    if (!valueEl) return;
+    
+    valueEl.textContent = formatCurrency(amount);
+    
+    // Προσθήκη/ενημέρωση ποσοστού
+    const card = valueEl.closest('.kpi-card-compact');
+    if (!card) return;
+    
+    let percentEl = card.querySelector('.kpi-percent');
+    
+    if (totalForPercent && totalForPercent > 0) {
+        const percent = ((amount / totalForPercent) * 100).toFixed(2);
+        
+        if (!percentEl) {
+            percentEl = document.createElement('div');
+            percentEl.className = 'kpi-percent';
+            card.appendChild(percentEl);
+        }
+        
+        percentEl.textContent = `${percent}%`;
+        
+        // Χρωματισμός
+        if (percent > 50) {
+            percentEl.className = 'kpi-percent positive';
+        } else if (percent < 20) {
+            percentEl.className = 'kpi-percent negative';
+        } else {
+            percentEl.className = 'kpi-percent neutral';
+        }
+    } else if (percentEl) {
+        percentEl.remove();
+    }
 }
 
 function filterEntriesByPeriod(entries, period) {
