@@ -34,56 +34,6 @@ export function showToast(message, type = 'info') {
 // Dashboard Rendering
 // ========================================
 
-export function renderDashboard() {
-    const period = document.getElementById('dashPeriod')?.value || 'all';
-    const includeParakratisi = document.getElementById('dashIncludeParakratisi')?.checked || false;
-    
-    let filtered = [...STATE.entries];
-    const now = new Date();
-
-    if (period === 'month') {
-        const thisMonth = formatMonthYear(now.getMonth() + 1, now.getFullYear());
-        filtered = filtered.filter(e => e.date === thisMonth);
-    } else if (period === 'year') {
-        const thisYear = now.getFullYear();
-        filtered = filtered.filter(e => e.date.endsWith(`/${thisYear}`));
-    }
-
-    const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi });
-    STATE.currentKPIs = kpis;
-
-    // Simple updates
-    const kpiTotal = document.getElementById('kpiTotal');
-    if (kpiTotal) kpiTotal.textContent = formatCurrency(kpis.total);
-    
-    const kpiEopyy = document.getElementById('kpiEopyy');
-    if (kpiEopyy) kpiEopyy.textContent = formatCurrency(kpis.eopyyTotal);
-    
-    const kpiOthers = document.getElementById('kpiOthers');
-    if (kpiOthers) kpiOthers.textContent = formatCurrency(kpis.nonEopyyTotal);
-    
-    const kpiDeductions = document.getElementById('kpiDeductions');
-    if (kpiDeductions) kpiDeductions.textContent = formatCurrency(kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis);
-    
-    const kpiParakratisi = document.getElementById('kpiParakratisi');
-    if (kpiParakratisi) kpiParakratisi.textContent = formatCurrency(kpis.eopyyParakratisi);
-    
-    const kpiMDE = document.getElementById('kpiMDE');
-    if (kpiMDE) kpiMDE.textContent = formatCurrency(kpis.eopyyMDE);
-    
-    const kpiRebate = document.getElementById('kpiRebate');
-    if (kpiRebate) kpiRebate.textContent = formatCurrency(kpis.eopyyRebate);
-    
-    const kpiKrathseis = document.getElementById('kpiKrathseis');
-    if (kpiKrathseis) kpiKrathseis.textContent = formatCurrency(kpis.eopyyKrathseis);
-    
-    const kpiClawback = document.getElementById('kpiClawback');
-    if (kpiClawback) kpiClawback.textContent = formatCurrency(kpis.eopyyClawback);
-
-    renderRecentEntries();
-    renderCharts(filtered);
-}
-
 // ========================================
 // Charts Rendering
 // ========================================
@@ -187,6 +137,56 @@ function renderMonthlyChart(entries) {
             }
         }
     });
+}
+
+export function renderDashboard() {
+    const period = document.getElementById('dashPeriod')?.value || 'all';
+    const includeParakratisi = document.getElementById('dashIncludeParakratisi')?.checked || false;
+    
+    let filtered = [...STATE.entries];
+    const now = new Date();
+
+    if (period === 'month') {
+        const thisMonth = formatMonthYear(now.getMonth() + 1, now.getFullYear());
+        filtered = filtered.filter(e => e.date === thisMonth);
+    } else if (period === 'year') {
+        const thisYear = now.getFullYear();
+        filtered = filtered.filter(e => e.date.endsWith(`/${thisYear}`));
+    }
+
+    const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi });
+    STATE.currentKPIs = kpis;
+
+    // Simple updates
+    const kpiTotal = document.getElementById('kpiTotal');
+    if (kpiTotal) kpiTotal.textContent = formatCurrency(kpis.total);
+    
+    const kpiEopyy = document.getElementById('kpiEopyy');
+    if (kpiEopyy) kpiEopyy.textContent = formatCurrency(kpis.eopyyTotal);
+    
+    const kpiOthers = document.getElementById('kpiOthers');
+    if (kpiOthers) kpiOthers.textContent = formatCurrency(kpis.nonEopyyTotal);
+    
+    const kpiDeductions = document.getElementById('kpiDeductions');
+    if (kpiDeductions) kpiDeductions.textContent = formatCurrency(kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis);
+    
+    const kpiParakratisi = document.getElementById('kpiParakratisi');
+    if (kpiParakratisi) kpiParakratisi.textContent = formatCurrency(kpis.eopyyParakratisi);
+    
+    const kpiMDE = document.getElementById('kpiMDE');
+    if (kpiMDE) kpiMDE.textContent = formatCurrency(kpis.eopyyMDE);
+    
+    const kpiRebate = document.getElementById('kpiRebate');
+    if (kpiRebate) kpiRebate.textContent = formatCurrency(kpis.eopyyRebate);
+    
+    const kpiKrathseis = document.getElementById('kpiKrathseis');
+    if (kpiKrathseis) kpiKrathseis.textContent = formatCurrency(kpis.eopyyKrathseis);
+    
+    const kpiClawback = document.getElementById('kpiClawback');
+    if (kpiClawback) kpiClawback.textContent = formatCurrency(kpis.eopyyClawback);
+
+    renderRecentEntries();
+    renderCharts(filtered);
 }
 
 // ========================================
