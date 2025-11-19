@@ -41,41 +41,235 @@
         <div id="dashboardView" class="view active">
             <h2>Επισκόπηση</h2>
 
-            <!-- 1️⃣ Γρήγορη Καταχώριση (παραμένει πρώτη) -->
+            <!-- Quick Add Form -->
             <div class="card card-compact">
                 <h3>Γρήγορη Καταχώριση</h3>
-                <!-- ... υπάρχον περιεχόμενο ... -->
+                <form id="quickAddForm">
+                    <div class="form-row">
+                        <div class="form-group form-group-compact">
+                            <label>Ημερομηνία (ΜΜ/ΕΕΕΕ)*</label>
+                            <input type="text" id="quickDate" class="form-input form-input-compact" placeholder="01/2025" required>
+                        </div>
+                        <div class="form-group form-group-compact">
+                            <label>Διαγνωστικό*</label>
+                            <select id="quickSource" class="form-select form-select-compact" required>
+                                <option value="">Επιλογή...</option>
+                            </select>
+                        </div>
+                        <div class="form-group form-group-compact">
+                            <label>Ασφάλεια*</label>
+                            <select id="quickInsurance" class="form-select form-select-compact" required>
+                                <option value="">Επιλογή...</option>
+                            </select>
+                        </div>
+                        <div class="form-group form-group-compact">
+                            <label>Τύπος*</label>
+                            <select id="quickType" class="form-select form-select-compact" required>
+                                <option value="cash">Μετρητά</option>
+                                <option value="invoice">Τιμολόγια</option>
+                            </select>
+                        </div>
+                        <div class="form-group form-group-compact">
+                            <label>Ποσό (€)*</label>
+                            <input type="number" id="quickAmount" class="form-input form-input-compact" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    
+                    <!-- ΕΟΠΥΥ Deductions -->
+                    <div id="quickEopyyDeductions" class="retention-fields retention-compact" style="display: none;">
+                        <h4>Κρατήσεις ΕΟΠΥΥ</h4>
+                        <div class="form-row form-row-tight">
+                            <div class="form-group form-group-compact">
+                                <label>Παρακράτηση €</label>
+                                <input type="number" id="quickParakratisi" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                            </div>
+                            <div class="form-group form-group-compact">
+                                <label>Παρακράτηση %</label>
+                                <input type="number" id="quickParakratisiPercent" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                            </div>
+                            <div class="form-group form-group-compact">
+                                <label>ΜΔΕ €</label>
+                                <input type="number" id="quickMDE" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                            </div>
+                            <div class="form-group form-group-compact">
+                                <label>ΜΔΕ %</label>
+                                <input type="number" id="quickMDEPercent" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                            </div>
+                        </div>
+                        <div class="form-row form-row-tight">
+                            <div class="form-group form-group-compact">
+                                <label>Rebate €</label>
+                                <input type="number" id="quickRebate" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                            </div>
+                            <div class="form-group form-group-compact">
+                                <label>Rebate %</label>
+                                <input type="number" id="quickRebatePercent" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                            </div>
+                            <div class="form-group form-group-compact">
+                                <label>Κρατήσεις €</label>
+                                <input type="number" id="quickKrathseisEopyy" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                            </div>
+                            <div class="form-group form-group-compact">
+                                <label>Κρατήσεις %</label>
+                                <input type="number" id="quickKrathseisEopyyPercent" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                            </div>
+                        </div>
+                        <div class="form-row form-row-tight">
+                            <div class="form-group form-group-compact">
+                                <label>Clawback €</label>
+                                <input type="number" id="quickClawback" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                            </div>
+                            <div class="form-group form-group-compact">
+                                <label>Clawback %</label>
+                                <input type="number" id="quickClawbackPercent" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                            </div>
+                        </div>
+                        <div class="form-row form-row-tight">
+                            <div class="form-group form-group-compact">
+                                <label>Περίοδος Clawback</label>
+                                <select id="quickClawbackPeriod" class="form-select form-select-compact">
+                                    <option value="monthly">Μηνιαίο</option>
+                                    <option value="quarterly">Τριμηνιαίο</option>
+                                    <option value="semi-annual">Εξαμηνιαίο</option>
+                                    <option value="annual">Ετήσιο</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Non-ΕΟΠΥΥ Deductions -->
+                    <div id="quickNonEopyyDeductions" class="retention-fields retention-compact" style="display: none;">
+                        <h4>Κρατήσεις</h4>
+                        <div class="form-row form-row-tight">
+                            <div class="form-group form-group-compact">
+                                <label>Κρατήσεις €</label>
+                                <input type="number" id="quickKrathseisOther" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                            </div>
+                            <div class="form-group form-group-compact">
+                                <label>Κρατήσεις %</label>
+                                <input type="number" id="quickKrathseisOtherPercent" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Final Amount Display -->
+                    <div class="final-amount-display">
+                        <strong>Τελικό Ποσό: <span id="quickFinalAmount">€ 0,00</span></strong>
+                    </div>
+
+                    <div class="form-group form-group-compact">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="quickNotesToggle">
+                            <span>Προσθήκη Σημειώσεων</span>
+                        </label>
+                        <textarea id="quickNotes" class="form-textarea form-textarea-compact" rows="2" style="display: none;"></textarea>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary btn-compact">Καταχώριση</button>
+                    </div>
+                </form>
             </div>
 
-            <!-- 2️⃣ 🆕 ΜΕΤΑΚΙΝΗΣΗ: Dashboard Header (από κάτω, μετακινείται εδώ) -->
+            <!-- Dashboard Header with Filters (MOVED HERE) -->
             <div class="dashboard-header">
                 <h3>Επισκόπηση</h3>
                 <div class="quick-filters">
                     <select id="dashPeriod" class="form-select form-compact">
-                        <option value="all" selected>Όλα</option> <!-- 🆕 ΑΛΛΑΓΗ: default "Όλα" -->
-                        <option value="month">Μήνας</option>
+                        <option value="month" selected>Μήνας</option>
                         <option value="year">Έτος</option>
+                        <option value="all">Όλα</option>
                     </select>
                     <label class="checkbox-label">
-                        <input type="checkbox" id="dashIncludeParakratisi"> <!-- 🆕 ΑΦΑΙΡΕΣΗ: checked -->
+                        <input type="checkbox" id="dashIncludeParakratisi" checked>
                         <span>Με Παρακράτηση</span>
                     </label>
                 </div>
             </div>
 
-            <!-- 3️⃣ KPI Cards -->
-            <div class="kpi-grid kpi-grid-compact" id="kpiCardsContainer">
-                <!-- KPI cards θα είναι draggable -->
+            <!-- KPI Cards -->
+            <div class="kpi-grid kpi-grid-compact">
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Συνολικά</div>
+                    <div class="kpi-value kpi-value-compact" id="kpiTotal">€ 0,00</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">ΕΟΠΥΥ</div>
+                    <div class="kpi-value kpi-value-compact" id="kpiEopyy">€ 0,00</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Άλλα</div>
+                    <div class="kpi-value kpi-value-compact" id="kpiOthers">€ 0,00</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Κρατήσεις</div>
+                    <div class="kpi-value kpi-value-compact" id="kpiDeductions">€ 0,00</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Παρακράτηση</div>
+                    <div class="kpi-value kpi-value-compact" id="kpiParakratisi">€ 0,00</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">ΜΔΕ</div>
+                    <div class="kpi-value kpi-value-compact" id="kpiMDE">€ 0,00</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Rebate</div>
+                    <div class="kpi-value kpi-value-compact" id="kpiRebate">€ 0,00</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Κρατήσεις</div>
+                    <div class="kpi-value kpi-value-compact" id="kpiKrathseis">€ 0,00</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Clawback</div>
+                    <div class="kpi-value kpi-value-compact" id="kpiClawback">€ 0,00</div>
+                </div>
             </div>
 
-            <!-- 4️⃣ Πρόσφατες Εγγραφές -->
-            <div class="card card-compact" id="recentEntriesCard">
-                <!-- ... -->
+            <!-- Recent Entries -->
+            <div class="card card-compact">
+                <div class="collapsible-header" onclick="document.getElementById('recentEntriesContent').classList.toggle('collapsed')">
+                    <h3>Πρόσφατες Εγγραφές</h3>
+                    <button type="button" class="btn-secondary btn-compact btn-sm" id="exportDashboardPdfBtn">📄 PDF</button>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div id="recentEntriesContent" class="collapsible-content collapsed">
+                    <div class="table-responsive">
+                        <table class="data-table data-table-compact">
+                            <thead>
+                                <tr>
+                                    <th>Ημ/νία</th>
+                                    <th>Διαγνωστικό</th>
+                                    <th>Ασφάλεια</th>
+                                    <th>Τύπος</th>
+                                    <th class="text-right">Ποσό</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentEntriesBody">
+                                <tr><td colspan="5" class="text-center">Δεν υπάρχουν εγγραφές</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
-            <!-- 5️⃣ Charts -->
-            <div class="charts-grid charts-grid-compact" id="chartsContainer">
-                <!-- ... -->
+            <!-- Charts -->
+            <div class="charts-grid charts-grid-compact">
+                <div class="card card-compact">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>Έσοδα ανά Τύπο</h3>
+                        <button type="button" class="btn-secondary btn-compact btn-sm" onclick="window.exportChartPDF('typeChart')">📄 PDF</button>
+                    </div>
+                    <canvas id="typeChart"></canvas>
+                </div>
+                <div class="card card-compact">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>Μηνιαία Εξέλιξη</h3>
+                        <button type="button" class="btn-secondary btn-compact btn-sm" onclick="window.exportChartPDF('monthlyChart')">📄 PDF</button>
+                    </div>
+                    <canvas id="monthlyChart"></canvas>
+                </div>
             </div>
         </div>
 
@@ -371,6 +565,27 @@
                         <div class="form-group form-group-compact">
                             <label>Κρατήσεις %</label>
                             <input type="number" id="entryKrathseisEopyyPercent" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="form-row form-row-tight">
+                        <div class="form-group form-group-compact">
+                            <label>Clawback €</label>
+                            <input type="number" id="entryClawback" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                        </div>
+                        <div class="form-group form-group-compact">
+                            <label>Clawback %</label>
+                            <input type="number" id="entryClawbackPercent" class="form-input form-input-compact" step="0.01" min="0" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="form-row form-row-tight">
+                        <div class="form-group form-group-compact">
+                            <label>Περίοδος Clawback</label>
+                            <select id="quickClawbackPeriod" class="form-select form-select-compact">
+                                <option value="monthly">Μηνιαίο</option>
+                                <option value="quarterly">Τριμηνιαίο</option>
+                                <option value="semi-annual">Εξαμηνιαίο</option>
+                                <option value="annual">Ετήσιο</option>
+                            </select>
                         </div>
                     </div>
                 </div>

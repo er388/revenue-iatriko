@@ -63,16 +63,18 @@ class EopyyDeductionsManager {
             parakratisi: parseFloat(deductionAmounts.parakratisi) || 0,
             mde: parseFloat(deductionAmounts.mde) || 0,
             rebate: parseFloat(deductionAmounts.rebate) || 0,
-            krathseis: parseFloat(deductionAmounts.krathseis) || 0
-            // 🗑️ ΑΦΑΙΡΕΣΗ: clawback δεν αποθηκεύεται εδώ
+            krathseis: parseFloat(deductionAmounts.krathseis) || 0,
+            clawback: parseFloat(deductionAmounts.clawback) || 0
         },
-        // 🆕 ΠΡΟΣΘΗΚΗ: Αποθήκευση ποσοστών
+        // 🆕 ΝΕΕΣ ΓΡΑΜΜΕΣ: Αποθήκευση ποσοστών
         percentages: {
             parakratisiPercent: parseFloat(deductionAmounts.parakratisiPercent) || 0,
             mdePercent: parseFloat(deductionAmounts.mdePercent) || 0,
             rebatePercent: parseFloat(deductionAmounts.rebatePercent) || 0,
-            krathseisPercent: parseFloat(deductionAmounts.krathseisPercent) || 0
+            krathseisPercent: parseFloat(deductionAmounts.krathseisPercent) || 0,
+            clawbackPercent: parseFloat(deductionAmounts.clawbackPercent) || 0
         },
+        clawbackPeriod: deductionAmounts.clawbackPeriod || 'monthly', // 🆕 monthly, quarterly, semi-annual, annual
         appliedDate: Date.now(),
         notes
     };
@@ -117,62 +119,58 @@ class EopyyDeductionsManager {
      * @returns {Object}
      */
     getAmountsBreakdown(entry) {
-    const originalAmount = parseFloat(entry.originalAmount) || parseFloat(entry.amount);
-    
-    // Για ΕΟΠΥΥ
-    if (this.isEopyyEntry(entry)) {
-        const deduction = this.getDeductions(entry.id);
+        const originalAmount = parseFloat(entry.originalAmount) || parseFloat(entry.amount);
         
-        if (!deduction) {
+        // Για ΕΟΠΥΥ
+        if (this.isEopyyEntry(entry)) {
+            const deduction = this.getDeductions(entry.id);
+            
+            if (!deduction) {
+                return {
+                    originalAmount,
+                    parakratisi: 0,
+                    mde: 0,
+                    rebate: 0,
+                    krathseis: 0,
+                    clawback: 0,
+                    totalDeductions: 0,
+                    finalAmount: originalAmount,
+                    finalAmountNoParakratisi: originalAmount, // Για στατιστικά
+                    hasDeductions: false
+                };
+            }
+
+            const { parakratisi, mde, rebate, krathseis, clawback } = deduction.deductions;
+            const totalDeductions = parakratisi + mde + rebate + krathseis + clawback;
+            const finalAmount = originalAmount - totalDeductions;
+            const finalAmountNoParakratisi = originalAmount - (mde + rebate + krathseis + clawback);
+
             return {
                 originalAmount,
-                parakratisi: 0,
-                mde: 0,
-                rebate: 0,
-                krathseis: 0,
-                clawback: 0, // 🆕 Θα υπολογιστεί από ClawbackManager
-                totalDeductions: 0,
-                finalAmount: originalAmount,
-                finalAmountNoParakratisi: originalAmount,
-                hasDeductions: false
+                parakratisi,
+                mde,
+                rebate,
+                krathseis,
+                clawback,
+                totalDeductions,
+                finalAmount,
+                finalAmountNoParakratisi, // Χωρίς παρακράτηση (εισπράχθηκε ήδη)
+                hasDeductions: true
             };
         }
-
-        const { parakratisi, mde, rebate, krathseis } = deduction.deductions;
         
-        // 🆕 Υπολογισμός clawback από τον ClawbackManager
-        const clawback = clawbackManager.getClawbackForDate(entry.date);
-        
-        const totalDeductions = parakratisi + mde + rebate + krathseis + clawback;
-        const finalAmount = originalAmount - totalDeductions;
-        const finalAmountNoParakratisi = originalAmount - (mde + rebate + krathseis + clawback);
-
+        // Για άλλα ταμεία (μόνο γενικές κρατήσεις)
+        const krathseisAmount = parseFloat(entry.krathseis) || 0;
         return {
             originalAmount,
-            parakratisi,
-            mde,
-            rebate,
-            krathseis,
-            clawback, // 🆕 Από ClawbackManager
-            totalDeductions,
-            finalAmount,
-            finalAmountNoParakratisi,
-            hasDeductions: true
+            krathseis: krathseisAmount,
+            totalDeductions: krathseisAmount,
+            finalAmount: originalAmount - krathseisAmount,
+            finalAmountNoParakratisi: originalAmount - krathseisAmount,
+            hasDeductions: krathseisAmount > 0,
+            isNonEopyy: true
         };
     }
-    
-    // Για άλλα ταμεία (μόνο γενικές κρατήσεις)
-    const krathseisAmount = parseFloat(entry.krathseis) || 0;
-    return {
-        originalAmount,
-        krathseis: krathseisAmount,
-        totalDeductions: krathseisAmount,
-        finalAmount: originalAmount - krathseisAmount,
-        finalAmountNoParakratisi: originalAmount - krathseisAmount,
-        hasDeductions: krathseisAmount > 0,
-        isNonEopyy: true
-    };
-}
 
     /**
      * Calculate KPIs με επιλογές προβολής
@@ -352,90 +350,7 @@ class EopyyDeductionsManager {
 const eopyyDeductionsManager = new EopyyDeductionsManager();
 
 // ========================================
-// Clawback Periods Manager (Ξεχωριστή Οντότητα)
-// ========================================
-class ClawbackManager {
-    constructor() {
-        this.clawbacks = []; // [{id, period, startDate, endDate, amount, appliedDate}]
-    }
-
-    async loadClawbacks() {
-        try {
-            this.clawbacks = await storage.loadSetting('clawbacks') || [];
-        } catch (error) {
-            console.error('Load clawbacks error:', error);
-            this.clawbacks = [];
-        }
-    }
-
-    async saveClawbacks() {
-        try {
-            await storage.saveSetting('clawbacks', this.clawbacks);
-        } catch (error) {
-            console.error('Save clawbacks error:', error);
-        }
-    }
-
-    /**
-     * Προσθήκη clawback για συγκεκριμένη περίοδο
-     * @param {string} period - 'monthly', 'quarterly', 'semi-annual', 'annual'
-     * @param {string} startDate - Ημερομηνία έναρξης (MM/YYYY)
-     * @param {string} endDate - Ημερομηνία λήξης (MM/YYYY)
-     * @param {number} amount - Ποσό clawback
-     */
-    async addClawback(period, startDate, endDate, amount) {
-        const clawback = {
-            id: generateId(),
-            period,
-            startDate,
-            endDate,
-            amount: parseFloat(amount),
-            appliedDate: Date.now()
-        };
-
-        this.clawbacks.push(clawback);
-        await this.saveClawbacks();
-        return clawback;
-    }
-
-    async deleteClawback(id) {
-        const index = this.clawbacks.findIndex(c => c.id === id);
-        if (index >= 0) {
-            this.clawbacks.splice(index, 1);
-            await this.saveClawbacks();
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Υπολογισμός clawback για συγκεκριμένη ημερομηνία
-     */
-    getClawbackForDate(date) {
-        const applicable = this.clawbacks.filter(c => {
-            return compareDates(date, c.startDate) >= 0 && 
-                   compareDates(date, c.endDate) <= 0;
-        });
-
-        return applicable.reduce((sum, c) => sum + c.amount, 0);
-    }
-
-    /**
-     * Όλα τα clawbacks για μια περίοδο
-     */
-    getClawbacksForPeriod(startDate, endDate) {
-        return this.clawbacks.filter(c => {
-            // Overlap check
-            return !(compareDates(c.endDate, startDate) < 0 || 
-                    compareDates(c.startDate, endDate) > 0);
-        });
-    }
-}
-
-const clawbackManager = new ClawbackManager();
-
-// ========================================
 // Exports
 // ========================================
-export { EopyyDeductionsManager, ClawbackManager, clawbackManager };
+export { EopyyDeductionsManager };
 export default eopyyDeductionsManager;

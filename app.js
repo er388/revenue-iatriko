@@ -104,17 +104,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (isEopyy) {
+        // 🆕 ΝΕΕΣ ΓΡΑΜΜΕΣ: Αποθήκευση ποσοστών
         entry.deductions = {
             parakratisi: parseFloat(document.getElementById('quickParakratisi').value) || 0,
             mde: parseFloat(document.getElementById('quickMDE').value) || 0,
             rebate: parseFloat(document.getElementById('quickRebate').value) || 0,
             krathseis: parseFloat(document.getElementById('quickKrathseisEopyy').value) || 0,
+            clawback: parseFloat(document.getElementById('quickClawback').value) || 0,
             // 🆕 Ποσοστά
             parakratisiPercent: parseFloat(document.getElementById('quickParakratisiPercent').value) || 0,
             mdePercent: parseFloat(document.getElementById('quickMDEPercent').value) || 0,
             rebatePercent: parseFloat(document.getElementById('quickRebatePercent').value) || 0,
             krathseisPercent: parseFloat(document.getElementById('quickKrathseisEopyyPercent').value) || 0,
             clawbackPercent: parseFloat(document.getElementById('quickClawbackPercent').value) || 0,
+            // 🆕 Περίοδος Clawback
+            clawbackPeriod: document.getElementById('quickClawbackPeriod')?.value || 'monthly'
         };
     } else {
         entry.krathseis = parseFloat(document.getElementById('quickKrathseisOther').value) || 0;
