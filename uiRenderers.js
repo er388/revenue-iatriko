@@ -133,6 +133,7 @@ function updateKPIWithPercent(valueId, amount, totalForPercent) {
 
     renderRecentEntries();
     renderCharts(filtered);
+}
 
 // ========================================
 // Recent Entries Rendering
