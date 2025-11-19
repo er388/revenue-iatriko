@@ -50,15 +50,15 @@ export async function saveData() {
         
         STATE.changeCounter++;
         
-        // Autosave every 5 changes
-        if (STATE.changeCounter >= 5) {
-            const autosaveEnabled = localStorage.getItem('autosaveEnabled') === 'true';
-            if (autosaveEnabled) {
-                const { exportBackup } = await import('./backup.js');
-                await exportBackup();
-                showToast('Auto-backup δημιουργήθηκε', 'success');
-                STATE.changeCounter = 0;
-            }
+        // Autosave based on user preference (default: every 5 changes)
+        const autosaveEnabled = localStorage.getItem('autosaveEnabled') === 'true';
+        const autosaveInterval = parseInt(localStorage.getItem('autosaveInterval')) || 5;
+        
+        if (autosaveEnabled && STATE.changeCounter >= autosaveInterval) {
+            const { exportBackup } = await import('./backup.js');
+            await exportBackup();
+            showToast('Auto-backup δημιουργήθηκε', 'success');
+            STATE.changeCounter = 0;
         }
         
         markChangesPending();

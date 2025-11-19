@@ -39,20 +39,7 @@
         
         <!-- Dashboard View -->
         <div id="dashboardView" class="view active">
-            <div class="dashboard-header">
-                <h2>Επισκόπηση</h2>
-                <div class="quick-filters">
-                    <select id="dashPeriod" class="form-select form-compact">
-                        <option value="month" selected>Μήνας</option>
-                        <option value="year">Έτος</option>
-                        <option value="all">Όλα</option>
-                    </select>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="dashIncludeParakratisi" checked>
-                        <span>Με Παρακράτηση</span>
-                    </label>
-                </div>
-            </div>
+            <h2>Επισκόπηση</h2>
 
             <!-- Quick Add Form -->
             <div class="card card-compact">
@@ -171,6 +158,22 @@
                         <button type="submit" class="btn-primary btn-compact">Καταχώριση</button>
                     </div>
                 </form>
+            </div>
+
+            <!-- Dashboard Header with Filters (MOVED HERE) -->
+            <div class="dashboard-header">
+                <h3>Επισκόπηση</h3>
+                <div class="quick-filters">
+                    <select id="dashPeriod" class="form-select form-compact">
+                        <option value="month" selected>Μήνας</option>
+                        <option value="year">Έτος</option>
+                        <option value="all">Όλα</option>
+                    </select>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="dashIncludeParakratisi" checked>
+                        <span>Με Παρακράτηση</span>
+                    </label>
+                </div>
             </div>
 
             <!-- KPI Cards -->
@@ -307,7 +310,7 @@
                     </div>
                     <div class="form-group form-group-compact">
                         <label>Αρχικό Ποσό Έως (€)</label>
-                        <input type="number" id="filterOriginalAmountTo" class="form-input form-input-compact" step="0.01" min="0" placeholder="99999">
+                        <input type="number" id="filterOriginalAmountTo" class="form-input form-input-compact" step="0.01" min="0" placeholder="9999999">
                     </div>
                     <div class="form-group form-group-compact">
                         <label>Τελικό Ποσό Από (€)</label>
@@ -315,7 +318,7 @@
                     </div>
                     <div class="form-group form-group-compact">
                         <label>Τελικό Ποσό Έως (€)</label>
-                        <input type="number" id="filterFinalAmountTo" class="form-input form-input-compact" step="0.01" min="0" placeholder="99999">
+                        <input type="number" id="filterFinalAmountTo" class="form-input form-input-compact" step="0.01" min="0" placeholder="9999999">
                     </div>
                     <div class="form-group form-group-compact">
                         <label>Κρατήσεις Από (%)</label>
@@ -429,8 +432,18 @@
                 <div class="autosave-settings">
                     <label class="checkbox-label">
                         <input type="checkbox" id="autosaveEnabled">
-                        <span>Αυτόματη Αποθήκευση (κάθε 5 αλλαγές)</span>
+                        <span>Αυτόματη Αποθήκευση</span>
                     </label>
+                    <div class="form-group form-group-compact" style="margin-top: 0.5rem;">
+                        <label>Αποθήκευση κάθε:</label>
+                        <select id="autosaveInterval" class="form-select form-select-compact">
+                            <option value="1">1 αλλαγή</option>
+                            <option value="3">3 αλλαγές</option>
+                            <option value="5" selected>5 αλλαγές</option>
+                            <option value="10">10 αλλαγές</option>
+                            <option value="20">20 αλλαγές</option>
+                        </select>
+                    </div>
                     <div id="autosaveStatus" class="autosave-status"></div>
                 </div>
             </div>
@@ -453,7 +466,7 @@
                 </div>
             </div>
 
-            <!-- Danger Zone at the end -->
+            <!-- Danger Zone -->
             <div class="card card-compact">
                 <h3 style="color: var(--danger-color);">⚠️ Επικίνδυνη Ζώνη</h3>
                 <div style="background-color: #fef2f2; border: 2px solid #ef4444; padding: 0.75rem; border-radius: 6px; margin-bottom: 0.75rem;">

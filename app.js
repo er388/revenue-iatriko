@@ -359,6 +359,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // Autosave Interval Selector
+const autosaveIntervalSelect = document.getElementById('autosaveInterval');
+if (autosaveIntervalSelect) {
+    const savedInterval = localStorage.getItem('autosaveInterval') || '5';
+    autosaveIntervalSelect.value = savedInterval;
+    
+    autosaveIntervalSelect.addEventListener('change', (e) => {
+        localStorage.setItem('autosaveInterval', e.target.value);
+        showToast(`Autosave ορίστηκε κάθε ${e.target.value} αλλαγές`, 'info');
+    });
+}
+
     // ========================================
     // Clear Cache
     // ========================================
