@@ -49,39 +49,96 @@ export function renderDashboard() {
         filtered = filtered.filter(e => e.date.endsWith(`/${thisYear}`));
     }
 
-    const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi });
+const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi });
     STATE.currentKPIs = kpis;
 
-    // Simple updates
+    // Συνολικά - χωρίς ποσοστό
     const kpiTotal = document.getElementById('kpiTotal');
     if (kpiTotal) kpiTotal.textContent = formatCurrency(kpis.total);
     
+    // ΕΟΠΥΥ - ποσοστό επί του συνόλου
     const kpiEopyy = document.getElementById('kpiEopyy');
-    if (kpiEopyy) kpiEopyy.textContent = formatCurrency(kpis.eopyyTotal);
+    if (kpiEopyy) {
+        kpiEopyy.textContent = formatCurrency(kpis.eopyyTotal);
+        addPercentToCard(kpiEopyy, kpis.eopyyTotal, kpis.total);
+    }
     
+    // Άλλα - ποσοστό επί του συνόλου
     const kpiOthers = document.getElementById('kpiOthers');
-    if (kpiOthers) kpiOthers.textContent = formatCurrency(kpis.nonEopyyTotal);
+    if (kpiOthers) {
+        kpiOthers.textContent = formatCurrency(kpis.nonEopyyTotal);
+        addPercentToCard(kpiOthers, kpis.nonEopyyTotal, kpis.total);
+    }
     
+    // Κρατήσεις - ποσοστό επί του συνόλου
     const kpiDeductions = document.getElementById('kpiDeductions');
-    if (kpiDeductions) kpiDeductions.textContent = formatCurrency(kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis);
+    if (kpiDeductions) {
+        const totalDeductions = kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis;
+        kpiDeductions.textContent = formatCurrency(totalDeductions);
+        addPercentToCard(kpiDeductions, totalDeductions, kpis.total);
+    }
     
+    // ΕΟΠΥΥ Breakdown - ποσοστά επί του αρχικού ΕΟΠΥΥ
     const kpiParakratisi = document.getElementById('kpiParakratisi');
-    if (kpiParakratisi) kpiParakratisi.textContent = formatCurrency(kpis.eopyyParakratisi);
+    if (kpiParakratisi) {
+        kpiParakratisi.textContent = formatCurrency(kpis.eopyyParakratisi);
+        addPercentToCard(kpiParakratisi, kpis.eopyyParakratisi, kpis.eopyyOriginal);
+    }
     
     const kpiMDE = document.getElementById('kpiMDE');
-    if (kpiMDE) kpiMDE.textContent = formatCurrency(kpis.eopyyMDE);
+    if (kpiMDE) {
+        kpiMDE.textContent = formatCurrency(kpis.eopyyMDE);
+        addPercentToCard(kpiMDE, kpis.eopyyMDE, kpis.eopyyOriginal);
+    }
     
     const kpiRebate = document.getElementById('kpiRebate');
-    if (kpiRebate) kpiRebate.textContent = formatCurrency(kpis.eopyyRebate);
+    if (kpiRebate) {
+        kpiRebate.textContent = formatCurrency(kpis.eopyyRebate);
+        addPercentToCard(kpiRebate, kpis.eopyyRebate, kpis.eopyyOriginal);
+    }
     
     const kpiKrathseis = document.getElementById('kpiKrathseis');
-    if (kpiKrathseis) kpiKrathseis.textContent = formatCurrency(kpis.eopyyKrathseis);
+    if (kpiKrathseis) {
+        kpiKrathseis.textContent = formatCurrency(kpis.eopyyKrathseis);
+        addPercentToCard(kpiKrathseis, kpis.eopyyKrathseis, kpis.eopyyOriginal);
+    }
     
     const kpiClawback = document.getElementById('kpiClawback');
-    if (kpiClawback) kpiClawback.textContent = formatCurrency(kpis.eopyyClawback);
+    if (kpiClawback) {
+        kpiClawback.textContent = formatCurrency(kpis.eopyyClawback);
+        addPercentToCard(kpiClawback, kpis.eopyyClawback, kpis.eopyyOriginal);
+    }
 
     renderRecentEntries();
     renderCharts(filtered);
+}
+
+// Helper: Προσθήκη ποσοστού σε KPI card
+function addPercentToCard(valueElement, amount, total) {
+    if (!total || total === 0) return;
+    
+    const card = valueElement.closest('.kpi-card-compact');
+    if (!card) return;
+    
+    let percentEl = card.querySelector('.kpi-percent');
+    if (!percentEl) {
+        percentEl = document.createElement('div');
+        percentEl.className = 'kpi-percent';
+        card.appendChild(percentEl);
+    }
+    
+    const percent = ((amount / total) * 100).toFixed(2);
+    percentEl.textContent = `${percent}%`;
+    
+    // Χρωματισμός
+    const percentValue = parseFloat(percent);
+    if (percentValue > 50) {
+        percentEl.className = 'kpi-percent positive';
+    } else if (percentValue < 20) {
+        percentEl.className = 'kpi-percent negative';
+    } else {
+        percentEl.className = 'kpi-percent neutral';
+    }
 }
 
 // Helper function για ενημέρωση KPI με ποσοστό
