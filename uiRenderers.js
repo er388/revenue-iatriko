@@ -52,54 +52,36 @@ export function renderDashboard() {
     const kpis = eopyyDeductionsManager.calculateKPIs(filtered, { includeParakratisi });
     STATE.currentKPIs = kpis;
 
-    // 🆕 ΑΛΛΑΓΗ: Υπολογισμός ποσοστών για κάθε KPI
-    const totalOriginal = kpis.eopyyOriginal + kpis.nonEopyyOriginal;
+    // Update KPI values
+    const kpiTotal = document.getElementById('kpiTotal');
+    if (kpiTotal) kpiTotal.textContent = formatCurrency(kpis.total);
     
-    const percentages = {
-        total: totalOriginal > 0 ? (kpis.total / totalOriginal) * 100 : 0,
-        eopyyTotal: totalOriginal > 0 ? (kpis.eopyyTotal / totalOriginal) * 100 : 0,
-        nonEopyyTotal: totalOriginal > 0 ? (kpis.nonEopyyTotal / totalOriginal) * 100 : 0,
-        deductions: totalOriginal > 0 ? ((kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis) / totalOriginal) * 100 : 0,
-        parakratisi: totalOriginal > 0 ? (kpis.eopyyParakratisi / totalOriginal) * 100 : 0,
-        mde: totalOriginal > 0 ? (kpis.eopyyMDE / totalOriginal) * 100 : 0,
-        rebate: totalOriginal > 0 ? (kpis.eopyyRebate / totalOriginal) * 100 : 0,
-        krathseis: totalOriginal > 0 ? (kpis.eopyyKrathseis / totalOriginal) * 100 : 0,
-        clawback: totalOriginal > 0 ? (kpis.eopyyClawback / totalOriginal) * 100 : 0
-    };
-
-    // Update KPI values με ποσοστά
-    updateKPI('kpiTotal', kpis.total, percentages.total);
-    updateKPI('kpiEopyy', kpis.eopyyTotal, percentages.eopyyTotal);
-    updateKPI('kpiOthers', kpis.nonEopyyTotal, percentages.nonEopyyTotal);
-    updateKPI('kpiDeductions', kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis, percentages.deductions);
-    updateKPI('kpiParakratisi', kpis.eopyyParakratisi, percentages.parakratisi);
-    updateKPI('kpiMDE', kpis.eopyyMDE, percentages.mde);
-    updateKPI('kpiRebate', kpis.eopyyRebate, percentages.rebate);
-    updateKPI('kpiKrathseis', kpis.eopyyKrathseis, percentages.krathseis);
-    updateKPI('kpiClawback', kpis.eopyyClawback, percentages.clawback);
+    const kpiEopyy = document.getElementById('kpiEopyy');
+    if (kpiEopyy) kpiEopyy.textContent = formatCurrency(kpis.eopyyTotal);
+    
+    const kpiOthers = document.getElementById('kpiOthers');
+    if (kpiOthers) kpiOthers.textContent = formatCurrency(kpis.nonEopyyTotal);
+    
+    const kpiDeductions = document.getElementById('kpiDeductions');
+    if (kpiDeductions) kpiDeductions.textContent = formatCurrency(kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis);
+    
+    const kpiParakratisi = document.getElementById('kpiParakratisi');
+    if (kpiParakratisi) kpiParakratisi.textContent = formatCurrency(kpis.eopyyParakratisi);
+    
+    const kpiMDE = document.getElementById('kpiMDE');
+    if (kpiMDE) kpiMDE.textContent = formatCurrency(kpis.eopyyMDE);
+    
+    const kpiRebate = document.getElementById('kpiRebate');
+    if (kpiRebate) kpiRebate.textContent = formatCurrency(kpis.eopyyRebate);
+    
+    const kpiKrathseis = document.getElementById('kpiKrathseis');
+    if (kpiKrathseis) kpiKrathseis.textContent = formatCurrency(kpis.eopyyKrathseis);
+    
+    const kpiClawback = document.getElementById('kpiClawback');
+    if (kpiClawback) kpiClawback.textContent = formatCurrency(kpis.eopyyClawback);
 
     renderRecentEntries();
     renderCharts(filtered);
-}
-
-// 🆕 ΝΕΑ ΣΥΝΑΡΤΗΣΗ: Update KPI με ποσοστό
-function updateKPI(elementId, value, percent) {
-    const el = document.getElementById(elementId);
-    if (!el) return;
-    
-    el.textContent = formatCurrency(value);
-    
-    // Πρόσθεσε ή ενημέρωσε το ποσοστό
-    let percentEl = el.parentElement.querySelector('.kpi-percent');
-    if (!percentEl) {
-        percentEl = document.createElement('div');
-        percentEl.className = 'kpi-percent';
-        el.parentElement.appendChild(percentEl);
-    }
-    
-    const percentClass = percent > 0 ? 'positive' : percent < 0 ? 'negative' : 'neutral';
-    percentEl.className = `kpi-percent ${percentClass}`;
-    percentEl.textContent = `${percent.toFixed(2)}%`;
 }
 
 // ========================================
