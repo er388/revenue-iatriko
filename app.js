@@ -46,18 +46,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Check CDN availability
     console.log('📡 Checking CDN libraries...');
-    const cdnStatus = await cdnChecker.checkAll();
-    STATE.cdnAvailable = !cdnStatus.offline;
     
-    if (cdnStatus.offline) {
-        cdnChecker.showOfflineNotice();
-        console.warn('⚠️ CDN libraries unavailable - some features disabled');
+    // Simple CDN check - just verify Chart.js loaded
+    STATE.cdnAvailable = typeof window.Chart !== 'undefined';
+    
+    if (!STATE.cdnAvailable) {
+        console.warn('⚠️ Chart.js not loaded - charts will be disabled');
     } else {
         console.log('✅ CDN libraries available');
     }
-
-    // Start periodic CDN checking
-    periodicChecker.start();
 
     // Initialize storage & load data
     console.log('💾 Initializing storage...');
@@ -65,6 +62,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     console.log('📂 Loading data...');
     await loadData();
+
+    // ✅ CRITICAL: Render UI AFTER data is loaded
+    console.log('🎨 Rendering UI...');
+    renderSourcesAndInsurances();
+    
+    // Wait a tick to ensure everything is rendered
+    setTimeout(() => {
+        renderDashboard();
+    }, 0);
 
     // Render initial UI
     console.log('🎨 Rendering UI...');

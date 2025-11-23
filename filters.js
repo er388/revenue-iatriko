@@ -1,6 +1,7 @@
 /**
  * filters.js - Filtering Module
  * Handles all filtering logic for entries table
+ * Version: 2.0 (Clean Implementation)
  */
 
 import { STATE } from './state.js';
@@ -11,6 +12,10 @@ import { compareDates } from './utils.js';
 // Main Filter Function
 // ========================================
 
+/**
+ * Apply all active filters to entries
+ * @returns {Array} Filtered entries
+ */
 export function applyFilters() {
     let filtered = [...STATE.entries];
 
@@ -37,7 +42,7 @@ export function applyFilters() {
         filtered = filtered.filter(e => e.type === STATE.filters.type);
     }
 
-    // Original Amount filters (Αρχικό Ποσό)
+    // Original Amount filters
     if (STATE.filters.originalAmountFrom) {
         filtered = filtered.filter(e => {
             const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
@@ -51,7 +56,7 @@ export function applyFilters() {
         });
     }
 
-    // Final Amount filters (Τελικό Ποσό)
+    // Final Amount filters
     if (STATE.filters.finalAmountFrom) {
         filtered = filtered.filter(e => {
             const amounts = eopyyDeductionsManager.getAmountsBreakdown(e);
@@ -85,7 +90,7 @@ export function applyFilters() {
         });
     }
 
-    // Sort by date (newest first)
+    // Sort by date (newest first) by default
     filtered.sort((a, b) => compareDates(b.date, a.date));
 
     return filtered;
@@ -95,24 +100,55 @@ export function applyFilters() {
 // Filter Helpers
 // ========================================
 
+/**
+ * Set filters and reset to page 1
+ * @param {Object} filters - Filter values
+ */
 export function setFilters(filters) {
     STATE.filters = { ...filters };
     STATE.currentPage = 1;
 }
 
+/**
+ * Clear all filters
+ */
 export function clearFilters() {
-    STATE.filters = {};
+    STATE.filters = {
+        dateFrom: '',
+        dateTo: '',
+        source: '',
+        insurance: '',
+        type: '',
+        originalAmountFrom: '',
+        originalAmountTo: '',
+        finalAmountFrom: '',
+        finalAmountTo: '',
+        deductionPercentFrom: '',
+        deductionPercentTo: ''
+    };
     STATE.currentPage = 1;
 }
 
+/**
+ * Get count of active filters
+ * @returns {number} Number of active filters
+ */
 export function getActiveFiltersCount() {
     return Object.keys(STATE.filters).filter(key => STATE.filters[key]).length;
 }
 
+/**
+ * Check if any filters are active
+ * @returns {boolean} True if filters active
+ */
 export function hasActiveFilters() {
     return getActiveFiltersCount() > 0;
 }
 
+/**
+ * Get human-readable summary of active filters
+ * @returns {string} Filter summary
+ */
 export function getFiltersSummary() {
     const active = [];
     
@@ -121,14 +157,8 @@ export function getFiltersSummary() {
     if (STATE.filters.source) active.push(`Πηγή: ${STATE.filters.source}`);
     if (STATE.filters.insurance) active.push(`Ασφάλεια: ${STATE.filters.insurance}`);
     if (STATE.filters.type) active.push(`Τύπος: ${STATE.filters.type === 'cash' ? 'Μετρητά' : 'Τιμολόγια'}`);
-    if (STATE.filters.originalAmountFrom) active.push(`Αρχικό Ποσό από: €${STATE.filters.originalAmountFrom}`);
-    if (STATE.filters.originalAmountTo) active.push(`Αρχικό Ποσό έως: €${STATE.filters.originalAmountTo}`);
-    if (STATE.filters.finalAmountFrom) active.push(`Τελικό Ποσό από: €${STATE.filters.finalAmountFrom}`);
-    if (STATE.filters.finalAmountTo) active.push(`Τελικό Ποσό έως: €${STATE.filters.finalAmountTo}`);
-    if (STATE.filters.deductionPercentFrom) active.push(`Κρατήσεις από: ${STATE.filters.deductionPercentFrom}%`);
-    if (STATE.filters.deductionPercentTo) active.push(`Κρατήσεις έως: ${STATE.filters.deductionPercentTo}%`);
     
-    return active.join(' • ');
+    return active.join(' • ') || 'Χωρίς φίλτρα';
 }
 
 // ========================================
@@ -169,21 +199,14 @@ export const FILTER_PRESETS = {
             dateFrom: `${String(startMonth).padStart(2, '0')}/${startYear}`,
             dateTo: `${String(endMonth).padStart(2, '0')}/${endYear}`
         };
-    },
-    
-    eopyyOnly: () => {
-        return { insurance: 'ΕΟΠΥΥ' };
-    },
-    
-    highDeductions: () => {
-        return { deductionPercentFrom: '20' };
-    },
-    
-    highFinalAmount: () => {
-        return { finalAmountFrom: '500' };
     }
 };
 
+/**
+ * Apply a preset filter
+ * @param {string} presetName - Preset name
+ * @returns {boolean} Success
+ */
 export function applyPreset(presetName) {
     const preset = FILTER_PRESETS[presetName];
     if (preset) {
@@ -194,9 +217,8 @@ export function applyPreset(presetName) {
 }
 
 // ========================================
-// Exports
+// Export Default
 // ========================================
-
 export default {
     applyFilters,
     setFilters,

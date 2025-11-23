@@ -531,3 +531,15 @@ export default {
     setupRememberSelections,
     validateFormData
 };
+
+// ========================================
+// Window Bindings for Quick Form
+// ========================================
+
+/**
+ * Make functions available globally for inline event handlers
+ */
+if (typeof window !== 'undefined') {
+    window.showDeductionFields = showDeductionFields;
+    window.calculateFinalAmount = calculateFinalAmount;
+}

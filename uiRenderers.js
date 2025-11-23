@@ -110,15 +110,26 @@ function updateKPI(elementId, value, percent) {
     
     el.textContent = formatCurrency(value);
     
-    // Update percentage display if exists
-    const percentEl = el.nextElementSibling;
-    if (percentEl && percentEl.classList.contains('kpi-percent')) {
+    // Update percentage display
+    const percentElId = elementId + 'Percent';
+    const percentEl = document.getElementById(percentElId);
+    
+    if (percentEl) {
         percentEl.textContent = formatPercent(percent);
         
-        // Color coding
+        // Color coding based on context
         percentEl.className = 'kpi-percent';
-        if (percent > 0) {
-            percentEl.classList.add(elementId.includes('Deductions') || elementId.includes('krathseis') ? 'negative' : 'positive');
+        
+        // Deduction percentages are negative (red)
+        if (elementId.includes('Deductions') || 
+            elementId.includes('Parakratisi') || 
+            elementId.includes('MDE') || 
+            elementId.includes('Rebate') || 
+            elementId.includes('Krathseis') || 
+            elementId.includes('Clawback')) {
+            percentEl.classList.add('negative');
+        } else if (percent > 0) {
+            percentEl.classList.add('positive');
         } else {
             percentEl.classList.add('neutral');
         }
