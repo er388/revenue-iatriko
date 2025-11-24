@@ -75,31 +75,32 @@ export function renderDashboard() {
 }
 
 /**
- * Render KPI cards with percentages
+ * Render KPI cards with percentages (FIXED)
  * @param {Object} kpis - KPI data
  */
 function renderKPICards(kpis) {
-    const total = kpis.total;
+    // Calculate base total (for percentage calculations)
+    const baseTotal = kpis.eopyyOriginal + kpis.nonEopyyOriginal;
     
     // Main KPIs
     updateKPI('kpiTotal', kpis.total, 100);
-    updateKPI('kpiEopyy', kpis.eopyyTotal, (kpis.total > 0 ? (kpis.eopyyTotal / kpis.total) * 100 : 0));
-    updateKPI('kpiOthers', kpis.nonEopyyTotal, (kpis.total > 0 ? (kpis.nonEopyyTotal / kpis.total) * 100 : 0));
+    updateKPI('kpiEopyy', kpis.eopyyTotal, baseTotal > 0 ? (kpis.eopyyTotal / kpis.total) * 100 : 0);
+    updateKPI('kpiOthers', kpis.nonEopyyTotal, baseTotal > 0 ? (kpis.nonEopyyTotal / kpis.total) * 100 : 0);
     
     // Total deductions
     const totalDeductions = kpis.eopyyTotalDeductions + kpis.nonEopyyKrathseis;
-    updateKPI('kpiDeductions', totalDeductions, (kpis.total > 0 ? (totalDeductions / kpis.total) * 100 : 0));
+    updateKPI('kpiDeductions', totalDeductions, baseTotal > 0 ? (totalDeductions / baseTotal) * 100 : 0);
     
-    // ΕΟΠΥΥ breakdown
-    updateKPI('kpiParakratisi', kpis.eopyyParakratisi, (kpis.total > 0 ? (kpis.eopyyParakratisi / kpis.total) * 100 : 0));
-    updateKPI('kpiMDE', kpis.eopyyMDE, (kpis.total > 0 ? (kpis.eopyyMDE / kpis.total) * 100 : 0));
-    updateKPI('kpiRebate', kpis.eopyyRebate, (kpis.total > 0 ? (kpis.eopyyRebate / kpis.total) * 100 : 0));
-    updateKPI('kpiKrathseis', kpis.eopyyKrathseis, (kpis.total > 0 ? (kpis.eopyyKrathseis / kpis.total) * 100 : 0));
-    updateKPI('kpiClawback', kpis.eopyyClawback, (kpis.total > 0 ? (kpis.eopyyClawback / kpis.total) * 100 : 0));
+    // ΕΟΠΥΥ breakdown (percentages based on ORIGINAL amounts, not final)
+    updateKPI('kpiParakratisi', kpis.eopyyParakratisi, baseTotal > 0 ? (kpis.eopyyParakratisi / baseTotal) * 100 : 0);
+    updateKPI('kpiMDE', kpis.eopyyMDE, baseTotal > 0 ? (kpis.eopyyMDE / baseTotal) * 100 : 0);
+    updateKPI('kpiRebate', kpis.eopyyRebate, baseTotal > 0 ? (kpis.eopyyRebate / baseTotal) * 100 : 0);
+    updateKPI('kpiKrathseis', kpis.eopyyKrathseis, baseTotal > 0 ? (kpis.eopyyKrathseis / baseTotal) * 100 : 0);
+    updateKPI('kpiClawback', kpis.eopyyClawback, baseTotal > 0 ? (kpis.eopyyClawback / baseTotal) * 100 : 0);
 }
 
 /**
- * Update single KPI card
+ * Update single KPI card (FIXED)
  * @param {string} elementId - KPI card ID
  * @param {number} value - KPI value
  * @param {number} percent - Percentage of total
@@ -458,7 +459,7 @@ function applySorting(entries) {
 }
 
 /**
- * Render pagination controls
+ * ✅ ENHANCED: Render pagination controls with info
  * @param {number} totalItems - Total number of items
  * @param {number} totalPages - Total number of pages
  */
@@ -466,35 +467,71 @@ export function renderPagination(totalItems, totalPages) {
     const pagination = document.getElementById('pagination');
     if (!pagination) return;
     
-    if (totalPages <= 1) {
-        pagination.innerHTML = '';
+    if (totalPages <= 1 && totalItems <= STATE.pageSize) {
+        // Show simple info when no pagination needed
+        pagination.innerHTML = `
+            <div class="pagination-info" style="margin: 0; text-align: center; width: 100%;">
+                Σύνολο: ${totalItems} ${totalItems === 1 ? 'εγγραφή' : 'εγγραφές'}
+            </div>
+        `;
         return;
     }
 
-    let html = `
-        <button onclick="window.changePage(1)" ${STATE.currentPage === 1 ? 'disabled' : ''}>«</button>
-        <button onclick="window.changePage(${STATE.currentPage - 1})" ${STATE.currentPage === 1 ? 'disabled' : ''}>‹</button>
+    let html = '<div style="display: flex; align-items: center; gap: var(--spacing-sm); flex-wrap: wrap; justify-content: center;">';
+    
+    // Navigation buttons
+    html += `
+        <button onclick="window.changePage(1)" ${STATE.currentPage === 1 ? 'disabled' : ''} title="Πρώτη σελίδα">«</button>
+        <button onclick="window.changePage(${STATE.currentPage - 1})" ${STATE.currentPage === 1 ? 'disabled' : ''} title="Προηγούμενη">‹</button>
     `;
 
-    // Show max 5 page buttons
-    const maxButtons = 5;
+    // Page buttons (show max 7 buttons)
+    const maxButtons = 7;
     let startPage = Math.max(1, STATE.currentPage - Math.floor(maxButtons / 2));
     let endPage = Math.min(totalPages, startPage + maxButtons - 1);
 
+    // Adjust startPage if we're near the end
     if (endPage - startPage < maxButtons - 1) {
         startPage = Math.max(1, endPage - maxButtons + 1);
     }
 
+    // Show first page + ellipsis if needed
+    if (startPage > 1) {
+        html += `<button onclick="window.changePage(1)">1</button>`;
+        if (startPage > 2) {
+            html += `<span style="padding: 0 var(--spacing-xs);">...</span>`;
+        }
+    }
+
+    // Page number buttons
     for (let i = startPage; i <= endPage; i++) {
         html += `<button onclick="window.changePage(${i})" class="${i === STATE.currentPage ? 'active' : ''}">${i}</button>`;
     }
 
+    // Show ellipsis + last page if needed
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            html += `<span style="padding: 0 var(--spacing-xs);">...</span>`;
+        }
+        html += `<button onclick="window.changePage(${totalPages})">${totalPages}</button>`;
+    }
+
     html += `
-        <button onclick="window.changePage(${STATE.currentPage + 1})" ${STATE.currentPage === totalPages ? 'disabled' : ''}>›</button>
-        <button onclick="window.changePage(${totalPages})" ${STATE.currentPage === totalPages ? 'disabled' : ''}>»</button>
+        <button onclick="window.changePage(${STATE.currentPage + 1})" ${STATE.currentPage === totalPages ? 'disabled' : ''} title="Επόμενη">›</button>
+        <button onclick="window.changePage(${totalPages})" ${STATE.currentPage === totalPages ? 'disabled' : ''} title="Τελευταία σελίδα">»</button>
     `;
     
-    html += `<span class="pagination-info">Σελίδα ${STATE.currentPage} από ${totalPages} (${totalItems} εγγραφές)</span>`;
+    // ✅ ENHANCED: Info with range
+    const start = (STATE.currentPage - 1) * STATE.pageSize + 1;
+    const end = Math.min(STATE.currentPage * STATE.pageSize, totalItems);
+    
+    html += `
+        <span class="pagination-info" style="margin-left: var(--spacing-md);">
+            Εμφάνιση ${start}-${end} από ${totalItems} εγγραφές
+        </span>
+    `;
+    
+    html += '</div>';
 
     pagination.innerHTML = html;
 }

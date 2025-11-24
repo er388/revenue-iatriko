@@ -1,7 +1,7 @@
 /**
  * eopyyClawback.js - ΕΟΠΥΥ Deductions Calculation Engine
  * Manages 5 deduction types for ΕΟΠΥΥ + 1 general deduction for others
- * Version: 2.0 (Clean Rewrite)
+ * Version: 2.1 (FIXED: Παρακράτηση Logic)
  */
 
 import { formatCurrency, parseMonthYear, generateId } from './utils.js';
@@ -131,7 +131,8 @@ class EopyyDeductionsManager {
     }
 
     /**
-     * Calculate amounts breakdown for entry
+     * ✅ FIXED: Calculate amounts breakdown for entry
+     * DEFAULT: finalAmount = WITHOUT παρακράτηση
      * @param {Object} entry - Entry object
      * @returns {Object} Amounts breakdown
      */
@@ -153,20 +154,23 @@ class EopyyDeductionsManager {
                     clawback: 0,
                     totalDeductions: 0,
                     finalAmount: originalAmount,
-                    finalAmountNoParakratisi: originalAmount,
+                    finalAmountWithParakratisi: originalAmount,
                     hasDeductions: false,
                     isEopyy: true
                 };
             }
 
             const { parakratisi, mde, rebate, krathseis, clawback } = deduction.deductions;
-            const totalDeductions = parakratisi + mde + rebate + krathseis + clawback;
             
-            // ✅ ΚΡΙΣΙΜΟ: Default χωρίς παρακράτηση
-            const finalAmount = originalAmount - totalDeductions;
+            // ✅ ΚΡΙΣΙΜΗ ΑΛΛΑΓΗ: Default χωρίς παρακράτηση
+            const totalDeductionsWithoutParakratisi = mde + rebate + krathseis + clawback;
+            const totalDeductionsWithParakratisi = parakratisi + mde + rebate + krathseis + clawback;
             
-            // Με παρακράτηση (όταν toggle enabled)
-            const finalAmountNoParakratisi = originalAmount - (mde + rebate + krathseis + clawback);
+            // ✅ DEFAULT: Χωρίς παρακράτηση (η παρακράτηση έχει ήδη εισπραχθεί)
+            const finalAmount = originalAmount - totalDeductionsWithoutParakratisi;
+            
+            // ✅ WITH TOGGLE: Με παρακράτηση (για accounting purposes)
+            const finalAmountWithParakratisi = originalAmount - totalDeductionsWithParakratisi;
 
             return {
                 originalAmount,
@@ -175,9 +179,10 @@ class EopyyDeductionsManager {
                 rebate,
                 krathseis,
                 clawback,
-                totalDeductions,
-                finalAmount, // Χωρίς παρακράτηση (default)
-                finalAmountNoParakratisi, // Με παρακράτηση (toggle)
+                totalDeductions: totalDeductionsWithoutParakratisi, // Default total
+                totalDeductionsWithParakratisi, // For toggle
+                finalAmount, // ✅ Χωρίς παρακράτηση (default)
+                finalAmountWithParakratisi, // ✅ Με παρακράτηση (toggle)
                 hasDeductions: true,
                 isEopyy: true
             };
@@ -191,14 +196,14 @@ class EopyyDeductionsManager {
             krathseis: krathseisAmount,
             totalDeductions: krathseisAmount,
             finalAmount: originalAmount - krathseisAmount,
-            finalAmountNoParakratisi: originalAmount - krathseisAmount,
+            finalAmountWithParakratisi: originalAmount - krathseisAmount,
             hasDeductions: krathseisAmount > 0,
             isEopyy: false
         };
     }
 
     /**
-     * Calculate KPIs with options
+     * ✅ FIXED: Calculate KPIs with options
      * @param {Array} entries - Entries array
      * @param {Object} options - {includeParakratisi: boolean}
      * @returns {Object} KPIs
@@ -213,7 +218,7 @@ class EopyyDeductionsManager {
         let eopyyKrathseis = 0;
         let eopyyClawback = 0;
         let eopyyFinal = 0;
-        let eopyyFinalNoParakratisi = 0;
+        let eopyyFinalWithParakratisi = 0;
         let eopyyTotal = 0;
         
         let nonEopyyOriginal = 0;
@@ -232,11 +237,11 @@ class EopyyDeductionsManager {
                 eopyyKrathseis += amounts.krathseis || 0;
                 eopyyClawback += amounts.clawback || 0;
                 eopyyFinal += amounts.finalAmount;
-                eopyyFinalNoParakratisi += amounts.finalAmountNoParakratisi;
+                eopyyFinalWithParakratisi += amounts.finalAmountWithParakratisi;
                 
-                // ✅ Λογική toggle
+                // ✅ FIXED LOGIC: Toggle controls which total to use
                 if (includeParakratisi) {
-                    eopyyTotal += amounts.finalAmountNoParakratisi; // Με παρακράτηση
+                    eopyyTotal += amounts.finalAmountWithParakratisi; // Με παρακράτηση
                 } else {
                     eopyyTotal += amounts.finalAmount; // Χωρίς παρακράτηση (default)
                 }
@@ -249,7 +254,11 @@ class EopyyDeductionsManager {
 
         nonEopyyTotal = nonEopyyFinal;
         const total = eopyyTotal + nonEopyyTotal;
-        const eopyyTotalDeductions = eopyyParakratisi + eopyyMDE + eopyyRebate + eopyyKrathseis + eopyyClawback;
+        
+        // ✅ Total deductions calculation depends on toggle
+        const eopyyTotalDeductions = includeParakratisi
+            ? (eopyyParakratisi + eopyyMDE + eopyyRebate + eopyyKrathseis + eopyyClawback)
+            : (eopyyMDE + eopyyRebate + eopyyKrathseis + eopyyClawback);
 
         return {
             total,
@@ -261,7 +270,7 @@ class EopyyDeductionsManager {
             eopyyClawback,
             eopyyTotalDeductions,
             eopyyFinal,
-            eopyyFinalNoParakratisi,
+            eopyyFinalWithParakratisi,
             eopyyTotal,
             nonEopyyOriginal,
             nonEopyyKrathseis,
@@ -368,7 +377,7 @@ class EopyyDeductionsManager {
                     clawback: amounts.clawback,
                     totalDeductions: amounts.totalDeductions,
                     finalAmount: amounts.finalAmount,
-                    finalAmountNoParakratisi: amounts.finalAmountNoParakratisi,
+                    finalAmountWithParakratisi: amounts.finalAmountWithParakratisi,
                     deductionsAppliedDate: deduction ? new Date(deduction.appliedDate).toISOString() : null,
                     clawbackPeriod: deduction ? deduction.clawbackPeriod : null,
                     notes: deduction ? deduction.notes : ''

@@ -9,8 +9,8 @@
 // ========================================
 export const CONFIG = Object.freeze({
     // Pagination
-    pageSize: 20,
-    pageSizeOptions: [25, 50, 75, 100, 150],
+    pageSize: 25,  // ✅ CHANGED: Default 25 instead of 20
+    pageSizeOptions: [25, 50, 75, 100, 150],  // ✅ NEW: User selectable options
     
     // Autosave
     autosaveInterval: 5, // Changes before autosave
@@ -57,7 +57,7 @@ export const STATE = {
     // UI State
     currentView: 'dashboard',
     currentPage: 1,
-    pageSize: CONFIG.pageSize,
+    pageSize: CONFIG.pageSize, // ✅ Uses CONFIG default (25)
     
     // Filters
     filters: {
