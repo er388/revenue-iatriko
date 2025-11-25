@@ -36,6 +36,8 @@ import {
     isValidMonthYear,
     formatMonthYear
 } from './utils.js';
+import csvValidator from './csvValidator.js';
+import { cdnChecker, periodicChecker } from './cdnChecker.js';
 
 // ========================================
 // Initialization
@@ -45,15 +47,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Check CDN availability
     console.log('📡 Checking CDN libraries...');
-    
-    // Simple CDN check - just verify Chart.js loaded
-    STATE.cdnAvailable = typeof window.Chart !== 'undefined';
-    
-    if (!STATE.cdnAvailable) {
-        console.warn('⚠️ Chart.js not loaded - charts will be disabled');
+    const cdnStatus = await cdnChecker.checkAll();
+
+    STATE.cdnAvailable = cdnStatus.allAvailable;
+
+    if (!cdnStatus.allAvailable) {
+        console.warn('⚠️ Some CDN libraries unavailable:', cdnChecker.getMissingFeatures());
+        
+        if (cdnStatus.offline) {
+            console.error('❌ Critical libraries missing');
+        }
     } else {
-        console.log('✅ CDN libraries available');
+        console.log('✅ All CDN libraries available');
     }
+
+    // Start periodic monitoring
+    periodicChecker.start(); // Check every 60s
+
+    // Add listener για state updates
+    cdnChecker.addListener((status) => {
+        STATE.cdnAvailable = Object.values(status).every(s => s.available);
+        
+        // Re-render if needed
+        if (STATE.currentView === 'dashboard' && cdnChecker.isAvailable('chartjs')) {
+            renderDashboard();
+        }
+    });
 
     // Initialize storage & load data
     console.log('💾 Initializing storage...');
@@ -632,9 +651,9 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         });
     }
 
-    const csvFileInput = document.getElementById('csvFileInput');
-    if (csvFileInput) {
-        csvFileInput.addEventListener('change', async (e) => {
+            const csvFileInput = document.getElementById('csvFileInput');
+            if (csvFileInput) {
+                csvFileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
@@ -657,25 +676,66 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
                     console.warn('CSV parsing warnings:', parsed.errors);
                 }
 
+                // ✅ VALIDATE CSV DATA
+                const validation = csvValidator.validate(parsed.data);
+                
+                // Show validation errors
+                if (!validation.valid) {
+                    const errorMessages = validation.errors
+                        .slice(0, 5) // First 5 errors
+                        .map(e => `• ${e.message}`)
+                        .join('\n');
+                    
+                    showToast(
+                        `CSV έχει σφάλματα:\n${errorMessages}\n${validation.errors.length > 5 ? `(+${validation.errors.length - 5} ακόμα)` : ''}`,
+                        'error'
+                    );
+                    console.error('CSV Validation Errors:', validation.errors);
+                    e.target.value = ''; // Reset input
+                    return;
+                }
+                
+                // Show warnings if any
+                if (validation.warnings.length > 0) {
+                    console.warn('CSV Validation Warnings:', validation.warnings);
+                    showToast(`Προειδοποιήσεις: ${validation.warnings.length}`, 'warning');
+                }
+                
+                // Show auto-fixes if any
+                if (validation.autoFixes.length > 0) {
+                    console.log('CSV Auto-Fixes Applied:', validation.autoFixes);
+                }
+
+                // Import validated rows
                 let imported = 0;
-                for (const row of parsed.data) {
+                for (const row of validation.rows) {
+                    // Row is already validated and normalized
                     const entry = {
-                        date: row['Ημερομηνία'] || row.date,
-                        source: row['Διαγνωστικό'] || row.source,
-                        insurance: row['Ασφάλεια'] || row.insurance,
-                        type: (row['Τύπος'] || row.type || '').toLowerCase().includes('μετρητ') ? 'cash' : 'invoice',
-                        amount: parseFloat(row['Αρχικό Ποσό'] || row.amount || 0),
-                        notes: row['Σημειώσεις'] || row.notes || ''
+                        date: row.date,
+                        source: row.source,
+                        insurance: row.insurance,
+                        type: row.type,
+                        amount: row.amount,
+                        notes: row.notes || '',
+                        krathseis: row.krathseis || 0,
+                        krathseisPercent: row.krathseisPercent || 0
                     };
 
-                    // Basic validation
-                    if (entry.date && entry.source && entry.insurance && entry.amount > 0) {
+                    try {
                         const success = await addEntry(entry);
                         if (success) imported++;
+                    } catch (error) {
+                        console.error('Entry import error:', error);
                     }
                 }
 
-                showToast(`Εισήχθησαν ${imported} εγγραφές`, 'success');
+                // Show summary
+                showToast(
+                    `✅ Εισήχθησαν ${imported}/${validation.rows.length} εγγραφές\n` +
+                    `${validation.autoFixes.length > 0 ? `⚡ Auto-fixes: ${validation.autoFixes.length}` : ''}`,
+                    'success'
+                );
+                
                 renderEntriesTable();
                 if (STATE.currentView === 'dashboard') {
                     renderDashboard();
