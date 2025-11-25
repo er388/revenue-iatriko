@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     if (clearFiltersBtn) {
         clearFiltersBtn.addEventListener('click', () => {
             // Clear all filter inputs
@@ -188,6 +188,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             clearFilters();
             renderEntriesTable();
+        });
+    }
+
+    // ========================================
+    // ✅ ΝΕΟ: Page Size Selector Handler
+    // ========================================
+    const pageSizeSelect = document.getElementById('pageSizeSelect');
+    if (pageSizeSelect) {
+        // Load saved page size preference
+        const savedPageSize = localStorage.getItem('pageSize');
+        if (savedPageSize && CONFIG.pageSizeOptions.includes(parseInt(savedPageSize))) {
+            STATE.pageSize = parseInt(savedPageSize);
+            pageSizeSelect.value = savedPageSize;
+        } else {
+            STATE.pageSize = CONFIG.pageSize; // Default: 25
+            pageSizeSelect.value = CONFIG.pageSize.toString();
+        }
+        
+        pageSizeSelect.addEventListener('change', (e) => {
+            const newSize = parseInt(e.target.value);
+            
+            if (CONFIG.pageSizeOptions.includes(newSize)) {
+                STATE.pageSize = newSize;
+                STATE.currentPage = 1; // Reset to first page
+                
+                // Save preference
+                localStorage.setItem('pageSize', newSize.toString());
+                
+                // Re-render table
+                renderEntriesTable();
+                
+                showToast(`Εμφάνιση ${newSize} εγγραφών ανά σελίδα`, 'info');
+            }
         });
     }
 
