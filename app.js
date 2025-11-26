@@ -36,7 +36,6 @@ import {
     isValidMonthYear,
     formatMonthYear
 } from './utils.js';
-import csvValidator from './csvValidator.js';
 import { cdnChecker, periodicChecker } from './cdnChecker.js';
 import reportsManager from './reports.js';
 
