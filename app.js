@@ -1287,6 +1287,99 @@ window.exportChartPDF = async function(canvasId) {
 });
 
 // ========================================
+// Service Worker Registration (PWA)
+// ========================================
+if ('serviceWorker' in navigator) {
+    try {
+        const registration = await navigator.serviceWorker.register('./service-worker.js');
+        console.log('✅ Service Worker registered:', registration.scope);
+        
+        // Check for updates periodically
+        setInterval(() => {
+            registration.update();
+        }, 60 * 60 * 1000); // Check every hour
+        
+        // Listen for updates
+        registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            
+            newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New version available
+                    showUpdateNotification();
+                }
+            });
+        });
+        
+    } catch (error) {
+        console.warn('⚠️ Service Worker registration failed:', error);
+    }
+}
+
+/**
+ * Show update notification
+ */
+function showUpdateNotification() {
+    const notification = document.createElement('div');
+    notification.id = 'updateNotification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        animation: slideDown 0.3s ease-out;
+    `;
+    
+    notification.innerHTML = `
+        <span>📦 Νέα έκδοση διαθέσιμη!</span>
+        <button onclick="updateServiceWorker()" style="
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+        ">Ενημέρωση</button>
+        <button onclick="this.parentElement.remove()" style="
+            background: none;
+            border: none;
+            color: white;
+            padding: 0.5rem;
+            cursor: pointer;
+            font-size: 1.2rem;
+        ">✕</button>
+    `;
+    
+    document.body.appendChild(notification);
+}
+
+/**
+ * Update service worker
+ */
+window.updateServiceWorker = async function() {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (registration && registration.waiting) {
+        // Tell waiting service worker to activate
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        
+        // Reload page when new service worker activates
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            window.location.reload();
+        });
+    }
+};
+
+// ========================================
 // Export for Debugging
 // ========================================
 export {
