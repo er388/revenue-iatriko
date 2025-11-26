@@ -458,48 +458,410 @@
         <!-- END ENTRIES VIEW -->
 
         <!-- ========================================
-             REPORTS VIEW (Placeholder)
-             ======================================== -->
+            REPORTS VIEW
+            ======================================== -->
         <div id="reportsView" class="view">
             <div class="view-header">
                 <h2>📈 Αναφορές</h2>
+                <div class="view-actions">
+                    <button id="exportReportCsvBtn" class="btn-secondary btn-compact">📄 Export CSV</button>
+                    <button id="exportReportPdfBtn" class="btn-secondary btn-compact">📄 Export PDF</button>
+                </div>
             </div>
-            <div class="card">
-                <h3>Ετήσιες & Περιοδικές Αναφορές</h3>
-                <p>Η λειτουργικότητα αναφορών θα υλοποιηθεί σε επόμενη φάση.</p>
-                <p>Προγραμματισμένες δυνατότητες:</p>
-                <ul>
-                    <li>Ετήσιες συγκεντρωτικές αναφορές</li>
-                    <li>Τριμηνιαίες αναφορές</li>
-                    <li>Αναλυτικές αναφορές ανά διαγνωστικό</li>
-                    <li>Αναφορές κρατήσεων</li>
-                    <li>Export σε PDF/Excel</li>
-                </ul>
+
+            <!-- Report Configuration -->
+            <div class="card card-compact">
+                <h3>Ρυθμίσεις Αναφοράς</h3>
+                <div class="form-row">
+                    <div class="form-group form-group-compact">
+                        <label>Τύπος Περιόδου</label>
+                        <select id="reportPeriodType" class="form-select form-select-compact">
+                            <option value="annual">Ετήσια</option>
+                            <option value="quarterly">Τριμηνιαία</option>
+                            <option value="semiannual">Εξαμηνιαία</option>
+                            <option value="custom">Προσαρμοσμένη</option>
+                        </select>
+                    </div>
+
+                    <!-- Annual options -->
+                    <div id="reportAnnualOptions" class="form-group form-group-compact">
+                        <label>Έτος</label>
+                        <select id="reportYear" class="form-select form-select-compact">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+
+                    <!-- Quarterly options -->
+                    <div id="reportQuarterlyOptions" class="form-group form-group-compact" style="display: none;">
+                        <label>Τρίμηνο</label>
+                        <select id="reportQuarter" class="form-select form-select-compact">
+                            <option value="Q1">Q1 (Ιαν-Μαρ)</option>
+                            <option value="Q2">Q2 (Απρ-Ιουν)</option>
+                            <option value="Q3">Q3 (Ιουλ-Σεπ)</option>
+                            <option value="Q4">Q4 (Οκτ-Δεκ)</option>
+                        </select>
+                    </div>
+
+                    <!-- Semiannual options -->
+                    <div id="reportSemiannualOptions" class="form-group form-group-compact" style="display: none;">
+                        <label>Εξάμηνο</label>
+                        <select id="reportSemester" class="form-select form-select-compact">
+                            <option value="H1">H1 (Ιαν-Ιουν)</option>
+                            <option value="H2">H2 (Ιουλ-Δεκ)</option>
+                        </select>
+                    </div>
+
+                    <!-- Custom date range -->
+                    <div id="reportCustomOptions" style="display: none;">
+                        <div class="form-group form-group-compact">
+                            <label>Από (ΜΜ/ΕΕΕΕ)</label>
+                            <input type="text" id="reportDateFrom" class="form-input form-input-compact" placeholder="01/2025">
+                        </div>
+                        <div class="form-group form-group-compact">
+                            <label>Έως (ΜΜ/ΕΕΕΕ)</label>
+                            <input type="text" id="reportDateTo" class="form-input form-input-compact" placeholder="12/2025">
+                        </div>
+                    </div>
+
+                    <div class="form-group form-group-compact">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="reportIncludeParakratisi">
+                            <span>Με Παρακράτηση</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button id="generateReportBtn" class="btn-primary btn-compact">🔄 Δημιουργία Αναφοράς</button>
+                </div>
+            </div>
+
+            <!-- Report Results -->
+            <div id="reportResults" style="display: none;">
+                <!-- Summary Card -->
+                <div class="card card-compact">
+                    <h3>Συνολικά</h3>
+                    <div id="reportSummary">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Monthly Breakdown -->
+                <div class="card card-compact">
+                    <div class="collapsible-header" onclick="document.getElementById('reportMonthlyContent').classList.toggle('collapsed')">
+                        <h3>Μηνιαία Ανάλυση</h3>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div id="reportMonthlyContent" class="collapsible-content">
+                        <div class="table-responsive">
+                            <table class="data-table data-table-compact">
+                                <thead>
+                                    <tr>
+                                        <th>Μήνας</th>
+                                        <th class="text-right">Εγγραφές</th>
+                                        <th class="text-right">Σύνολο</th>
+                                        <th class="text-right">ΕΟΠΥΥ</th>
+                                        <th class="text-right">Άλλα</th>
+                                        <th class="text-right">Κρατήσεις</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportMonthlyBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Source Breakdown -->
+                <div class="card card-compact">
+                    <div class="collapsible-header" onclick="document.getElementById('reportSourceContent').classList.toggle('collapsed')">
+                        <h3>Ανάλυση ανά Διαγνωστικό</h3>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div id="reportSourceContent" class="collapsible-content collapsed">
+                        <div class="table-responsive">
+                            <table class="data-table data-table-compact">
+                                <thead>
+                                    <tr>
+                                        <th>Διαγνωστικό</th>
+                                        <th class="text-right">Εγγραφές</th>
+                                        <th class="text-right">Σύνολο</th>
+                                        <th class="text-right">ΕΟΠΥΥ</th>
+                                        <th class="text-right">Άλλα</th>
+                                        <th class="text-right">Μέσος Όρος</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportSourceBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insurance Breakdown -->
+                <div class="card card-compact">
+                    <div class="collapsible-header" onclick="document.getElementById('reportInsuranceContent').classList.toggle('collapsed')">
+                        <h3>Ανάλυση ανά Ασφάλεια</h3>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div id="reportInsuranceContent" class="collapsible-content collapsed">
+                        <div class="table-responsive">
+                            <table class="data-table data-table-compact">
+                                <thead>
+                                    <tr>
+                                        <th>Ασφάλεια</th>
+                                        <th class="text-right">Εγγραφές</th>
+                                        <th class="text-right">Σύνολο</th>
+                                        <th class="text-right">Μέσος Όρος</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportInsuranceBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deductions Analysis (ΕΟΠΥΥ only) -->
+                <div id="reportDeductionsCard" class="card card-compact" style="display: none;">
+                    <h3>Ανάλυση Κρατήσεων ΕΟΠΥΥ</h3>
+                    <div id="reportDeductionsBody">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="reportEmptyState" class="card card-compact">
+                <p style="text-align: center; color: var(--text-secondary); padding: var(--spacing-xl);">
+                    Επιλέξτε παραμέτρους και πατήστε "Δημιουργία Αναφοράς"
+                </p>
             </div>
         </div>
-        <!-- END REPORTS VIEW -->
 
         <!-- ========================================
-             COMPARISON VIEW (Placeholder)
-             ======================================== -->
+            COMPARISON VIEW
+            ======================================== -->
         <div id="comparisonView" class="view">
             <div class="view-header">
                 <h2>🔄 Σύγκριση Περιόδων</h2>
+                <div class="view-actions">
+                    <button id="exportComparisonCsvBtn" class="btn-secondary btn-compact">📄 Export CSV</button>
+                    <button id="exportComparisonPdfBtn" class="btn-secondary btn-compact">📄 Export PDF</button>
+                </div>
             </div>
-            <div class="card">
-                <h3>Side-by-Side Σύγκριση</h3>
-                <p>Η λειτουργικότητα σύγκρισης θα υλοποιηθεί σε επόμενη φάση.</p>
-                <p>Προγραμματισμένες δυνατότητες:</p>
-                <ul>
-                    <li>Σύγκριση δύο περιόδων (μήνας με μήνα, τρίμηνο με τρίμηνο, έτος με έτος)</li>
-                    <li>Γραφήματα σύγκρισης (bar charts, line charts)</li>
-                    <li>Ποσοστιαίες μεταβολές</li>
-                    <li>Trend analysis</li>
-                    <li>Export αποτελεσμάτων</li>
-                </ul>
+
+            <!-- Comparison Configuration -->
+            <div class="card card-compact">
+                <h3>Επιλογή Περιόδων</h3>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg);">
+                    <!-- Period 1 -->
+                    <div class="comparison-period">
+                        <h4 style="margin-bottom: var(--spacing-md); color: var(--primary-color);">Περίοδος 1</h4>
+                        <div class="form-row" style="grid-template-columns: 1fr;">
+                            <div class="form-group form-group-compact">
+                                <label>Τύπος</label>
+                                <select id="comparison1Type" class="form-select form-select-compact">
+                                    <option value="annual">Ετήσια</option>
+                                    <option value="quarterly">Τριμηνιαία</option>
+                                    <option value="semiannual">Εξαμηνιαία</option>
+                                    <option value="custom">Προσαρμοσμένη</option>
+                                </select>
+                            </div>
+                            <div id="comparison1Annual" class="form-group form-group-compact">
+                                <label>Έτος</label>
+                                <select id="comparison1Year" class="form-select form-select-compact">
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                            <div id="comparison1Quarterly" class="form-group form-group-compact" style="display: none;">
+                                <label>Τρίμηνο</label>
+                                <select id="comparison1Quarter" class="form-select form-select-compact">
+                                    <option value="Q1">Q1</option>
+                                    <option value="Q2">Q2</option>
+                                    <option value="Q3">Q3</option>
+                                    <option value="Q4">Q4</option>
+                                </select>
+                            </div>
+                            <div id="comparison1Semiannual" class="form-group form-group-compact" style="display: none;">
+                                <label>Εξάμηνο</label>
+                                <select id="comparison1Semester" class="form-select form-select-compact">
+                                    <option value="H1">H1</option>
+                                    <option value="H2">H2</option>
+                                </select>
+                            </div>
+                            <div id="comparison1Custom" style="display: none;">
+                                <div class="form-group form-group-compact">
+                                    <label>Από</label>
+                                    <input type="text" id="comparison1From" class="form-input form-input-compact" placeholder="01/2025">
+                                </div>
+                                <div class="form-group form-group-compact">
+                                    <label>Έως</label>
+                                    <input type="text" id="comparison1To" class="form-input form-input-compact" placeholder="03/2025">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Period 2 -->
+                    <div class="comparison-period">
+                        <h4 style="margin-bottom: var(--spacing-md); color: var(--success-color);">Περίοδος 2</h4>
+                        <div class="form-row" style="grid-template-columns: 1fr;">
+                            <div class="form-group form-group-compact">
+                                <label>Τύπος</label>
+                                <select id="comparison2Type" class="form-select form-select-compact">
+                                    <option value="annual">Ετήσια</option>
+                                    <option value="quarterly">Τριμηνιαία</option>
+                                    <option value="semiannual">Εξαμηνιαία</option>
+                                    <option value="custom">Προσαρμοσμένη</option>
+                                </select>
+                            </div>
+                            <div id="comparison2Annual" class="form-group form-group-compact">
+                                <label>Έτος</label>
+                                <select id="comparison2Year" class="form-select form-select-compact">
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                            <div id="comparison2Quarterly" class="form-group form-group-compact" style="display: none;">
+                                <label>Τρίμηνο</label>
+                                <select id="comparison2Quarter" class="form-select form-select-compact">
+                                    <option value="Q1">Q1</option>
+                                    <option value="Q2">Q2</option>
+                                    <option value="Q3">Q3</option>
+                                    <option value="Q4">Q4</option>
+                                </select>
+                            </div>
+                            <div id="comparison2Semiannual" class="form-group form-group-compact" style="display: none;">
+                                <label>Εξάμηνο</label>
+                                <select id="comparison2Semester" class="form-select form-select-compact">
+                                    <option value="H1">H1</option>
+                                    <option value="H2">H2</option>
+                                </select>
+                            </div>
+                            <div id="comparison2Custom" style="display: none;">
+                                <div class="form-group form-group-compact">
+                                    <label>Από</label>
+                                    <input type="text" id="comparison2From" class="form-input form-input-compact" placeholder="01/2024">
+                                </div>
+                                <div class="form-group form-group-compact">
+                                    <label>Έως</label>
+                                    <input type="text" id="comparison2To" class="form-input form-input-compact" placeholder="03/2024">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group form-group-compact" style="margin-top: var(--spacing-md);">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="comparisonIncludeParakratisi">
+                        <span>Με Παρακράτηση</span>
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <button id="generateComparisonBtn" class="btn-primary btn-compact">🔄 Σύγκριση</button>
+                </div>
+            </div>
+
+            <!-- Comparison Results -->
+            <div id="comparisonResults" style="display: none;">
+                <!-- Summary Comparison -->
+                <div class="card card-compact">
+                    <h3>Συγκριτικά Αποτελέσματα</h3>
+                    <div class="table-responsive">
+                        <table class="data-table data-table-compact comparison-table">
+                            <thead>
+                                <tr>
+                                    <th>Μετρική</th>
+                                    <th id="comparisonPeriod1Header" class="text-right">Περίοδος 1</th>
+                                    <th id="comparisonPeriod2Header" class="text-right">Περίοδος 2</th>
+                                    <th class="text-right">Μεταβολή</th>
+                                    <th class="text-right">Μεταβολή %</th>
+                                    <th class="text-center">Τάση</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comparisonSummaryBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Sources Comparison -->
+                <div class="card card-compact">
+                    <div class="collapsible-header" onclick="document.getElementById('comparisonSourcesContent').classList.toggle('collapsed')">
+                        <h3>Σύγκριση ανά Διαγνωστικό</h3>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div id="comparisonSourcesContent" class="collapsible-content collapsed">
+                        <div class="table-responsive">
+                            <table class="data-table data-table-compact comparison-table">
+                                <thead>
+                                    <tr>
+                                        <th>Διαγνωστικό</th>
+                                        <th class="text-right">Περίοδος 1</th>
+                                        <th class="text-right">Περίοδος 2</th>
+                                        <th class="text-right">Μεταβολή</th>
+                                        <th class="text-right">Μεταβολή %</th>
+                                        <th class="text-center">Τάση</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="comparisonSourcesBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insurances Comparison -->
+                <div class="card card-compact">
+                    <div class="collapsible-header" onclick="document.getElementById('comparisonInsurancesContent').classList.toggle('collapsed')">
+                        <h3>Σύγκριση ανά Ασφάλεια</h3>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div id="comparisonInsurancesContent" class="collapsible-content collapsed">
+                        <div class="table-responsive">
+                            <table class="data-table data-table-compact comparison-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ασφάλεια</th>
+                                        <th class="text-right">Περίοδος 1</th>
+                                        <th class="text-right">Περίοδος 2</th>
+                                        <th class="text-right">Μεταβολή</th>
+                                        <th class="text-right">Μεταβολή %</th>
+                                        <th class="text-center">Τάση</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="comparisonInsurancesBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trend Analysis -->
+                <div class="card card-compact">
+                    <h3>Ανάλυση Τάσεων</h3>
+                    <div id="comparisonTrendsBody">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="comparisonEmptyState" class="card card-compact">
+                <p style="text-align: center; color: var(--text-secondary); padding: var(--spacing-xl);">
+                    Επιλέξτε δύο περιόδους για σύγκριση
+                </p>
             </div>
         </div>
-        <!-- END COMPARISON VIEW -->
 
         <!-- ========================================
              FORECASTING VIEW (Placeholder)

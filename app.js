@@ -38,6 +38,7 @@ import {
 } from './utils.js';
 import csvValidator from './csvValidator.js';
 import { cdnChecker, periodicChecker } from './cdnChecker.js';
+import reportsManager from './reports.js';
 
 // ========================================
 // Initialization
@@ -335,6 +336,226 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
                 showToast('Σφάλμα δημιουργίας PDF', 'error');
             }
         });
+    }
+
+    // ========================================
+    // Reports View Setup
+    // ========================================
+    setupReportsView();
+
+    function setupReportsView() {
+        const reportPeriodType = document.getElementById('reportPeriodType');
+        const generateReportBtn = document.getElementById('generateReportBtn');
+        const exportReportCsvBtn = document.getElementById('exportReportCsvBtn');
+        
+        // Populate years
+        const years = reportsManager.getAvailableYears();
+        const reportYearSelect = document.getElementById('reportYear');
+        if (reportYearSelect && years.length > 0) {
+            reportYearSelect.innerHTML = years.map(y => 
+                `<option value="${y}">${y}</option>`
+            ).join('');
+        }
+        
+        // Period type change handler
+        if (reportPeriodType) {
+            reportPeriodType.addEventListener('change', (e) => {
+                const type = e.target.value;
+                
+                // Hide all option groups
+                document.getElementById('reportAnnualOptions').style.display = 'none';
+                document.getElementById('reportQuarterlyOptions').style.display = 'none';
+                document.getElementById('reportSemiannualOptions').style.display = 'none';
+                document.getElementById('reportCustomOptions').style.display = 'none';
+                
+                // Show relevant options
+                if (type === 'annual') {
+                    document.getElementById('reportAnnualOptions').style.display = 'block';
+                } else if (type === 'quarterly') {
+                    document.getElementById('reportAnnualOptions').style.display = 'block';
+                    document.getElementById('reportQuarterlyOptions').style.display = 'block';
+                } else if (type === 'semiannual') {
+                    document.getElementById('reportAnnualOptions').style.display = 'block';
+                    document.getElementById('reportSemiannualOptions').style.display = 'block';
+                } else if (type === 'custom') {
+                    document.getElementById('reportCustomOptions').style.display = 'flex';
+                    document.getElementById('reportCustomOptions').style.gap = 'var(--spacing-md)';
+                }
+            });
+        }
+        
+        // Generate report
+        if (generateReportBtn) {
+            generateReportBtn.addEventListener('click', () => {
+                generateAndDisplayReport();
+            });
+        }
+        
+        // Export CSV
+        if (exportReportCsvBtn) {
+            exportReportCsvBtn.addEventListener('click', () => {
+                if (window.currentReport) {
+                    const csv = reportsManager.exportToCSV(window.currentReport);
+                    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `report_${new Date().toISOString().slice(0, 10)}.csv`;
+                    link.click();
+                    showToast('CSV εξήχθη επιτυχώς', 'success');
+                }
+            });
+        }
+    }
+
+    function generateAndDisplayReport() {
+        const type = document.getElementById('reportPeriodType').value;
+        const includeParakratisi = document.getElementById('reportIncludeParakratisi').checked;
+        
+        let report;
+        
+        try {
+            if (type === 'annual') {
+                const year = parseInt(document.getElementById('reportYear').value);
+                report = reportsManager.generateAnnualReport(year, { includeParakratisi });
+            } else if (type === 'quarterly') {
+                const year = parseInt(document.getElementById('reportYear').value);
+                const quarter = document.getElementById('reportQuarter').value;
+                report = reportsManager.generateQuarterlyReport(year, quarter, { includeParakratisi });
+            } else if (type === 'semiannual') {
+                const year = parseInt(document.getElementById('reportYear').value);
+                const semester = document.getElementById('reportSemester').value;
+                report = reportsManager.generateSemiannualReport(year, semester, { includeParakratisi });
+            } else if (type === 'custom') {
+                const startDate = document.getElementById('reportDateFrom').value;
+                const endDate = document.getElementById('reportDateTo').value;
+                
+                if (!startDate || !endDate) {
+                    showToast('Επιλέξτε ημερομηνίες', 'warning');
+                    return;
+                }
+                
+                report = reportsManager.generatePeriodReport(startDate, endDate, { includeParakratisi });
+            }
+            
+            if (report.isEmpty) {
+                showToast(report.message, 'warning');
+                return;
+            }
+            
+            // Store report globally for export
+            window.currentReport = report;
+            
+            // Display report
+            displayReport(report);
+            
+            showToast('Αναφορά δημιουργήθηκε επιτυχώς', 'success');
+        } catch (error) {
+            console.error('Report generation error:', error);
+            showToast('Σφάλμα δημιουργίας αναφοράς', 'error');
+        }
+    }
+
+    function displayReport(report) {
+        // Show results, hide empty state
+        document.getElementById('reportResults').style.display = 'block';
+        document.getElementById('reportEmptyState').style.display = 'none';
+        
+        // Summary
+        const summaryEl = document.getElementById('reportSummary');
+        summaryEl.innerHTML = `
+            <div class="kpi-grid kpi-grid-compact">
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Συνολικά</div>
+                    <div class="kpi-value kpi-value-compact">${formatCurrency(report.summary.kpis.total)}</div>
+                </div>
+                <div class="kpi-card kpi-card-compact" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                    <div class="kpi-label">ΕΟΠΥΥ</div>
+                    <div class="kpi-value kpi-value-compact">${formatCurrency(report.summary.kpis.eopyyTotal)}</div>
+                </div>
+                <div class="kpi-card kpi-card-compact" style="background: linear-gradient(135deg, #10b981, #059669);">
+                    <div class="kpi-label">Άλλα</div>
+                    <div class="kpi-value kpi-value-compact">${formatCurrency(report.summary.kpis.nonEopyyTotal)}</div>
+                </div>
+                <div class="kpi-card kpi-card-compact" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                    <div class="kpi-label">Κρατήσεις</div>
+                    <div class="kpi-value kpi-value-compact">${formatCurrency(report.summary.kpis.eopyyTotalDeductions + report.summary.kpis.nonEopyyKrathseis)}</div>
+                </div>
+            </div>
+        `;
+        
+        // Monthly
+        const monthlyBody = document.getElementById('reportMonthlyBody');
+        monthlyBody.innerHTML = report.monthly.map(m => `
+            <tr>
+                <td>${m.date}</td>
+                <td class="text-right">${m.count}</td>
+                <td class="text-right"><strong>${formatCurrency(m.total)}</strong></td>
+                <td class="text-right">${formatCurrency(m.eopyyTotal)}</td>
+                <td class="text-right">${formatCurrency(m.nonEopyyTotal)}</td>
+                <td class="text-right">${formatCurrency(m.deductions)}</td>
+            </tr>
+        `).join('');
+        
+        // Source
+        const sourceBody = document.getElementById('reportSourceBody');
+        sourceBody.innerHTML = report.bySource.map(s => `
+            <tr>
+                <td>${escapeHtml(s.source)}</td>
+                <td class="text-right">${s.count}</td>
+                <td class="text-right"><strong>${formatCurrency(s.total)}</strong></td>
+                <td class="text-right">${formatCurrency(s.eopyyTotal)}</td>
+                <td class="text-right">${formatCurrency(s.nonEopyyTotal)}</td>
+                <td class="text-right">${formatCurrency(s.averagePerEntry)}</td>
+            </tr>
+        `).join('');
+        
+        // Insurance
+        const insuranceBody = document.getElementById('reportInsuranceBody');
+        insuranceBody.innerHTML = report.byInsurance.map(i => `
+            <tr>
+                <td>${escapeHtml(i.insurance)}</td>
+                <td class="text-right">${i.count}</td>
+                <td class="text-right"><strong>${formatCurrency(i.total)}</strong></td>
+                <td class="text-right">${formatCurrency(i.averagePerEntry)}</td>
+            </tr>
+        `).join('');
+        
+        // Deductions (if ΕΟΠΥΥ exists)
+        if (report.deductions && report.deductions.hasEopyy) {
+            document.getElementById('reportDeductionsCard').style.display = 'block';
+            const deductionsBody = document.getElementById('reportDeductionsBody');
+            deductionsBody.innerHTML = `
+                <div class="kpi-grid kpi-grid-compact">
+                    <div class="kpi-card kpi-card-compact" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                        <div class="kpi-label">Παρακράτηση</div>
+                        <div class="kpi-value kpi-value-compact">${formatCurrency(report.deductions.breakdown.parakratisi.amount)}</div>
+                        <div class="kpi-percent">${formatPercent(report.deductions.breakdown.parakratisi.percent)}</div>
+                    </div>
+                    <div class="kpi-card kpi-card-compact" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                        <div class="kpi-label">ΜΔΕ</div>
+                        <div class="kpi-value kpi-value-compact">${formatCurrency(report.deductions.breakdown.mde.amount)}</div>
+                        <div class="kpi-percent">${formatPercent(report.deductions.breakdown.mde.percent)}</div>
+                    </div>
+                    <div class="kpi-card kpi-card-compact" style="background: linear-gradient(135deg, #ec4899, #db2777);">
+                        <div class="kpi-label">Rebate</div>
+                        <div class="kpi-value kpi-value-compact">${formatCurrency(report.deductions.breakdown.rebate.amount)}</div>
+                        <div class="kpi-percent">${formatPercent(report.deductions.breakdown.rebate.percent)}</div>
+                    </div>
+                    <div class="kpi-card kpi-card-compact" style="background: linear-gradient(135deg, #64748b, #475569);">
+                        <div class="kpi-label">Κρατήσεις</div>
+                        <div class="kpi-value kpi-value-compact">${formatCurrency(report.deductions.breakdown.krathseis.amount)}</div>
+                        <div class="kpi-percent">${formatPercent(report.deductions.breakdown.krathseis.percent)}</div>
+                    </div>
+                    <div class="kpi-card kpi-card-compact" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                        <div class="kpi-label">Clawback</div>
+                        <div class="kpi-value kpi-value-compact">${formatCurrency(report.deductions.breakdown.clawback.amount)}</div>
+                        <div class="kpi-percent">${formatPercent(report.deductions.breakdown.clawback.percent)}</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            document.getElementById('reportDeductionsCard').style.display = 'none';
+        }
     }
 
     // ========================================

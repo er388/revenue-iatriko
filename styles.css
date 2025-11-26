@@ -2178,3 +2178,59 @@ button:focus-visible {
 [data-theme="dark"] .cdn-offline-content {
     background: linear-gradient(135deg, #d97706, #b45309);
 }
+
+/* ========================================
+   Comparison View Styles
+   ======================================== */
+
+.comparison-period {
+    padding: var(--spacing-md);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-tertiary);
+}
+
+.comparison-table .trend-positive {
+    color: var(--success-color);
+    font-weight: 600;
+}
+
+.comparison-table .trend-negative {
+    color: var(--danger-color);
+    font-weight: 600;
+}
+
+.comparison-table .trend-neutral {
+    color: var(--text-secondary);
+}
+
+.comparison-table .significance-major {
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+.comparison-table .significance-significant {
+    background-color: rgba(245, 158, 11, 0.1);
+}
+
+.trend-badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.trend-badge.positive {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: var(--success-color);
+}
+
+.trend-badge.negative {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: var(--danger-color);
+}
+
+.trend-badge.neutral {
+    background-color: rgba(100, 116, 139, 0.2);
+    color: var(--secondary-color);
+}
