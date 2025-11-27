@@ -377,6 +377,9 @@ export function renderEntriesTable() {
     }).join('');
 
     renderPagination(sorted.length, totalPages);
+
+    // ✅ ΝΕΟ: Setup sorting ΜΕΤΑ το render
+    setupTableSorting();
 }
 
 /**
@@ -455,6 +458,58 @@ function applySorting(entries) {
     });
     
     // Apply direction
+    return STATE.sortDirection === 'desc' ? sorted.reverse() : sorted;
+function applySorting(entries) {
+    if (!STATE.sortColumn) {
+        // Default: sort by date DESC
+        return [...entries].sort((a, b) => compareDates(b.date, a.date));
+    }
+    
+    const sorted = [...entries].sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (STATE.sortColumn) {
+            case 'date':
+                return compareDates(a.date, b.date);
+            
+            case 'source':
+                aVal = (a.source || '').toLowerCase();
+                bVal = (b.source || '').toLowerCase();
+                break;
+            
+            case 'insurance':
+                aVal = (a.insurance || '').toLowerCase();
+                bVal = (b.insurance || '').toLowerCase();
+                break;
+            
+            case 'type':
+                aVal = a.type === 'cash' ? 0 : 1;
+                bVal = b.type === 'cash' ? 0 : 1;
+                break;
+            
+            case 'originalAmount':
+                aVal = parseFloat(a.originalAmount || a.amount || 0);
+                bVal = parseFloat(b.originalAmount || b.amount || 0);
+                break;
+            
+            case 'finalAmount':
+                const amountsA = eopyyDeductionsManager.getAmountsBreakdown(a);
+                const amountsB = eopyyDeductionsManager.getAmountsBreakdown(b);
+                aVal = amountsA.finalAmount;
+                bVal = amountsB.finalAmount;
+                break;
+            
+            default:
+                return 0;
+        }
+        
+        // ✅ FIXED: Proper comparison
+        if (aVal < bVal) return -1;
+        if (aVal > bVal) return 1;
+        return 0;
+    });
+    
+    // ✅ FIXED: Apply direction
     return STATE.sortDirection === 'desc' ? sorted.reverse() : sorted;
 }
 
@@ -712,10 +767,14 @@ export function setupTableSorting() {
     const headers = document.querySelectorAll('.data-table th[data-sortable]');
     
     headers.forEach(header => {
-        header.style.cursor = 'pointer';
+        // Remove old listeners to prevent duplicates
+        const newHeader = header.cloneNode(true);
+        header.parentNode.replaceChild(newHeader, header);
         
-        header.addEventListener('click', () => {
-            const column = header.getAttribute('data-sortable');
+        newHeader.style.cursor = 'pointer';
+        
+        newHeader.addEventListener('click', () => {
+            const column = newHeader.getAttribute('data-sortable');
             
             // Toggle sort direction
             if (STATE.sortColumn === column) {
@@ -726,11 +785,11 @@ export function setupTableSorting() {
             }
             
             // Update header indicators
-            headers.forEach(h => {
+            document.querySelectorAll('.data-table th[data-sortable]').forEach(h => {
                 h.classList.remove('sort-asc', 'sort-desc');
             });
             
-            header.classList.add(`sort-${STATE.sortDirection}`);
+            newHeader.classList.add(`sort-${STATE.sortDirection}`);
             
             // Re-render table
             renderEntriesTable();
