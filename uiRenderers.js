@@ -377,6 +377,158 @@ function applySorting(entries) {
 }
 
 /**
+ * Apply sorting based on STATE.sortColumn and STATE.sortDirection
+ * @param {Array} entries - Entries to sort
+ * @returns {Array} Sorted entries
+ */
+function applySorting(entries) {
+    if (!STATE.sortColumn) {
+        // Default: sort by date DESC
+        return [...entries].sort((a, b) => compareDates(b.date, a.date));
+    }
+    
+    const sorted = [...entries].sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (STATE.sortColumn) {
+            case 'date':
+                return compareDates(a.date, b.date);
+            
+            case 'source':
+                aVal = (a.source || '').toLowerCase();
+                bVal = (b.source || '').toLowerCase();
+                break;
+            
+            case 'insurance':
+                aVal = (a.insurance || '').toLowerCase();
+                bVal = (b.insurance || '').toLowerCase();
+                break;
+            
+            case 'type':
+                aVal = a.type === 'cash' ? 0 : 1;
+                bVal = b.type === 'cash' ? 0 : 1;
+                break;
+            
+            case 'originalAmount':
+                aVal = parseFloat(a.originalAmount || a.amount || 0);
+                bVal = parseFloat(b.originalAmount || b.amount || 0);
+                break;
+            
+            case 'finalAmount':
+                const amountsA = eopyyDeductionsManager.getAmountsBreakdown(a);
+                const amountsB = eopyyDeductionsManager.getAmountsBreakdown(b);
+                aVal = amountsA.finalAmount;
+                bVal = amountsB.finalAmount;
+                break;
+            
+            default:
+                return 0;
+        }
+        
+        // Proper comparison
+        if (aVal < bVal) return -1;
+        if (aVal > bVal) return 1;
+        return 0;
+    });
+    
+    // Apply direction
+    return STATE.sortDirection === 'desc' ? sorted.reverse() : sorted;
+}
+
+/**
+ * Temporary filter stub (will be replaced by filters.js)
+ * @returns {Array} Filtered entries
+ */
+function applyFiltersStub() {
+    let filtered = [...STATE.entries];
+    
+    // Apply basic filters from STATE.filters
+    if (STATE.filters.dateFrom) {
+        filtered = filtered.filter(e => compareDates(e.date, STATE.filters.dateFrom) >= 0);
+    }
+    if (STATE.filters.dateTo) {
+        filtered = filtered.filter(e => compareDates(e.date, STATE.filters.dateTo) <= 0);
+    }
+    if (STATE.filters.source) {
+        filtered = filtered.filter(e => e.source === STATE.filters.source);
+    }
+    if (STATE.filters.insurance) {
+        filtered = filtered.filter(e => e.insurance === STATE.filters.insurance);
+    }
+    if (STATE.filters.type) {
+        filtered = filtered.filter(e => e.type === STATE.filters.type);
+    }
+    
+    return filtered;
+}
+
+/**
+ * ✅ RENDER ENTRIES TABLE - MAIN FUNCTION
+ * Render entries table with filters, sorting, pagination
+ */
+export function renderEntriesTable() {
+    const tbody = document.getElementById('entriesTableBody');
+    if (!tbody) return;
+
+    // Apply filters (stub for now - will implement filters.js later)
+    const filtered = applyFiltersStub();
+    
+    // Apply sorting
+    const sorted = applySorting(filtered);
+    
+    // Calculate pagination
+    const totalPages = Math.ceil(sorted.length / STATE.pageSize);
+    const start = (STATE.currentPage - 1) * STATE.pageSize;
+    const end = start + STATE.pageSize;
+    const pageEntries = sorted.slice(start, end);
+
+    if (pageEntries.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="15" class="text-center">Δεν υπάρχουν εγγραφές</td></tr>';
+        renderPagination(0, 0);
+        return;
+    }
+
+    // Render rows
+    tbody.innerHTML = pageEntries.map(entry => {
+        const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
+        const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
+        
+        const deductionsAmount = amounts.totalDeductions;
+        const deductionsPercent = amounts.originalAmount > 0 
+            ? ((deductionsAmount / amounts.originalAmount) * 100).toFixed(2) 
+            : '0.00';
+        
+        return `
+            <tr>
+                <td>${escapeHtml(entry.date)}</td>
+                <td>${escapeHtml(entry.source)}</td>
+                <td>${escapeHtml(entry.insurance)}</td>
+                <td>${entry.type === 'cash' ? 'Μετρητά' : 'Τιμολόγια'}</td>
+                <td class="text-right">${formatCurrency(amounts.originalAmount)}</td>
+                <td class="text-right">${isEopyy ? formatCurrency(amounts.parakratisi || 0) : '-'}</td>
+                <td class="text-right">${isEopyy ? formatCurrency(amounts.mde || 0) : '-'}</td>
+                <td class="text-right">${isEopyy ? formatCurrency(amounts.rebate || 0) : '-'}</td>
+                <td class="text-right">${formatCurrency(amounts.krathseis || 0)}</td>
+                <td class="text-right">${isEopyy ? formatCurrency(amounts.clawback || 0) : '-'}</td>
+                <td class="text-right">${formatCurrency(deductionsAmount)}</td>
+                <td class="text-right">${deductionsPercent}%</td>
+                <td class="text-right"><strong>${formatCurrency(amounts.finalAmount)}</strong></td>
+                <td>${entry.notes ? escapeHtml(entry.notes.substring(0, 20)) + (entry.notes.length > 20 ? '...' : '') : '-'}</td>
+                <td>
+                    <button class="btn-secondary btn-compact btn-sm" onclick="window.editEntry('${entry.id}')">✏️</button>
+                    <button class="btn-danger btn-compact btn-sm" onclick="window.confirmDelete('${entry.id}')">🗑️</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    renderPagination(sorted.length, totalPages);
+
+    // Setup sorting AFTER render
+    setupTableSorting();
+}
+
+/**
  * ✅ ENHANCED: Render pagination controls with info
  * @param {number} totalItems - Total number of items
  * @param {number} totalPages - Total number of pages
