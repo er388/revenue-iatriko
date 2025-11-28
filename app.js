@@ -39,6 +39,8 @@ import {
     formatPercent
 } from './utils.js';
 import reportsManager from './reports.js';
+import heatmapManager from './heatmaps.js';
+import forecastingManager from './forecasting.js';
 
 // ========================================
 // Initialization
@@ -575,6 +577,599 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         } else {
             document.getElementById('reportDeductionsCard').style.display = 'none';
         }
+    }
+
+    // ========================================
+    // Heatmaps View Setup (after reports setup)
+    // ========================================
+    function setupHeatmapsView() {
+        const generateMonthYearBtn = document.getElementById('generateMonthYearHeatmap');
+        const generateSourceMonthBtn = document.getElementById('generateSourceMonthHeatmap');
+        const heatmapYear = document.getElementById('heatmapYear');
+        
+        // Populate year dropdown
+        const years = reportsManager.getAvailableYears();
+        if (heatmapYear && years.length > 0) {
+            heatmapYear.innerHTML = years.map(y => 
+                `<option value="${y}">${y}</option>`
+            ).join('');
+        }
+        
+        // Generate Month × Year heatmap
+        if (generateMonthYearBtn) {
+            generateMonthYearBtn.addEventListener('click', () => {
+                const includeParakratisi = document.getElementById('heatmapIncludeParakratisi')?.checked || false;
+                
+                const success = heatmapManager.generateMonthYearHeatmap('monthYearCanvas', {
+                    includeParakratisi
+                });
+                
+                if (success) {
+                    showToast('Heatmap δημιουργήθηκε!', 'success');
+                    document.getElementById('monthYearHeatmapCard').style.display = 'block';
+                } else {
+                    showToast('Δεν υπάρχουν δεδομένα', 'warning');
+                }
+            });
+        }
+        
+        // Generate Source × Month heatmap
+        if (generateSourceMonthBtn) {
+            generateSourceMonthBtn.addEventListener('click', () => {
+                const year = parseInt(heatmapYear.value);
+                const includeParakratisi = document.getElementById('heatmapIncludeParakratisi')?.checked || false;
+                
+                const success = heatmapManager.generateSourceMonthHeatmap('sourceMonthCanvas', year, {
+                    includeParakratisi
+                });
+                
+                if (success) {
+                    showToast('Heatmap δημιουργήθηκε!', 'success');
+                    document.getElementById('sourceMonthHeatmapCard').style.display = 'block';
+                } else {
+                    showToast(`Δεν υπάρχουν δεδομένα για το ${year}`, 'warning');
+                }
+            });
+        }
+        
+        // Export heatmap handlers
+        const exportMonthYearPdfBtn = document.getElementById('exportMonthYearPdfBtn');
+        const exportSourceMonthPdfBtn = document.getElementById('exportSourceMonthPdfBtn');
+        
+        if (exportMonthYearPdfBtn) {
+            exportMonthYearPdfBtn.addEventListener('click', async () => {
+                if (!STATE.cdnAvailable) {
+                    showToast('PDF export δεν είναι διαθέσιμο', 'error');
+                    return;
+                }
+                
+                try {
+                    await pdfExportManager.exportHeatmap('monthYearCanvas', 'Heatmap_MonthYear');
+                    showToast('PDF εξήχθη επιτυχώς!', 'success');
+                } catch (error) {
+                    showToast('Σφάλμα export PDF', 'error');
+                }
+            });
+        }
+        
+        if (exportSourceMonthPdfBtn) {
+            exportSourceMonthPdfBtn.addEventListener('click', async () => {
+                if (!STATE.cdnAvailable) {
+                    showToast('PDF export δεν είναι διαθέσιμο', 'error');
+                    return;
+                }
+                
+                try {
+                    await pdfExportManager.exportHeatmap('sourceMonthCanvas', 'Heatmap_SourceMonth');
+                    showToast('PDF εξήχθη επιτυχώς!', 'success');
+                } catch (error) {
+                    showToast('Σφάλμα export PDF', 'error');
+                }
+            });
+        }
+    }
+
+    // Call in DOMContentLoaded (after setupReportsView)
+    setupHeatmapsView();
+    setupForecastingView();
+    setupComparisonView();
+
+    // ========================================
+    // Comparison View Setup
+    // ========================================
+    function setupComparisonView() {
+        const generateComparisonBtn = document.getElementById('generateComparisonBtn');
+        const exportComparisonCsvBtn = document.getElementById('exportComparisonCsvBtn');
+        const exportComparisonPdfBtn = document.getElementById('exportComparisonPdfBtn');
+        
+        // Populate year dropdowns
+        const years = reportsManager.getAvailableYears();
+        ['comparison1Year', 'comparison2Year'].forEach(id => {
+            const select = document.getElementById(id);
+            if (select && years.length > 0) {
+                select.innerHTML = years.map(y => 
+                    `<option value="${y}">${y}</option>`
+                ).join('');
+            }
+        });
+        
+        // Period type change handlers
+        ['comparison1Type', 'comparison2Type'].forEach((typeId, index) => {
+            const typeSelect = document.getElementById(typeId);
+            if (!typeSelect) return;
+            
+            const prefix = `comparison${index + 1}`;
+            
+            typeSelect.addEventListener('change', (e) => {
+                const type = e.target.value;
+                
+                // Hide all option groups
+                document.getElementById(`${prefix}Annual`).style.display = 'none';
+                document.getElementById(`${prefix}Quarterly`).style.display = 'none';
+                document.getElementById(`${prefix}Semiannual`).style.display = 'none';
+                document.getElementById(`${prefix}Custom`).style.display = 'none';
+                
+                // Show relevant options
+                if (type === 'annual') {
+                    document.getElementById(`${prefix}Annual`).style.display = 'block';
+                } else if (type === 'quarterly') {
+                    document.getElementById(`${prefix}Annual`).style.display = 'block';
+                    document.getElementById(`${prefix}Quarterly`).style.display = 'block';
+                } else if (type === 'semiannual') {
+                    document.getElementById(`${prefix}Annual`).style.display = 'block';
+                    document.getElementById(`${prefix}Semiannual`).style.display = 'block';
+                } else if (type === 'custom') {
+                    document.getElementById(`${prefix}Custom`).style.display = 'flex';
+                }
+            });
+        });
+        
+        // Generate comparison
+        if (generateComparisonBtn) {
+            generateComparisonBtn.addEventListener('click', async () => {
+                try {
+                    const includeParakratisi = document.getElementById('comparisonIncludeParakratisi')?.checked || false;
+                    
+                    // Get period 1 configuration
+                    const period1 = getPeriodConfig('comparison1');
+                    const period2 = getPeriodConfig('comparison2');
+                    
+                    if (!period1 || !period2) {
+                        showToast('Επιλέξτε και τις δύο περιόδους', 'warning');
+                        return;
+                    }
+                    
+                    showToast('Δημιουργία σύγκρισης...', 'info');
+                    
+                    // Import comparison manager (will create stub if needed)
+                    const { default: comparisonManager } = await import('./comparison.js');
+                    
+                    const comparison = comparisonManager.comparePeriods(period1, period2, { includeParakratisi });
+                    
+                    if (comparison.error) {
+                        showToast(comparison.message, 'warning');
+                        return;
+                    }
+                    
+                    displayComparison(comparison);
+                    showToast('Σύγκριση ολοκληρώθηκε!', 'success');
+                    
+                } catch (error) {
+                    console.error('Comparison error:', error);
+                    showToast('Σφάλμα δημιουργίας σύγκρισης', 'error');
+                }
+            });
+        }
+        
+        // Export CSV
+        if (exportComparisonCsvBtn) {
+            exportComparisonCsvBtn.addEventListener('click', async () => {
+                if (!window.currentComparison) {
+                    showToast('Δημιουργήστε πρώτα μια σύγκριση', 'warning');
+                    return;
+                }
+                
+                try {
+                    const { default: comparisonManager } = await import('./comparison.js');
+                    const csv = comparisonManager.exportToCSV(window.currentComparison);
+                    
+                    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `comparison_${new Date().toISOString().slice(0, 10)}.csv`;
+                    link.click();
+                    
+                    showToast('CSV εξήχθη επιτυχώς', 'success');
+                } catch (error) {
+                    showToast('Σφάλμα export CSV', 'error');
+                }
+            });
+        }
+        
+        // Export PDF
+        if (exportComparisonPdfBtn) {
+            exportComparisonPdfBtn.addEventListener('click', async () => {
+                if (!window.currentComparison) {
+                    showToast('Δημιουργήστε πρώτα μια σύγκριση', 'warning');
+                    return;
+                }
+                
+                if (!STATE.cdnAvailable) {
+                    showToast('PDF export δεν είναι διαθέσιμο', 'error');
+                    return;
+                }
+                
+                showToast('Δημιουργία PDF...', 'info');
+                
+                try {
+                    await pdfExportManager.exportComparison(window.currentComparison);
+                    showToast('PDF εξήχθη επιτυχώς!', 'success');
+                } catch (error) {
+                    showToast('Σφάλμα export PDF', 'error');
+                }
+            });
+        }
+    }
+
+    function getPeriodConfig(prefix) {
+        const type = document.getElementById(`${prefix}Type`)?.value;
+        const year = parseInt(document.getElementById(`${prefix}Year`)?.value);
+        
+        if (!type || isNaN(year)) return null;
+        
+        const config = { type, year };
+        
+        if (type === 'quarterly') {
+            config.quarter = document.getElementById(`${prefix}Quarter`)?.value;
+        } else if (type === 'semiannual') {
+            config.semester = document.getElementById(`${prefix}Semester`)?.value;
+        } else if (type === 'custom') {
+            config.startDate = document.getElementById(`${prefix}From`)?.value;
+            config.endDate = document.getElementById(`${prefix}To`)?.value;
+            
+            if (!config.startDate || !config.endDate) {
+                return null;
+            }
+        }
+        
+        return config;
+    }
+
+    function displayComparison(comparison) {
+        // Store globally for export
+        window.currentComparison = comparison;
+        
+        // Show results, hide empty state
+        document.getElementById('comparisonResults').style.display = 'block';
+        document.getElementById('comparisonEmptyState').style.display = 'none';
+        
+        // Update headers
+        document.getElementById('comparisonPeriod1Header').textContent = comparison.period1.label;
+        document.getElementById('comparisonPeriod2Header').textContent = comparison.period2.label;
+        
+        // Summary table
+        const summaryBody = document.getElementById('comparisonSummaryBody');
+        summaryBody.innerHTML = Object.entries(comparison.summary).map(([key, data]) => {
+            const changeClass = data.change > 0 ? 'trend-positive' : data.change < 0 ? 'trend-negative' : 'trend-neutral';
+            const trendIcon = data.change > 0 ? '▲' : data.change < 0 ? '▼' : '━';
+            
+            return `
+                <tr>
+                    <td>${escapeHtml(data.label)}</td>
+                    <td class="text-right">${formatCurrency(data.period1)}</td>
+                    <td class="text-right">${formatCurrency(data.period2)}</td>
+                    <td class="text-right ${changeClass}">${formatCurrency(data.change)}</td>
+                    <td class="text-right ${changeClass}">${formatPercent(data.changePercent)}</td>
+                    <td class="text-center"><span class="trend-badge ${changeClass.replace('trend-', '')}">${trendIcon}</span></td>
+                </tr>
+            `;
+        }).join('');
+        
+        // Sources comparison
+        const sourcesBody = document.getElementById('comparisonSourcesBody');
+        sourcesBody.innerHTML = comparison.bySource.map(s => {
+            const changeClass = s.change > 0 ? 'trend-positive' : s.change < 0 ? 'trend-negative' : 'trend-neutral';
+            const trendIcon = s.change > 0 ? '▲' : s.change < 0 ? '▼' : '━';
+            
+            return `
+                <tr>
+                    <td>${escapeHtml(s.source)}</td>
+                    <td class="text-right">${formatCurrency(s.period1)}</td>
+                    <td class="text-right">${formatCurrency(s.period2)}</td>
+                    <td class="text-right ${changeClass}">${formatCurrency(s.change)}</td>
+                    <td class="text-right ${changeClass}">${formatPercent(s.changePercent)}</td>
+                    <td class="text-center"><span class="trend-badge ${changeClass.replace('trend-', '')}">${trendIcon}</span></td>
+                </tr>
+            `;
+        }).join('');
+        
+        // Insurances comparison
+        const insurancesBody = document.getElementById('comparisonInsurancesBody');
+        insurancesBody.innerHTML = comparison.byInsurance.map(i => {
+            const changeClass = i.change > 0 ? 'trend-positive' : i.change < 0 ? 'trend-negative' : 'trend-neutral';
+            const trendIcon = i.change > 0 ? '▲' : i.change < 0 ? '▼' : '━';
+            
+            return `
+                <tr>
+                    <td>${escapeHtml(i.insurance)}</td>
+                    <td class="text-right">${formatCurrency(i.period1)}</td>
+                    <td class="text-right">${formatCurrency(i.period2)}</td>
+                    <td class="text-right ${changeClass}">${formatCurrency(i.change)}</td>
+                    <td class="text-right ${changeClass}">${formatPercent(i.changePercent)}</td>
+                    <td class="text-center"><span class="trend-badge ${changeClass.replace('trend-', '')}">${trendIcon}</span></td>
+                </tr>
+            `;
+        }).join('');
+        
+        // Trends analysis
+        const trendsBody = document.getElementById('comparisonTrendsBody');
+        if (comparison.trends && comparison.trends.length > 0) {
+            trendsBody.innerHTML = `
+                <ul style="line-height: 1.8;">
+                    ${comparison.trends.map(t => `<li>${escapeHtml(t)}</li>`).join('')}
+                </ul>
+            `;
+        } else {
+            trendsBody.innerHTML = '<p style="color: var(--text-secondary);">Δεν υπάρχουν σημαντικές τάσεις</p>';
+        }
+    }
+
+    // ========================================
+    // Forecasting View Setup (after heatmaps setup)
+    // ========================================
+    function setupForecastingView() {
+        const generateForecastBtn = document.getElementById('generateForecastBtn');
+        const exportForecastCsvBtn = document.getElementById('exportForecastCsvBtn');
+        
+        if (generateForecastBtn) {
+            generateForecastBtn.addEventListener('click', () => {
+                const method = document.getElementById('forecastMethod').value;
+                const periods = parseInt(document.getElementById('forecastPeriods').value);
+                const includeParakratisi = document.getElementById('forecastIncludeParakratisi').checked;
+                
+                showToast('Δημιουργία πρόβλεψης...', 'info');
+                
+                try {
+                    const forecast = forecastingManager.generateForecast({
+                        method,
+                        periods,
+                        includeParakratisi
+                    });
+                    
+                    if (forecast.error) {
+                        showToast(forecast.message, 'warning');
+                        return;
+                    }
+                    
+                    displayForecast(forecast);
+                    showToast('Πρόβλεψη ολοκληρώθηκε!', 'success');
+                    
+                } catch (error) {
+                    console.error('Forecast error:', error);
+                    showToast('Σφάλμα δημιουργίας πρόβλεψης', 'error');
+                }
+            });
+        }
+        
+        if (exportForecastCsvBtn) {
+            exportForecastCsvBtn.addEventListener('click', () => {
+                const forecast = forecastingManager.getLastForecast();
+                if (!forecast) {
+                    showToast('Δημιουργήστε πρώτα μια πρόβλεψη', 'warning');
+                    return;
+                }
+                
+                const csv = forecastingManager.exportToCSV(forecast);
+                const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `forecast_${new Date().toISOString().slice(0, 10)}.csv`;
+                link.click();
+                
+                showToast('CSV εξήχθη επιτυχώς', 'success');
+            });
+        }
+    }
+
+    function displayForecast(forecast) {
+        // Show results, hide empty state
+        document.getElementById('forecastResults').style.display = 'block';
+        document.getElementById('forecastEmptyState').style.display = 'none';
+        
+        // Summary
+        const summaryEl = document.getElementById('forecastSummary');
+        const avgHistorical = forecast.historical.reduce((sum, h) => sum + h.value, 0) / forecast.historical.length;
+        const avgForecast = forecast.predictions.reduce((sum, p) => sum + p.value, 0) / forecast.predictions.length;
+        const change = ((avgForecast - avgHistorical) / avgHistorical) * 100;
+        
+        summaryEl.innerHTML = `
+            <div class="kpi-grid kpi-grid-compact">
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Μέθοδος</div>
+                    <div class="kpi-value kpi-value-compact" style="font-size: 1rem;">${escapeHtml(forecast.methodName)}</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Ιστορικά Δεδομένα</div>
+                    <div class="kpi-value kpi-value-compact">${forecast.metadata.dataPoints} μήνες</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Μέσος Όρος (Ιστορικό)</div>
+                    <div class="kpi-value kpi-value-compact">${formatCurrency(avgHistorical)}</div>
+                </div>
+                <div class="kpi-card kpi-card-compact">
+                    <div class="kpi-label">Μέσος Όρος (Πρόβλεψη)</div>
+                    <div class="kpi-value kpi-value-compact">${formatCurrency(avgForecast)}</div>
+                </div>
+                <div class="kpi-card kpi-card-compact" style="background: ${change >= 0 ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)'};">
+                    <div class="kpi-label">Αναμενόμενη Μεταβολή</div>
+                    <div class="kpi-value kpi-value-compact">${change >= 0 ? '+' : ''}${formatPercent(change)}</div>
+                </div>
+            </div>
+        `;
+        
+        // Chart
+        renderForecastChart(forecast);
+        
+        // Table
+        const tableBody = document.getElementById('forecastTableBody');
+        tableBody.innerHTML = forecast.predictions.map(p => `
+            <tr>
+                <td>${escapeHtml(p.date)}</td>
+                <td class="text-right"><strong>${formatCurrency(p.value)}</strong></td>
+                <td class="text-right">${formatCurrency(p.lower)}</td>
+                <td class="text-right">${formatCurrency(p.upper)}</td>
+            </tr>
+        `).join('');
+        
+        // Accuracy
+        if (forecast.accuracy) {
+            const accuracyEl = document.getElementById('forecastAccuracy');
+            accuracyEl.innerHTML = `
+                <div class="kpi-grid kpi-grid-compact">
+                    <div class="kpi-card kpi-card-compact">
+                        <div class="kpi-label">MAE</div>
+                        <div class="kpi-value kpi-value-compact">${formatCurrency(forecast.accuracy.mae)}</div>
+                        <small style="display: block; margin-top: 0.5rem; opacity: 0.8;">Mean Absolute Error</small>
+                    </div>
+                    <div class="kpi-card kpi-card-compact">
+                        <div class="kpi-label">RMSE</div>
+                        <div class="kpi-value kpi-value-compact">${formatCurrency(forecast.accuracy.rmse)}</div>
+                        <small style="display: block; margin-top: 0.5rem; opacity: 0.8;">Root Mean Squared Error</small>
+                    </div>
+                    <div class="kpi-card kpi-card-compact">
+                        <div class="kpi-label">MAPE</div>
+                        <div class="kpi-value kpi-value-compact">${formatPercent(forecast.accuracy.mape)}</div>
+                        <small style="display: block; margin-top: 0.5rem; opacity: 0.8;">Mean Absolute % Error</small>
+                    </div>
+                </div>
+                <p style="margin-top: var(--spacing-md); color: var(--text-secondary); font-size: 0.875rem;">
+                    <strong>Σημείωση:</strong> Τα μετρικά ακρίβειας υπολογίζονται με βάση το 20% των πιο πρόσφατων ιστορικών δεδομένων.
+                </p>
+            `;
+        }
+    }
+
+    function renderForecastChart(forecast) {
+        if (!STATE.cdnAvailable || !window.Chart) {
+            console.warn('[Forecast] Chart.js not available');
+            document.getElementById('forecastChart').parentElement.innerHTML = 
+                '<p style="text-align: center; color: var(--text-secondary);">Τα γραφήματα δεν είναι διαθέσιμα (CDN offline)</p>';
+            return;
+        }
+        
+        const ctx = document.getElementById('forecastChart');
+        
+        // Destroy existing chart
+        if (STATE.charts.forecastChart) {
+            STATE.charts.forecastChart.destroy();
+        }
+        
+        const labels = [
+            ...forecast.historical.map(h => h.date),
+            ...forecast.predictions.map(p => p.date)
+        ];
+        
+        const historicalData = [
+            ...forecast.historical.map(h => h.value),
+            ...Array(forecast.predictions.length).fill(null)
+        ];
+        
+        const forecastData = [
+            ...Array(forecast.historical.length).fill(null),
+            ...forecast.predictions.map(p => p.value)
+        ];
+        
+        const lowerBound = [
+            ...Array(forecast.historical.length).fill(null),
+            ...forecast.predictions.map(p => p.lower)
+        ];
+        
+        const upperBound = [
+            ...Array(forecast.historical.length).fill(null),
+            ...forecast.predictions.map(p => p.upper)
+        ];
+        
+        STATE.charts.forecastChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Ιστορικά',
+                        data: historicalData,
+                        borderColor: CONFIG.chartColors.primary,
+                        backgroundColor: CONFIG.chartColors.primary + '20',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Πρόβλεψη',
+                        data: forecastData,
+                        borderColor: CONFIG.chartColors.success,
+                        backgroundColor: CONFIG.chartColors.success + '20',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 3,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Κάτω Όριο (95%)',
+                        data: lowerBound,
+                        borderColor: CONFIG.chartColors.secondary,
+                        backgroundColor: 'transparent',
+                        borderWidth: 1,
+                        borderDash: [2, 2],
+                        pointRadius: 0,
+                        fill: false
+                    },
+                    {
+                        label: 'Άνω Όριο (95%)',
+                        data: upperBound,
+                        borderColor: CONFIG.chartColors.secondary,
+                        backgroundColor: CONFIG.chartColors.secondary + '10',
+                        borderWidth: 1,
+                        borderDash: [2, 2],
+                        pointRadius: 0,
+                        fill: '-1' // Fill to previous dataset (lowerBound)
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: value => formatCurrency(value)
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 10,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const label = context.dataset.label || '';
+                                const value = formatCurrency(context.parsed.y);
+                                return `${label}: ${value}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 
     // ========================================
