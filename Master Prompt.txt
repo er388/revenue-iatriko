@@ -26,15 +26,6 @@
 
 ### 1. Fix Critical Bugs
 ```
-a) Modal percentage memory bug
-   File: formHandlers.js
-   Function: resetModalForm(), resetQuickForm()
-   Add: Clear all percentage fields
-
-b) Sortable table columns
-   File: uiRenderers.js
-   Function: setupTableSorting() (implement)
-   Add to: app.js initialization
 
 c) Modal draggable
    File: eventHandlers.js
@@ -159,23 +150,10 @@ heatmaps.js       - Not created yet
 - English in UI (μόνο στον κώδικα)
 ```
 
----
-
-## 🚀 START HERE
-
-**Next Immediate Task:**
-
-Implement `setupTableSorting()` in `uiRenderers.js`
-
-**Requirements:**
-- Click header → toggle ASC/DESC
-- Update header indicator (▲/▼)
-- Re-render table with sorted data
-- Support columns: date, source, insurance, type, originalAmount, finalAmount
 
 **Provide:**
 1. Implementation code
-2. Where to add in app.js
+2. Where to add
 3. Testing steps
 
 Περιμένω το code snippet! 🎯

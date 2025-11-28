@@ -404,7 +404,7 @@ export function setupKeyboardShortcuts() {
 // ========================================
 
 /**
- * Make modals draggable
+ * ✅ FIXED: Make modals draggable with proper positioning
  */
 export function setupDraggableModals() {
     document.querySelectorAll('.modal-content').forEach(modalContent => {
@@ -417,31 +417,65 @@ export function setupDraggableModals() {
         let initialX;
         let initialY;
         
+        // ✅ Set cursor style
         header.style.cursor = 'move';
+        header.style.userSelect = 'none';
         
         header.addEventListener('mousedown', (e) => {
-            if (e.target.classList.contains('modal-close')) return;
+            // Ignore if clicking close button
+            if (e.target.classList.contains('modal-close') || e.target.closest('.modal-close')) {
+                return;
+            }
             
             isDragging = true;
-            initialX = e.clientX - modalContent.offsetLeft;
-            initialY = e.clientY - modalContent.offsetTop;
             
+            // ✅ CRITICAL: Get current position or use center
+            const rect = modalContent.getBoundingClientRect();
+            initialX = e.clientX - rect.left;
+            initialY = e.clientY - rect.top;
+            
+            // ✅ Convert to fixed positioning
             modalContent.style.position = 'fixed';
+            modalContent.style.margin = '0';
+            modalContent.style.left = rect.left + 'px';
+            modalContent.style.top = rect.top + 'px';
+            
+            // ✅ Increase z-index during drag
+            modalContent.style.zIndex = '9999';
+            
+            // ✅ Add dragging class for visual feedback
+            modalContent.classList.add('dragging');
         });
         
         document.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
             
             e.preventDefault();
+            
             currentX = e.clientX - initialX;
             currentY = e.clientY - initialY;
+            
+            // ✅ Keep modal within viewport
+            const maxX = window.innerWidth - modalContent.offsetWidth;
+            const maxY = window.innerHeight - modalContent.offsetHeight;
+            
+            currentX = Math.max(0, Math.min(currentX, maxX));
+            currentY = Math.max(0, Math.min(currentY, maxY));
             
             modalContent.style.left = currentX + 'px';
             modalContent.style.top = currentY + 'px';
         });
         
         document.addEventListener('mouseup', () => {
-            isDragging = false;
+            if (isDragging) {
+                isDragging = false;
+                
+                // ✅ Reset z-index
+                modalContent.style.zIndex = '';
+                
+                // ✅ Remove dragging class
+                modalContent.classList.remove('dragging');
+            }
         });
     });
 }

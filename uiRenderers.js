@@ -718,18 +718,20 @@ function getDragAfterElement(container, y) {
 // ========================================
 
 /**
- * Setup sortable table columns
+ * ✅ FIXED: Setup sortable table columns with proper event handling
  */
 export function setupTableSorting() {
     const headers = document.querySelectorAll('.data-table th[data-sortable]');
     
     headers.forEach(header => {
-        // Remove old listeners to prevent duplicates
+        // ✅ CRITICAL: Remove ALL existing listeners to prevent duplicates
         const newHeader = header.cloneNode(true);
         header.parentNode.replaceChild(newHeader, header);
         
+        // Style cursor
         newHeader.style.cursor = 'pointer';
         
+        // Add click listener
         newHeader.addEventListener('click', () => {
             const column = newHeader.getAttribute('data-sortable');
             
@@ -741,14 +743,15 @@ export function setupTableSorting() {
                 STATE.sortDirection = 'asc';
             }
             
-            // Update header indicators
+            // ✅ Update ALL header indicators (not just clicked one)
             document.querySelectorAll('.data-table th[data-sortable]').forEach(h => {
                 h.classList.remove('sort-asc', 'sort-desc');
             });
             
+            // Add class to current sorted column
             newHeader.classList.add(`sort-${STATE.sortDirection}`);
             
-            // Re-render table
+            // ✅ Re-render table with new sort
             renderEntriesTable();
         });
     });
