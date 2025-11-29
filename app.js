@@ -577,7 +577,149 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         } else {
             document.getElementById('reportDeductionsCard').style.display = 'none';
         }
+
+        // Render Charts
+        renderReportCharts(report);
     }
+
+            /**
+         * Render charts for report
+         * @param {Object} report - Report data
+         */
+        function renderReportCharts(report) {
+            if (!STATE.cdnAvailable || !window.Chart) {
+                console.warn('[Reports] Chart.js not available');
+                return;
+            }
+            
+            // Destroy existing charts
+            if (STATE.charts.reportMonthlyChart) {
+                STATE.charts.reportMonthlyChart.destroy();
+            }
+            if (STATE.charts.reportSourceChart) {
+                STATE.charts.reportSourceChart.destroy();
+            }
+            
+            // 1️⃣ Monthly Trend Line Chart
+            const monthlyCtx = document.getElementById('reportMonthlyChart');
+            if (monthlyCtx && report.monthly && report.monthly.length > 0) {
+                STATE.charts.reportMonthlyChart = new Chart(monthlyCtx, {
+                    type: 'line',
+                    data: {
+                        labels: report.monthly.map(m => m.date),
+                        datasets: [
+                            {
+                                label: 'Σύνολο',
+                                data: report.monthly.map(m => m.total),
+                                borderColor: CONFIG.chartColors.primary,
+                                backgroundColor: CONFIG.chartColors.primary + '20',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: true
+                            },
+                            {
+                                label: 'ΕΟΠΥΥ',
+                                data: report.monthly.map(m => m.eopyyTotal),
+                                borderColor: CONFIG.chartColors.info,
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Άλλα',
+                                data: report.monthly.map(m => m.nonEopyyTotal),
+                                borderColor: CONFIG.chartColors.success,
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: value => formatCurrency(value)
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // 2️⃣ Source Breakdown Pie Chart
+            const sourceCtx = document.getElementById('reportSourceChart');
+            if (sourceCtx && report.bySource && report.bySource.length > 0) {
+                // Take top 8 sources
+                const topSources = report.bySource.slice(0, 8);
+                const otherTotal = report.bySource.slice(8).reduce((sum, s) => sum + s.total, 0);
+                
+                const labels = [...topSources.map(s => s.source)];
+                const data = [...topSources.map(s => s.total)];
+                
+                if (otherTotal > 0) {
+                    labels.push('Άλλα');
+                    data.push(otherTotal);
+                }
+                
+                STATE.charts.reportSourceChart = new Chart(sourceCtx, {
+                    type: 'pie',
+                    data: {
+                        labels,
+                        datasets: [{
+                            data,
+                            backgroundColor: [
+                                CONFIG.chartColors.primary,
+                                CONFIG.chartColors.success,
+                                CONFIG.chartColors.warning,
+                                CONFIG.chartColors.danger,
+                                CONFIG.chartColors.info,
+                                CONFIG.chartColors.secondary,
+                                '#8b5cf6',
+                                '#ec4899',
+                                '#94a3b8'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    font: { size: 11 }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => {
+                                        const label = context.label || '';
+                                        const value = formatCurrency(context.parsed);
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percent = ((context.parsed / total) * 100).toFixed(1);
+                                        return `${label}: ${value} (${percent}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
 
     // ========================================
     // Heatmaps View Setup (after reports setup)
@@ -1967,6 +2109,285 @@ window.exportChartPDF = async function(canvasId) {
                 mainContent.style.opacity = '1';
             }, 100);
         }
+
+        // ========================================
+        // Cloud Sync View Setup
+        // ========================================
+        async function setupCloudSyncView() {
+            try {
+                // Import cloud sync manager
+                const { default: cloudSyncManager } = await import('./cloudAdapters.js');
+                
+                // Provider names
+                const providers = ['googledrive', 'dropbox', 'onedrive'];
+                
+                // Update status for all providers
+                function updateAllStatuses() {
+                    providers.forEach(provider => {
+                        const status = cloudSyncManager.getSyncStatus(provider);
+                        const statusEl = document.getElementById(`${provider}Status`);
+                        const connectBtn = document.getElementById(`${provider}ConnectBtn`);
+                        const syncBtn = document.getElementById(`${provider}SyncBtn`);
+                        const disconnectBtn = document.getElementById(`${provider}DisconnectBtn`);
+                        const infoEl = document.getElementById(`${provider}Info`);
+                        
+                        if (status.authenticated) {
+                            if (statusEl) statusEl.textContent = `✅ Συνδεδεμένο`;
+                            if (statusEl) statusEl.style.color = 'var(--success-color)';
+                            if (connectBtn) connectBtn.style.display = 'none';
+                            if (syncBtn) syncBtn.style.display = 'inline-flex';
+                            if (disconnectBtn) disconnectBtn.style.display = 'inline-flex';
+                            if (infoEl) {
+                                infoEl.style.display = 'block';
+                                infoEl.innerHTML = `<strong>Τελευταίο sync:</strong> ${status.lastSync}`;
+                            }
+                        } else {
+                            if (statusEl) statusEl.textContent = 'Μη συνδεδεμένο';
+                            if (statusEl) statusEl.style.color = 'var(--text-secondary)';
+                            if (connectBtn) connectBtn.style.display = 'inline-flex';
+                            if (syncBtn) syncBtn.style.display = 'none';
+                            if (disconnectBtn) disconnectBtn.style.display = 'none';
+                            if (infoEl) infoEl.style.display = 'none';
+                        }
+                    });
+                }
+                
+                // Connect buttons
+                providers.forEach(provider => {
+                    const connectBtn = document.getElementById(`${provider}ConnectBtn`);
+                    if (connectBtn) {
+                        connectBtn.addEventListener('click', async () => {
+                            try {
+                                showToast('Άνοιγμα παραθύρου εξουσιοδότησης...', 'info');
+                                
+                                const adapter = cloudSyncManager.getAdapter(provider);
+                                await adapter.authenticate();
+                                
+                                updateAllStatuses();
+                                showToast(`Επιτυχής σύνδεση με ${adapter.config.name}!`, 'success');
+                                
+                            } catch (error) {
+                                console.error(`${provider} auth error:`, error);
+                                showToast(`Σφάλμα σύνδεσης: ${error.message}`, 'error');
+                            }
+                        });
+                    }
+                });
+                
+                // Sync buttons
+                providers.forEach(provider => {
+                    const syncBtn = document.getElementById(`${provider}SyncBtn`);
+                    if (syncBtn) {
+                        syncBtn.addEventListener('click', async () => {
+                            try {
+                                showToast('Αποστολή backup στο cloud...', 'info');
+                                
+                                const result = await cloudSyncManager.syncToCloud(provider);
+                                
+                                if (result.success) {
+                                    updateAllStatuses();
+                                    showToast(`✅ Backup αποθηκεύτηκε: ${result.filename}`, 'success');
+                                    
+                                    // Refresh backups list
+                                    await refreshCloudBackups(provider);
+                                }
+                                
+                            } catch (error) {
+                                console.error(`${provider} sync error:`, error);
+                                showToast(`Σφάλμα sync: ${error.message}`, 'error');
+                            }
+                        });
+                    }
+                });
+                
+                // Disconnect buttons
+                providers.forEach(provider => {
+                    const disconnectBtn = document.getElementById(`${provider}DisconnectBtn`);
+                    if (disconnectBtn) {
+                        disconnectBtn.addEventListener('click', async () => {
+                            if (!confirm(`Αποσύνδεση από ${provider}?`)) return;
+                            
+                            try {
+                                const adapter = cloudSyncManager.getAdapter(provider);
+                                await adapter.logout();
+                                
+                                updateAllStatuses();
+                                showToast('Αποσυνδέθηκε επιτυχώς', 'success');
+                                
+                            } catch (error) {
+                                console.error(`${provider} disconnect error:`, error);
+                                showToast('Σφάλμα αποσύνδεσης', 'error');
+                            }
+                        });
+                    }
+                });
+                
+                // Auto-sync toggle
+                const autoSyncEnabled = document.getElementById('autoSyncEnabled');
+                const autoSyncProviderSelect = document.getElementById('autoSyncProviderSelect');
+                const autoSyncProvider = document.getElementById('autoSyncProvider');
+                
+                if (autoSyncEnabled) {
+                    // Load saved preference
+                    const savedAutoSync = localStorage.getItem('autoSyncEnabled') === 'true';
+                    const savedProvider = localStorage.getItem('autoSyncProvider');
+                    
+                    autoSyncEnabled.checked = savedAutoSync;
+                    if (savedAutoSync && autoSyncProviderSelect) {
+                        autoSyncProviderSelect.style.display = 'block';
+                    }
+                    if (savedProvider && autoSyncProvider) {
+                        autoSyncProvider.value = savedProvider;
+                    }
+                    
+                    autoSyncEnabled.addEventListener('change', (e) => {
+                        const enabled = e.target.checked;
+                        localStorage.setItem('autoSyncEnabled', enabled ? 'true' : 'false');
+                        
+                        if (autoSyncProviderSelect) {
+                            autoSyncProviderSelect.style.display = enabled ? 'block' : 'none';
+                        }
+                        
+                        if (enabled && autoSyncProvider && autoSyncProvider.value) {
+                            cloudSyncManager.enableAutoSync(
+                                autoSyncProvider.value,
+                                15 * 60 * 1000 // 15 minutes
+                            );
+                            showToast('Auto-sync ενεργοποιήθηκε', 'success');
+                        } else {
+                            cloudSyncManager.disableAutoSync();
+                            showToast('Auto-sync απενεργοποιήθηκε', 'info');
+                        }
+                    });
+                }
+                
+                if (autoSyncProvider) {
+                    autoSyncProvider.addEventListener('change', (e) => {
+                        const provider = e.target.value;
+                        localStorage.setItem('autoSyncProvider', provider);
+                        
+                        if (autoSyncEnabled && autoSyncEnabled.checked && provider) {
+                            cloudSyncManager.disableAutoSync();
+                            cloudSyncManager.enableAutoSync(provider, 15 * 60 * 1000);
+                            showToast(`Auto-sync ρυθμίστηκε για ${provider}`, 'success');
+                        }
+                    });
+                }
+                
+                // Refresh backups button
+                const refreshBackupsBtn = document.getElementById('refreshBackupsBtn');
+                if (refreshBackupsBtn) {
+                    refreshBackupsBtn.addEventListener('click', async () => {
+                        // Find first authenticated provider
+                        const authenticatedProvider = providers.find(p => {
+                            const adapter = cloudSyncManager.getAdapter(p);
+                            return adapter.isAuthenticated;
+                        });
+                        
+                        if (authenticatedProvider) {
+                            await refreshCloudBackups(authenticatedProvider);
+                        } else {
+                            showToast('Συνδεθείτε σε cloud provider', 'warning');
+                        }
+                    });
+                }
+                
+                // Helper: Refresh cloud backups list
+                async function refreshCloudBackups(provider) {
+                    const listEl = document.getElementById('cloudBackupsList');
+                    if (!listEl) return;
+                    
+                    try {
+                        listEl.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Φόρτωση...</p>';
+                        
+                        const backups = await cloudSyncManager.listBackups(provider);
+                        
+                        if (backups.length === 0) {
+                            listEl.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Δεν υπάρχουν backups</p>';
+                            return;
+                        }
+                        
+                        listEl.innerHTML = `
+                            <div class="table-responsive">
+                                <table class="data-table data-table-compact">
+                                    <thead>
+                                        <tr>
+                                            <th>Όνομα</th>
+                                            <th>Ημερομηνία</th>
+                                            <th>Μέγεθος</th>
+                                            <th class="text-center">Ενέργειες</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${backups.map(backup => `
+                                            <tr>
+                                                <td>${escapeHtml(backup.name || backup.path_display || 'backup')}</td>
+                                                <td>${new Date(backup.modifiedTime || backup.client_modified || backup.lastModifiedDateTime).toLocaleString('el-GR')}</td>
+                                                <td>${formatFileSize(backup.size)}</td>
+                                                <td class="text-center">
+                                                    <button class="btn-primary btn-compact btn-sm" onclick="restoreCloudBackup('${provider}', '${backup.id || backup.path_display || backup.id}')">
+                                                        📥 Restore
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                        
+                    } catch (error) {
+                        console.error('Refresh backups error:', error);
+                        listEl.innerHTML = '<p style="text-align: center; color: var(--danger-color);">Σφάλμα φόρτωσης backups</p>';
+                    }
+                }
+                
+                // Helper: Format file size
+                function formatFileSize(bytes) {
+                    if (!bytes) return 'N/A';
+                    if (bytes < 1024) return bytes + ' B';
+                    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+                }
+                
+                // Initial status update
+                updateAllStatuses();
+                
+            } catch (error) {
+                console.error('Cloud sync setup error:', error);
+            }
+        }
+
+        // Global function for restore button
+        window.restoreCloudBackup = async function(provider, fileId) {
+            if (!confirm('Restore αυτό το backup? Τα τρέχοντα δεδομένα θα αντικατασταθούν!')) {
+                return;
+            }
+            
+            try {
+                showToast('Ανάκτηση backup από cloud...', 'info');
+                
+                const { default: cloudSyncManager } = await import('./cloudAdapters.js');
+                const report = await cloudSyncManager.restoreFromCloud(provider, fileId);
+                
+                if (report.success) {
+                    showToast(`✅ Επιτυχής ανάκτηση! Εισήχθησαν ${report.inserted} εγγραφές`, 'success');
+                    
+                    // Reload app data
+                    await loadData();
+                    renderSourcesAndInsurances();
+                    renderDashboard();
+                    renderEntriesTable();
+                } else {
+                    showToast('Σφάλμα ανάκτησης', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Restore error:', error);
+                showToast('Σφάλμα ανάκτησης: ' + error.message, 'error');
+            }
+        };
+
     }); // ← ΚΛΕΙΣΙΜΟ του DOMContentLoaded event listener
 
     // ========================================
