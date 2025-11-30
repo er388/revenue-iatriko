@@ -87,6 +87,41 @@ class ComparisonManager {
         // Overall trend analysis
         const trendAnalysis = this.analyzeTrends(kpisComparison);
 
+        const summary = {
+            total: {
+                label: 'Συνολικά',
+                period1: report1.summary.kpis.total,
+                period2: report2.summary.kpis.total,
+                change: report2.summary.kpis.total - report1.summary.kpis.total,
+                changePercent: calculatePercentChange(report1.summary.kpis.total, report2.summary.kpis.total)
+            },
+            eopyyTotal: {
+                label: 'ΕΟΠΥΥ',
+                period1: report1.summary.kpis.eopyyTotal,
+                period2: report2.summary.kpis.eopyyTotal,
+                change: report2.summary.kpis.eopyyTotal - report1.summary.kpis.eopyyTotal,
+                changePercent: calculatePercentChange(report1.summary.kpis.eopyyTotal, report2.summary.kpis.eopyyTotal)
+            },
+            nonEopyyTotal: {
+                label: 'Άλλα',
+                period1: report1.summary.kpis.nonEopyyTotal,
+                period2: report2.summary.kpis.nonEopyyTotal,
+                change: report2.summary.kpis.nonEopyyTotal - report1.summary.kpis.nonEopyyTotal,
+                changePercent: calculatePercentChange(report1.summary.kpis.nonEopyyTotal, report2.summary.kpis.nonEopyyTotal)
+            },
+            deductions: {
+                label: 'Κρατήσεις',
+                period1: report1.summary.kpis.eopyyTotalDeductions + report1.summary.kpis.nonEopyyKrathseis,
+                period2: report2.summary.kpis.eopyyTotalDeductions + report2.summary.kpis.nonEopyyKrathseis,
+                change: (report2.summary.kpis.eopyyTotalDeductions + report2.summary.kpis.nonEopyyKrathseis) - 
+                        (report1.summary.kpis.eopyyTotalDeductions + report1.summary.kpis.nonEopyyKrathseis),
+                changePercent: calculatePercentChange(
+                    report1.summary.kpis.eopyyTotalDeductions + report1.summary.kpis.nonEopyyKrathseis,
+                    report2.summary.kpis.eopyyTotalDeductions + report2.summary.kpis.nonEopyyKrathseis
+                )
+            }
+        };
+
         const comparison = {
             period1: {
                 label: this.getPeriodLabel(period1),
@@ -98,9 +133,10 @@ class ComparisonManager {
                 dateRange: report2.summary.dateRange,
                 report: report2
             },
+            summary: summary,  // ← ΝΕΟ!
+            bySource: sourcesComparison,  // ← ΜΕΤΟΝΟΜΑΣΙΑ
+            byInsurance: insurancesComparison,  // ← ΜΕΤΟΝΟΜΑΣΙΑ
             kpis: kpisComparison,
-            sources: sourcesComparison,
-            insurances: insurancesComparison,
             entries: entriesComparison,
             trends: trendAnalysis,
             generatedAt: Date.now()
