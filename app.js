@@ -41,6 +41,7 @@ import {
 import reportsManager from './reports.js';
 import heatmapManager from './heatmaps.js';
 import forecastingManager from './forecasting.js';
+import comparisonManager from './comparison.js';
 
 // ========================================
 // Initialization
