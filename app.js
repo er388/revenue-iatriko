@@ -43,246 +43,6 @@ import heatmapManager from './heatmaps.js';
 import forecastingManager from './forecasting.js';
 import comparisonManager from './comparison.js';
 
-    // ========================================
-    // Comparison View Setup
-    // ========================================
-    function setupComparisonView() {
-        const generateComparisonBtn = document.getElementById('generateComparisonBtn');
-        const exportComparisonCsvBtn = document.getElementById('exportComparisonCsvBtn');
-        const exportComparisonPdfBtn = document.getElementById('exportComparisonPdfBtn');
-        
-        // Populate year dropdowns
-        const years = reportsManager.getAvailableYears();
-        ['comparison1Year', 'comparison2Year'].forEach(id => {
-            const select = document.getElementById(id);
-            if (select && years.length > 0) {
-                select.innerHTML = years.map(y => 
-                    `<option value="${y}">${y}</option>`
-                ).join('');
-            }
-        });
-        
-        // Period type change handlers
-        ['comparison1Type', 'comparison2Type'].forEach((typeId, index) => {
-            const typeSelect = document.getElementById(typeId);
-            if (!typeSelect) return;
-            
-            const prefix = `comparison${index + 1}`;
-            
-            typeSelect.addEventListener('change', (e) => {
-                const type = e.target.value;
-                
-                // Hide all option groups
-                document.getElementById(`${prefix}Annual`).style.display = 'none';
-                document.getElementById(`${prefix}Quarterly`).style.display = 'none';
-                document.getElementById(`${prefix}Semiannual`).style.display = 'none';
-                document.getElementById(`${prefix}Custom`).style.display = 'none';
-                
-                // Show relevant options
-                if (type === 'annual') {
-                    document.getElementById(`${prefix}Annual`).style.display = 'block';
-                } else if (type === 'quarterly') {
-                    document.getElementById(`${prefix}Annual`).style.display = 'block';
-                    document.getElementById(`${prefix}Quarterly`).style.display = 'block';
-                } else if (type === 'semiannual') {
-                    document.getElementById(`${prefix}Annual`).style.display = 'block';
-                    document.getElementById(`${prefix}Semiannual`).style.display = 'block';
-                } else if (type === 'custom') {
-                    document.getElementById(`${prefix}Custom`).style.display = 'flex';
-                }
-            });
-        });
-        
-        // Generate comparison
-        if (generateComparisonBtn) {
-            generateComparisonBtn.addEventListener('click', async () => {
-                try {
-                    const includeParakratisi = document.getElementById('comparisonIncludeParakratisi')?.checked || false;
-                    
-                    // Get period 1 configuration
-                    const period1 = getPeriodConfig('comparison1');
-                    const period2 = getPeriodConfig('comparison2');
-                    
-                    if (!period1 || !period2) {
-                        showToast('Επιλέξτε και τις δύο περιόδους', 'warning');
-                        return;
-                    }
-                    
-                    showToast('Δημιουργία σύγκρισης...', 'info');
-                    
-                    // Import comparison manager (will create stub if needed)
-                    const { default: comparisonManager } = await import('./comparison.js');
-                    
-                    const comparison = comparisonManager.comparePeriods(period1, period2, { includeParakratisi });
-                    
-                    if (comparison.error) {
-                        showToast(comparison.message, 'warning');
-                        return;
-                    }
-                    
-                    displayComparison(comparison);
-                    showToast('Σύγκριση ολοκληρώθηκε!', 'success');
-                    
-                } catch (error) {
-                    console.error('Comparison error:', error);
-                    showToast('Σφάλμα δημιουργίας σύγκρισης', 'error');
-                }
-            });
-        }
-        
-        // Export CSV
-        if (exportComparisonCsvBtn) {
-            exportComparisonCsvBtn.addEventListener('click', async () => {
-                if (!window.currentComparison) {
-                    showToast('Δημιουργήστε πρώτα μια σύγκριση', 'warning');
-                    return;
-                }
-                
-                try {
-                    const { default: comparisonManager } = await import('./comparison.js');
-                    const csv = comparisonManager.exportToCSV(window.currentComparison);
-                    
-                    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.download = `comparison_${new Date().toISOString().slice(0, 10)}.csv`;
-                    link.click();
-                    
-                    showToast('CSV εξήχθη επιτυχώς', 'success');
-                } catch (error) {
-                    showToast('Σφάλμα export CSV', 'error');
-                }
-            });
-        }
-        
-        // Export PDF
-        if (exportComparisonPdfBtn) {
-            exportComparisonPdfBtn.addEventListener('click', async () => {
-                if (!window.currentComparison) {
-                    showToast('Δημιουργήστε πρώτα μια σύγκριση', 'warning');
-                    return;
-                }
-                
-                if (!STATE.cdnAvailable) {
-                    showToast('PDF export δεν είναι διαθέσιμο', 'error');
-                    return;
-                }
-                
-                showToast('Δημιουργία PDF...', 'info');
-                
-                try {
-                    await pdfExportManager.exportComparison(window.currentComparison);
-                    showToast('PDF εξήχθη επιτυχώς!', 'success');
-                } catch (error) {
-                    showToast('Σφάλμα export PDF', 'error');
-                }
-            });
-        }
-    }
-
-    function getPeriodConfig(prefix) {
-        const type = document.getElementById(`${prefix}Type`)?.value;
-        const year = parseInt(document.getElementById(`${prefix}Year`)?.value);
-        
-        if (!type || isNaN(year)) return null;
-        
-        const config = { type, year };
-        
-        if (type === 'quarterly') {
-            config.quarter = document.getElementById(`${prefix}Quarter`)?.value;
-        } else if (type === 'semiannual') {
-            config.semester = document.getElementById(`${prefix}Semester`)?.value;
-        } else if (type === 'custom') {
-            config.startDate = document.getElementById(`${prefix}From`)?.value;
-            config.endDate = document.getElementById(`${prefix}To`)?.value;
-            
-            if (!config.startDate || !config.endDate) {
-                return null;
-            }
-        }
-        
-        return config;
-    }
-
-    function displayComparison(comparison) {
-        // Store globally for export
-        window.currentComparison = comparison;
-        
-        // Show results, hide empty state
-        document.getElementById('comparisonResults').style.display = 'block';
-        document.getElementById('comparisonEmptyState').style.display = 'none';
-        
-        // Update headers
-        document.getElementById('comparisonPeriod1Header').textContent = comparison.period1.label;
-        document.getElementById('comparisonPeriod2Header').textContent = comparison.period2.label;
-        
-        // Summary table
-        const summaryBody = document.getElementById('comparisonSummaryBody');
-        summaryBody.innerHTML = Object.entries(comparison.summary).map(([key, data]) => {
-            const changeClass = data.change > 0 ? 'trend-positive' : data.change < 0 ? 'trend-negative' : 'trend-neutral';
-            const trendIcon = data.change > 0 ? '▲' : data.change < 0 ? '▼' : '━';
-            
-            return `
-                <tr>
-                    <td>${escapeHtml(data.label)}</td>
-                    <td class="text-right">${formatCurrency(data.period1)}</td>
-                    <td class="text-right">${formatCurrency(data.period2)}</td>
-                    <td class="text-right ${changeClass}">${formatCurrency(data.change)}</td>
-                    <td class="text-right ${changeClass}">${formatPercent(data.changePercent)}</td>
-                    <td class="text-center"><span class="trend-badge ${changeClass.replace('trend-', '')}">${trendIcon}</span></td>
-                </tr>
-            `;
-        }).join('');
-        
-        // Sources comparison
-        const sourcesBody = document.getElementById('comparisonSourcesBody');
-        sourcesBody.innerHTML = comparison.bySource.map(s => {
-            const changeClass = s.change > 0 ? 'trend-positive' : s.change < 0 ? 'trend-negative' : 'trend-neutral';
-            const trendIcon = s.change > 0 ? '▲' : s.change < 0 ? '▼' : '━';
-            
-            return `
-                <tr>
-                    <td>${escapeHtml(s.source)}</td>
-                    <td class="text-right">${formatCurrency(s.period1)}</td>
-                    <td class="text-right">${formatCurrency(s.period2)}</td>
-                    <td class="text-right ${changeClass}">${formatCurrency(s.change)}</td>
-                    <td class="text-right ${changeClass}">${formatPercent(s.changePercent)}</td>
-                    <td class="text-center"><span class="trend-badge ${changeClass.replace('trend-', '')}">${trendIcon}</span></td>
-                </tr>
-            `;
-        }).join('');
-        
-        // Insurances comparison
-        const insurancesBody = document.getElementById('comparisonInsurancesBody');
-        insurancesBody.innerHTML = comparison.byInsurance.map(i => {
-            const changeClass = i.change > 0 ? 'trend-positive' : i.change < 0 ? 'trend-negative' : 'trend-neutral';
-            const trendIcon = i.change > 0 ? '▲' : i.change < 0 ? '▼' : '━';
-            
-            return `
-                <tr>
-                    <td>${escapeHtml(i.insurance)}</td>
-                    <td class="text-right">${formatCurrency(i.period1)}</td>
-                    <td class="text-right">${formatCurrency(i.period2)}</td>
-                    <td class="text-right ${changeClass}">${formatCurrency(i.change)}</td>
-                    <td class="text-right ${changeClass}">${formatPercent(i.changePercent)}</td>
-                    <td class="text-center"><span class="trend-badge ${changeClass.replace('trend-', '')}">${trendIcon}</span></td>
-                </tr>
-            `;
-        }).join('');
-        
-        // Trends analysis
-        const trendsBody = document.getElementById('comparisonTrendsBody');
-        if (comparison.trends && comparison.trends.length > 0) {
-            trendsBody.innerHTML = `
-                <ul style="line-height: 1.8;">
-                    ${comparison.trends.map(t => `<li>${escapeHtml(t)}</li>`).join('')}
-                </ul>
-            `;
-        } else {
-            trendsBody.innerHTML = '<p style="color: var(--text-secondary);">Δεν υπάρχουν σημαντικές τάσεις</p>';
-        }
-    }
-
 // ========================================
 // Initialization
 // ========================================
@@ -1056,6 +816,246 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     setupHeatmapsView();
     setupForecastingView();
     setupComparisonView();
+
+    // ========================================
+    // Comparison View Setup
+    // ========================================
+    function setupComparisonView() {
+        const generateComparisonBtn = document.getElementById('generateComparisonBtn');
+        const exportComparisonCsvBtn = document.getElementById('exportComparisonCsvBtn');
+        const exportComparisonPdfBtn = document.getElementById('exportComparisonPdfBtn');
+        
+        // Populate year dropdowns
+        const years = reportsManager.getAvailableYears();
+        ['comparison1Year', 'comparison2Year'].forEach(id => {
+            const select = document.getElementById(id);
+            if (select && years.length > 0) {
+                select.innerHTML = years.map(y => 
+                    `<option value="${y}">${y}</option>`
+                ).join('');
+            }
+        });
+        
+        // Period type change handlers
+        ['comparison1Type', 'comparison2Type'].forEach((typeId, index) => {
+            const typeSelect = document.getElementById(typeId);
+            if (!typeSelect) return;
+            
+            const prefix = `comparison${index + 1}`;
+            
+            typeSelect.addEventListener('change', (e) => {
+                const type = e.target.value;
+                
+                // Hide all option groups
+                document.getElementById(`${prefix}Annual`).style.display = 'none';
+                document.getElementById(`${prefix}Quarterly`).style.display = 'none';
+                document.getElementById(`${prefix}Semiannual`).style.display = 'none';
+                document.getElementById(`${prefix}Custom`).style.display = 'none';
+                
+                // Show relevant options
+                if (type === 'annual') {
+                    document.getElementById(`${prefix}Annual`).style.display = 'block';
+                } else if (type === 'quarterly') {
+                    document.getElementById(`${prefix}Annual`).style.display = 'block';
+                    document.getElementById(`${prefix}Quarterly`).style.display = 'block';
+                } else if (type === 'semiannual') {
+                    document.getElementById(`${prefix}Annual`).style.display = 'block';
+                    document.getElementById(`${prefix}Semiannual`).style.display = 'block';
+                } else if (type === 'custom') {
+                    document.getElementById(`${prefix}Custom`).style.display = 'flex';
+                }
+            });
+        });
+        
+        // Generate comparison
+        if (generateComparisonBtn) {
+            generateComparisonBtn.addEventListener('click', async () => {
+                try {
+                    const includeParakratisi = document.getElementById('comparisonIncludeParakratisi')?.checked || false;
+                    
+                    // Get period 1 configuration
+                    const period1 = getPeriodConfig('comparison1');
+                    const period2 = getPeriodConfig('comparison2');
+                    
+                    if (!period1 || !period2) {
+                        showToast('Επιλέξτε και τις δύο περιόδους', 'warning');
+                        return;
+                    }
+                    
+                    showToast('Δημιουργία σύγκρισης...', 'info');
+                    
+                    // Import comparison manager (will create stub if needed)
+                    const { default: comparisonManager } = await import('./comparison.js');
+                    
+                    const comparison = comparisonManager.comparePeriods(period1, period2, { includeParakratisi });
+                    
+                    if (comparison.error) {
+                        showToast(comparison.message, 'warning');
+                        return;
+                    }
+                    
+                    displayComparison(comparison);
+                    showToast('Σύγκριση ολοκληρώθηκε!', 'success');
+                    
+                } catch (error) {
+                    console.error('Comparison error:', error);
+                    showToast('Σφάλμα δημιουργίας σύγκρισης', 'error');
+                }
+            });
+        }
+        
+        // Export CSV
+        if (exportComparisonCsvBtn) {
+            exportComparisonCsvBtn.addEventListener('click', async () => {
+                if (!window.currentComparison) {
+                    showToast('Δημιουργήστε πρώτα μια σύγκριση', 'warning');
+                    return;
+                }
+                
+                try {
+                    const { default: comparisonManager } = await import('./comparison.js');
+                    const csv = comparisonManager.exportToCSV(window.currentComparison);
+                    
+                    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `comparison_${new Date().toISOString().slice(0, 10)}.csv`;
+                    link.click();
+                    
+                    showToast('CSV εξήχθη επιτυχώς', 'success');
+                } catch (error) {
+                    showToast('Σφάλμα export CSV', 'error');
+                }
+            });
+        }
+        
+        // Export PDF
+        if (exportComparisonPdfBtn) {
+            exportComparisonPdfBtn.addEventListener('click', async () => {
+                if (!window.currentComparison) {
+                    showToast('Δημιουργήστε πρώτα μια σύγκριση', 'warning');
+                    return;
+                }
+                
+                if (!STATE.cdnAvailable) {
+                    showToast('PDF export δεν είναι διαθέσιμο', 'error');
+                    return;
+                }
+                
+                showToast('Δημιουργία PDF...', 'info');
+                
+                try {
+                    await pdfExportManager.exportComparison(window.currentComparison);
+                    showToast('PDF εξήχθη επιτυχώς!', 'success');
+                } catch (error) {
+                    showToast('Σφάλμα export PDF', 'error');
+                }
+            });
+        }
+    }
+
+    function getPeriodConfig(prefix) {
+        const type = document.getElementById(`${prefix}Type`)?.value;
+        const year = parseInt(document.getElementById(`${prefix}Year`)?.value);
+        
+        if (!type || isNaN(year)) return null;
+        
+        const config = { type, year };
+        
+        if (type === 'quarterly') {
+            config.quarter = document.getElementById(`${prefix}Quarter`)?.value;
+        } else if (type === 'semiannual') {
+            config.semester = document.getElementById(`${prefix}Semester`)?.value;
+        } else if (type === 'custom') {
+            config.startDate = document.getElementById(`${prefix}From`)?.value;
+            config.endDate = document.getElementById(`${prefix}To`)?.value;
+            
+            if (!config.startDate || !config.endDate) {
+                return null;
+            }
+        }
+        
+        return config;
+    }
+
+    function displayComparison(comparison) {
+        // Store globally for export
+        window.currentComparison = comparison;
+        
+        // Show results, hide empty state
+        document.getElementById('comparisonResults').style.display = 'block';
+        document.getElementById('comparisonEmptyState').style.display = 'none';
+        
+        // Update headers
+        document.getElementById('comparisonPeriod1Header').textContent = comparison.period1.label;
+        document.getElementById('comparisonPeriod2Header').textContent = comparison.period2.label;
+        
+        // Summary table
+        const summaryBody = document.getElementById('comparisonSummaryBody');
+        summaryBody.innerHTML = Object.entries(comparison.summary).map(([key, data]) => {
+            const changeClass = data.change > 0 ? 'trend-positive' : data.change < 0 ? 'trend-negative' : 'trend-neutral';
+            const trendIcon = data.change > 0 ? '▲' : data.change < 0 ? '▼' : '━';
+            
+            return `
+                <tr>
+                    <td>${escapeHtml(data.label)}</td>
+                    <td class="text-right">${formatCurrency(data.period1)}</td>
+                    <td class="text-right">${formatCurrency(data.period2)}</td>
+                    <td class="text-right ${changeClass}">${formatCurrency(data.change)}</td>
+                    <td class="text-right ${changeClass}">${formatPercent(data.changePercent)}</td>
+                    <td class="text-center"><span class="trend-badge ${changeClass.replace('trend-', '')}">${trendIcon}</span></td>
+                </tr>
+            `;
+        }).join('');
+        
+        // Sources comparison
+        const sourcesBody = document.getElementById('comparisonSourcesBody');
+        sourcesBody.innerHTML = comparison.bySource.map(s => {
+            const changeClass = s.change > 0 ? 'trend-positive' : s.change < 0 ? 'trend-negative' : 'trend-neutral';
+            const trendIcon = s.change > 0 ? '▲' : s.change < 0 ? '▼' : '━';
+            
+            return `
+                <tr>
+                    <td>${escapeHtml(s.source)}</td>
+                    <td class="text-right">${formatCurrency(s.period1)}</td>
+                    <td class="text-right">${formatCurrency(s.period2)}</td>
+                    <td class="text-right ${changeClass}">${formatCurrency(s.change)}</td>
+                    <td class="text-right ${changeClass}">${formatPercent(s.changePercent)}</td>
+                    <td class="text-center"><span class="trend-badge ${changeClass.replace('trend-', '')}">${trendIcon}</span></td>
+                </tr>
+            `;
+        }).join('');
+        
+        // Insurances comparison
+        const insurancesBody = document.getElementById('comparisonInsurancesBody');
+        insurancesBody.innerHTML = comparison.byInsurance.map(i => {
+            const changeClass = i.change > 0 ? 'trend-positive' : i.change < 0 ? 'trend-negative' : 'trend-neutral';
+            const trendIcon = i.change > 0 ? '▲' : i.change < 0 ? '▼' : '━';
+            
+            return `
+                <tr>
+                    <td>${escapeHtml(i.insurance)}</td>
+                    <td class="text-right">${formatCurrency(i.period1)}</td>
+                    <td class="text-right">${formatCurrency(i.period2)}</td>
+                    <td class="text-right ${changeClass}">${formatCurrency(i.change)}</td>
+                    <td class="text-right ${changeClass}">${formatPercent(i.changePercent)}</td>
+                    <td class="text-center"><span class="trend-badge ${changeClass.replace('trend-', '')}">${trendIcon}</span></td>
+                </tr>
+            `;
+        }).join('');
+        
+        // Trends analysis
+        const trendsBody = document.getElementById('comparisonTrendsBody');
+        if (comparison.trends && comparison.trends.length > 0) {
+            trendsBody.innerHTML = `
+                <ul style="line-height: 1.8;">
+                    ${comparison.trends.map(t => `<li>${escapeHtml(t)}</li>`).join('')}
+                </ul>
+            `;
+        } else {
+            trendsBody.innerHTML = '<p style="color: var(--text-secondary);">Δεν υπάρχουν σημαντικές τάσεις</p>';
+        }
+    }
 
     // ========================================
     // Forecasting View Setup (after heatmaps setup)
