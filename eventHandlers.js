@@ -347,6 +347,16 @@ function initializeReportsTab() {
             `<option value="${y}">${y}</option>`
         ).join('');
     }
+    
+    // ✅ NEW: Show empty state if not already showing results
+    const reportResults = document.getElementById('reportResults');
+    const reportEmptyState = document.getElementById('reportEmptyState');
+    if (reportResults && reportEmptyState) {
+        if (reportResults.style.display !== 'block') {
+            reportResults.style.display = 'none';
+            reportEmptyState.style.display = 'block';
+        }
+    }
 }
 
 function initializeComparisonTab() {
@@ -360,10 +370,28 @@ function initializeComparisonTab() {
             ).join('');
         }
     });
+    
+    // ✅ NEW: Show empty state
+    const comparisonResults = document.getElementById('comparisonResults');
+    const comparisonEmptyState = document.getElementById('comparisonEmptyState');
+    if (comparisonResults && comparisonEmptyState) {
+        if (comparisonResults.style.display !== 'block') {
+            comparisonResults.style.display = 'none';
+            comparisonEmptyState.style.display = 'block';
+        }
+    }
 }
 
 function initializeForecastingTab() {
-    // No special initialization needed - form is pre-configured
+    // ✅ NEW: Show empty state
+    const forecastResults = document.getElementById('forecastResults');
+    const forecastEmptyState = document.getElementById('forecastEmptyState');
+    if (forecastResults && forecastEmptyState) {
+        if (forecastResults.style.display !== 'block') {
+            forecastResults.style.display = 'none';
+            forecastEmptyState.style.display = 'block';
+        }
+    }
 }
 
 function initializeHeatmapsTab() {
@@ -375,10 +403,18 @@ function initializeHeatmapsTab() {
             `<option value="${y}">${y}</option>`
         ).join('');
     }
+    
+    // ✅ NEW: Hide heatmap cards by default
+    const monthYearCard = document.getElementById('monthYearHeatmapCard');
+    const sourceMonthCard = document.getElementById('sourceMonthHeatmapCard');
+    if (monthYearCard) monthYearCard.style.display = 'none';
+    if (sourceMonthCard) sourceMonthCard.style.display = 'none';
 }
 
 function initializeCloudTab() {
-    // Cloud initialization is handled by setupCloudSyncView()
+    // Cloud initialization is handled by setupCloudSyncView() in app.js
+    // Just make sure the cards are visible
+    console.log('[Cloud] Tab initialized');
 }
 
 // ========================================
