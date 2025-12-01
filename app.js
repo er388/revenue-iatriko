@@ -60,18 +60,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('✅ All CDN libraries available');
     }
 
-    // Start periodic monitoring (disabled for now - causes issues)
-    // periodicChecker.start(); // Check every 60s
+    // Start periodic monitoring
+    periodicChecker.start(); // Check every 60s
 
-    // Add listener για state updates (simplified)
-    // cdnChecker.addListener((status) => {
-    //     STATE.cdnAvailable = Object.values(status).every(s => s.available);
-    //     
-    //     // Re-render if needed
-    //     if (STATE.currentView === 'dashboard' && cdnChecker.isAvailable('chartjs')) {
-    //         renderDashboard();
-    //     }
-    // });
+    // Add listener για state updates
+    cdnChecker.addListener((status) => {
+        STATE.cdnAvailable = Object.values(status).every(s => s.available);
+        
+        // Re-render if needed
+        if (STATE.currentView === 'dashboard' && cdnChecker.isAvailable('chartjs')) {
+            renderDashboard();
+        }
+    });
 
     // Initialize storage & load data
     console.log('💾 Initializing storage...');
@@ -1293,10 +1293,10 @@ window.exportChartPDF = async function(canvasId) {
                 const registration = await navigator.serviceWorker.register('./service-worker.js');
                 console.log('✅ Service Worker registered:', registration.scope);
                 
-                // ❌ DISABLE PERIODIC UPDATES (causes issues)
-                // setInterval(() => {
-                //     registration.update();
-                // }, 60 * 60 * 1000);
+                // Check for updates periodically
+                setInterval(() => {
+                    registration.update();
+                }, 60 * 60 * 1000); // Check every hour
                 
                 // Listen for updates
                 registration.addEventListener('updatefound', () => {
