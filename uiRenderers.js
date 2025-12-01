@@ -15,7 +15,6 @@ import {
     formatMonthYear,
     formatPercent
 } from './utils.js';
-import { applyFilters } from './filters.js';
 
 // ========================================
 // Toast Notifications
@@ -319,6 +318,93 @@ function renderMonthlyChart(entries) {
 // ========================================
 
 /**
+ * Apply sorting based on STATE.sortColumn and STATE.sortDirection
+ * @param {Array} entries - Entries to sort
+ * @returns {Array} Sorted entries
+ */
+function applySorting(entries) {
+    if (!STATE.sortColumn) {
+        // Default: sort by date DESC
+        return [...entries].sort((a, b) => compareDates(b.date, a.date));
+    }
+    
+    const sorted = [...entries].sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (STATE.sortColumn) {
+            case 'date':
+                return compareDates(a.date, b.date);
+            
+            case 'source':
+                aVal = (a.source || '').toLowerCase();
+                bVal = (b.source || '').toLowerCase();
+                break;
+            
+            case 'insurance':
+                aVal = (a.insurance || '').toLowerCase();
+                bVal = (b.insurance || '').toLowerCase();
+                break;
+            
+            case 'type':
+                aVal = a.type === 'cash' ? 0 : 1;
+                bVal = b.type === 'cash' ? 0 : 1;
+                break;
+            
+            case 'originalAmount':
+                aVal = parseFloat(a.originalAmount || a.amount || 0);
+                bVal = parseFloat(b.originalAmount || b.amount || 0);
+                break;
+            
+            case 'finalAmount':
+                const amountsA = eopyyDeductionsManager.getAmountsBreakdown(a);
+                const amountsB = eopyyDeductionsManager.getAmountsBreakdown(b);
+                aVal = amountsA.finalAmount;
+                bVal = amountsB.finalAmount;
+                break;
+            
+            default:
+                return 0;
+        }
+        
+        // Proper comparison
+        if (aVal < bVal) return -1;
+        if (aVal > bVal) return 1;
+        return 0;
+    });
+    
+    // Apply direction
+    return STATE.sortDirection === 'desc' ? sorted.reverse() : sorted;
+}
+
+
+/**
+ * Temporary filter stub (will be replaced by filters.js)
+ * @returns {Array} Filtered entries
+ */
+function applyFiltersStub() {
+    let filtered = [...STATE.entries];
+    
+    // Apply basic filters from STATE.filters
+    if (STATE.filters.dateFrom) {
+        filtered = filtered.filter(e => compareDates(e.date, STATE.filters.dateFrom) >= 0);
+    }
+    if (STATE.filters.dateTo) {
+        filtered = filtered.filter(e => compareDates(e.date, STATE.filters.dateTo) <= 0);
+    }
+    if (STATE.filters.source) {
+        filtered = filtered.filter(e => e.source === STATE.filters.source);
+    }
+    if (STATE.filters.insurance) {
+        filtered = filtered.filter(e => e.insurance === STATE.filters.insurance);
+    }
+    if (STATE.filters.type) {
+        filtered = filtered.filter(e => e.type === STATE.filters.type);
+    }
+    
+    return filtered;
+}
+
+/**
  * ✅ RENDER ENTRIES TABLE - MAIN FUNCTION
  * Render entries table with filters, sorting, pagination
  */
@@ -326,11 +412,11 @@ export function renderEntriesTable() {
     const tbody = document.getElementById('entriesTableBody');
     if (!tbody) return;
 
-    // ✅ Apply filters (from filters.js)
-    const filtered = applyFilters();
+    // Apply filters (stub for now - will implement filters.js later)
+    const filtered = applyFiltersStub();
     
-    // ✅ Apply sorting (using sortEntries function below)
-    const sorted = sortEntries(filtered);
+    // Apply sorting
+    const sorted = applySorting(filtered);
     
     // Calculate pagination
     const totalPages = Math.ceil(sorted.length / STATE.pageSize);
@@ -380,7 +466,7 @@ export function renderEntriesTable() {
 
     renderPagination(sorted.length, totalPages);
 
-    // Setup sorting (only once)
+    // Setup sorting AFTER render
     setupTableSorting();
 }
 
@@ -634,150 +720,40 @@ function getDragAfterElement(container, y) {
 /**
  * ✅ FIXED: Setup sortable table columns with proper event handling
  */
-/**
- * Setup table sorting functionality
- */
 export function setupTableSorting() {
-    const table = document.querySelector('#entriesTableBody')?.closest('table');
-    if (!table) return;
-    
-    // ✅ Prevent multiple initializations
-    if (table.dataset.sortingInitialized === 'true') return;
-    table.dataset.sortingInitialized = 'true';
-    
-    const headers = table.querySelectorAll('th[data-sortable]');
+    const headers = document.querySelectorAll('.data-table th[data-sortable]');
     
     headers.forEach(header => {
-        const column = header.getAttribute('data-sortable');
+        // ✅ CRITICAL: Remove ALL existing listeners to prevent duplicates
+        const newHeader = header.cloneNode(true);
+        header.parentNode.replaceChild(newHeader, header);
         
-        // Add cursor pointer
-        header.style.cursor = 'pointer';
-        header.style.userSelect = 'none';
+        // Style cursor
+        newHeader.style.cursor = 'pointer';
         
-        // Add click handler
-        header.addEventListener('click', () => {
-            // Get current sort direction
-            let currentDirection = STATE.sortColumn === column ? STATE.sortDirection : null;
+        // Add click listener
+        newHeader.addEventListener('click', () => {
+            const column = newHeader.getAttribute('data-sortable');
             
-            // Cycle: null → asc → desc → null
-            let newDirection;
-            if (!currentDirection) {
-                newDirection = 'asc';
-            } else if (currentDirection === 'asc') {
-                newDirection = 'desc';
+            // Toggle sort direction
+            if (STATE.sortColumn === column) {
+                STATE.sortDirection = STATE.sortDirection === 'asc' ? 'desc' : 'asc';
             } else {
-                newDirection = null;
-            }
-            
-            // Update state
-            if (newDirection) {
                 STATE.sortColumn = column;
-                STATE.sortDirection = newDirection;
-            } else {
-                STATE.sortColumn = null;
                 STATE.sortDirection = 'asc';
             }
             
-            // Update UI
-            updateSortIndicators(table, column, newDirection);
+            // ✅ Update ALL header indicators (not just clicked one)
+            document.querySelectorAll('.data-table th[data-sortable]').forEach(h => {
+                h.classList.remove('sort-asc', 'sort-desc');
+            });
             
-            // Re-render table
+            // Add class to current sorted column
+            newHeader.classList.add(`sort-${STATE.sortDirection}`);
+            
+            // ✅ Re-render table with new sort
             renderEntriesTable();
         });
-    });
-    
-    console.log('[UI] Table sorting initialized');
-}
-
-/**
- * Update sort indicators in table headers
- * @param {HTMLElement} table - Table element
- * @param {string} column - Current sort column
- * @param {string|null} direction - Sort direction
- */
-/**
- * Update sort indicators in table headers using CSS classes
- * @param {HTMLElement} table - Table element
- * @param {string} column - Current sort column
- * @param {string|null} direction - Sort direction
- */
-function updateSortIndicators(table, column, direction) {
-    const headers = table.querySelectorAll('th[data-sortable]');
-    
-    headers.forEach(header => {
-        const col = header.getAttribute('data-sortable');
-        
-        // Remove all sort classes
-        header.classList.remove('sort-asc', 'sort-desc');
-        
-        // Add appropriate class
-        if (col === column && direction) {
-            header.classList.add(`sort-${direction}`);
-        }
-    });
-}
-
-/**
- * Sort entries based on current sort state
- * @param {Array} entries - Entries to sort
- * @returns {Array} Sorted entries
- */
-export function sortEntries(entries) {
-    if (!STATE.sortColumn) {
-        // ✅ Default: sort by date DESC (newest first)
-        return [...entries].sort((a, b) => compareDates(b.date, a.date));
-    }
-    
-    const column = STATE.sortColumn;
-    const direction = STATE.sortDirection;
-    const multiplier = direction === 'asc' ? 1 : -1;
-    
-    return [...entries].sort((a, b) => {
-        let valA, valB;
-        
-        // Get values based on column
-        switch (column) {
-            case 'date':
-                valA = a.date;
-                valB = b.date;
-                // Use compareDates from utils
-                return compareDates(valA, valB) * multiplier;
-                
-            case 'source':
-                valA = (a.source || '').toLowerCase();
-                valB = (b.source || '').toLowerCase();
-                break;
-                
-            case 'insurance':
-                valA = (a.insurance || '').toLowerCase();
-                valB = (b.insurance || '').toLowerCase();
-                break;
-                
-            case 'type':
-                valA = a.type === 'cash' ? 'Μετρητά' : 'Τιμολόγια';
-                valB = b.type === 'cash' ? 'Μετρητά' : 'Τιμολόγια';
-                break;
-                
-            case 'originalAmount':
-                valA = a.originalAmount || a.amount || 0;
-                valB = b.originalAmount || b.amount || 0;
-                return (valA - valB) * multiplier;
-                
-            case 'finalAmount':
-                const amountsA = eopyyDeductionsManager.getAmountsBreakdown(a);
-                const amountsB = eopyyDeductionsManager.getAmountsBreakdown(b);
-                valA = amountsA.finalAmount;
-                valB = amountsB.finalAmount;
-                return (valA - valB) * multiplier;
-                
-            default:
-                return 0;
-        }
-        
-        // String comparison
-        if (valA < valB) return -1 * multiplier;
-        if (valA > valB) return 1 * multiplier;
-        return 0;
     });
 }
 
