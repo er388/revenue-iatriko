@@ -38,6 +38,7 @@ import {
 } from './utils.js';
 import reportsManager from './reports.js';
 import forecastingManager from './forecasting.js';
+import heatmapManager from './heatmaps.js';
 
 // ========================================
 // Initialization
@@ -342,6 +343,7 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         // ========================================
         setupReportsView();
         setupForecastingView();
+        setupHeatmapsView();
 
 
         function setupReportsView() {
@@ -409,237 +411,712 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         }
 
         /**
-     * Setup Forecasting View
-     */
-    function setupForecastingView() {
-        console.log('⚙️ Setting up Forecasting view...');
-        
-        const forecastMethod = document.getElementById('forecastMethod');
-        const forecastPeriods = document.getElementById('forecastPeriods');
-        const forecastPeriodsLabel = document.getElementById('forecastPeriodsLabel');
-        const forecastIncludeParakratisi = document.getElementById('forecastIncludeParakratisi');
-        const generateForecastBtn = document.getElementById('generateForecastBtn');
-        const resetForecastBtn = document.getElementById('resetForecastBtn');
-        const exportForecastCsvBtn = document.getElementById('exportForecastCsvBtn');
-        const exportForecastPdfBtn = document.getElementById('exportForecastPdfBtn');
-        const fullscreenChartBtn = document.getElementById('fullscreenChartBtn');
-        
-        // Holt-Winters parameters
-        const hwAlpha = document.getElementById('hwAlpha');
-        const hwBeta = document.getElementById('hwBeta');
-        const hwGamma = document.getElementById('hwGamma');
-        const hwAlphaLabel = document.getElementById('hwAlphaLabel');
-        const hwBetaLabel = document.getElementById('hwBetaLabel');
-        const hwGammaLabel = document.getElementById('hwGammaLabel');
-        const hwAdvancedOptions = document.getElementById('hwAdvancedOptions');
-        
-        let currentForecast = null;
-        
-        // Update method description
-        const methodDescriptions = {
-            linear: 'Γραμμική τάση - Καλύτερη για σταθερά αυξανόμενα/μειούμενα έσοδα',
-            seasonal: 'Εποχικό μοντέλο - Ιδανικό όταν υπάρχει επαναλαμβανόμενο pattern',
-            'holt-winters': 'Προηγμένο μοντέλο - Συνδυάζει τάση και εποχικότητα'
-        };
-        
-        if (forecastMethod) {
-            forecastMethod.addEventListener('change', (e) => {
-                const method = e.target.value;
-                const descEl = document.getElementById('methodDescription');
+             * Setup Forecasting View
+             */
+            function setupForecastingView() {
+                console.log('⚙️ Setting up Forecasting view...');
                 
-                if (descEl) {
-                    descEl.textContent = methodDescriptions[method] || '';
-                    descEl.className = `help-text method-description ${method}`;
-                }
+                const forecastMethod = document.getElementById('forecastMethod');
+                const forecastPeriods = document.getElementById('forecastPeriods');
+                const forecastPeriodsLabel = document.getElementById('forecastPeriodsLabel');
+                const forecastIncludeParakratisi = document.getElementById('forecastIncludeParakratisi');
+                const generateForecastBtn = document.getElementById('generateForecastBtn');
+                const resetForecastBtn = document.getElementById('resetForecastBtn');
+                const exportForecastCsvBtn = document.getElementById('exportForecastCsvBtn');
+                const exportForecastPdfBtn = document.getElementById('exportForecastPdfBtn');
+                const fullscreenChartBtn = document.getElementById('fullscreenChartBtn');
                 
-                // Show/hide Holt-Winters options
-                if (hwAdvancedOptions) {
-                    hwAdvancedOptions.style.display = method === 'holt-winters' ? 'block' : 'none';
-                }
-            });
-        }
-        
-        // Update periods label
-        if (forecastPeriods && forecastPeriodsLabel) {
-            forecastPeriods.addEventListener('input', (e) => {
-                const periods = e.target.value;
-                forecastPeriodsLabel.textContent = `${periods} μήνες`;
-            });
-        }
-        
-        // Update HW parameter labels
-        if (hwAlpha && hwAlphaLabel) {
-            hwAlpha.addEventListener('input', (e) => {
-                hwAlphaLabel.textContent = parseFloat(e.target.value).toFixed(2);
-            });
-        }
-        
-        if (hwBeta && hwBetaLabel) {
-            hwBeta.addEventListener('input', (e) => {
-                hwBetaLabel.textContent = parseFloat(e.target.value).toFixed(2);
-            });
-        }
-        
-        if (hwGamma && hwGammaLabel) {
-            hwGamma.addEventListener('input', (e) => {
-                hwGammaLabel.textContent = parseFloat(e.target.value).toFixed(2);
-            });
-        }
-        
-        // Generate Forecast Button
-        if (generateForecastBtn) {
-            generateForecastBtn.addEventListener('click', async () => {
-                console.log('🔮 Generating forecast...');
+                // Holt-Winters parameters
+                const hwAlpha = document.getElementById('hwAlpha');
+                const hwBeta = document.getElementById('hwBeta');
+                const hwGamma = document.getElementById('hwGamma');
+                const hwAlphaLabel = document.getElementById('hwAlphaLabel');
+                const hwBetaLabel = document.getElementById('hwBetaLabel');
+                const hwGammaLabel = document.getElementById('hwGammaLabel');
+                const hwAdvancedOptions = document.getElementById('hwAdvancedOptions');
                 
-                // Get parameters
-                const method = forecastMethod?.value || 'linear';
-                const periods = parseInt(forecastPeriods?.value || 6);
-                const includeParakratisi = forecastIncludeParakratisi?.checked || false;
+                let currentForecast = null;
                 
-                // HW parameters
-                const hwOptions = method === 'holt-winters' ? {
-                    alpha: parseFloat(hwAlpha?.value || 0.2),
-                    beta: parseFloat(hwBeta?.value || 0.1),
-                    gamma: parseFloat(hwGamma?.value || 0.1)
-                } : {};
+                // Update method description
+                const methodDescriptions = {
+                    linear: 'Γραμμική τάση - Καλύτερη για σταθερά αυξανόμενα/μειούμενα έσοδα',
+                    seasonal: 'Εποχικό μοντέλο - Ιδανικό όταν υπάρχει επαναλαμβανόμενο pattern',
+                    'holt-winters': 'Προηγμένο μοντέλο - Συνδυάζει τάση και εποχικότητα'
+                };
                 
-                // Validate data
-                if (STATE.entries.length === 0) {
-                    showToast('Δεν υπάρχουν δεδομένα για πρόβλεψη', 'warning');
-                    return;
-                }
-                
-                // Show loading
-                showLoadingIndicator(true);
-                
-                try {
-                    // Generate forecast
-                    const result = await new Promise((resolve) => {
-                        setTimeout(() => {
-                            const forecast = forecastingManager.generateForecast(
-                                STATE.entries,
-                                method,
-                                periods,
-                                { includeParakratisi, ...hwOptions }
-                            );
-                            resolve(forecast);
-                        }, 500); // Small delay for UX
-                    });
-                    
-                    if (result.success) {
-                        currentForecast = result;
-                        displayForecastResults(result);
-                        showToast('Πρόβλεψη δημιουργήθηκε επιτυχώς', 'success');
+                if (forecastMethod) {
+                    forecastMethod.addEventListener('change', (e) => {
+                        const method = e.target.value;
+                        const descEl = document.getElementById('methodDescription');
                         
-                        if (resetForecastBtn) {
-                            resetForecastBtn.style.display = 'inline-flex';
+                        if (descEl) {
+                            descEl.textContent = methodDescriptions[method] || '';
+                            descEl.className = `help-text method-description ${method}`;
+                        }
+                        
+                        // Show/hide Holt-Winters options
+                        if (hwAdvancedOptions) {
+                            hwAdvancedOptions.style.display = method === 'holt-winters' ? 'block' : 'none';
+                        }
+                    });
+                }
+                
+                // Update periods label
+                if (forecastPeriods && forecastPeriodsLabel) {
+                    forecastPeriods.addEventListener('input', (e) => {
+                        const periods = e.target.value;
+                        forecastPeriodsLabel.textContent = `${periods} μήνες`;
+                    });
+                }
+                
+                // Update HW parameter labels
+                if (hwAlpha && hwAlphaLabel) {
+                    hwAlpha.addEventListener('input', (e) => {
+                        hwAlphaLabel.textContent = parseFloat(e.target.value).toFixed(2);
+                    });
+                }
+                
+                if (hwBeta && hwBetaLabel) {
+                    hwBeta.addEventListener('input', (e) => {
+                        hwBetaLabel.textContent = parseFloat(e.target.value).toFixed(2);
+                    });
+                }
+                
+                if (hwGamma && hwGammaLabel) {
+                    hwGamma.addEventListener('input', (e) => {
+                        hwGammaLabel.textContent = parseFloat(e.target.value).toFixed(2);
+                    });
+                }
+                
+                // Generate Forecast Button
+                if (generateForecastBtn) {
+                    generateForecastBtn.addEventListener('click', async () => {
+                        console.log('🔮 Generating forecast...');
+                        
+                        // Get parameters
+                        const method = forecastMethod?.value || 'linear';
+                        const periods = parseInt(forecastPeriods?.value || 6);
+                        const includeParakratisi = forecastIncludeParakratisi?.checked || false;
+                        
+                        // HW parameters
+                        const hwOptions = method === 'holt-winters' ? {
+                            alpha: parseFloat(hwAlpha?.value || 0.2),
+                            beta: parseFloat(hwBeta?.value || 0.1),
+                            gamma: parseFloat(hwGamma?.value || 0.1)
+                        } : {};
+                        
+                        // Validate data
+                        if (STATE.entries.length === 0) {
+                            showToast('Δεν υπάρχουν δεδομένα για πρόβλεψη', 'warning');
+                            return;
+                        }
+                        
+                        // Show loading
+                        showLoadingIndicator(true);
+                        
+                        try {
+                            // Generate forecast
+                            const result = await new Promise((resolve) => {
+                                setTimeout(() => {
+                                    const forecast = forecastingManager.generateForecast(
+                                        STATE.entries,
+                                        method,
+                                        periods,
+                                        { includeParakratisi, ...hwOptions }
+                                    );
+                                    resolve(forecast);
+                                }, 500); // Small delay for UX
+                            });
+                            
+                            if (result.success) {
+                                currentForecast = result;
+                                displayForecastResults(result);
+                                showToast('Πρόβλεψη δημιουργήθηκε επιτυχώς', 'success');
+                                
+                                if (resetForecastBtn) {
+                                    resetForecastBtn.style.display = 'inline-flex';
+                                }
+                            } else {
+                                showToast(result.error || 'Σφάλμα δημιουργίας πρόβλεψης', 'error');
+                            }
+                        } catch (error) {
+                            console.error('Forecast error:', error);
+                            showToast('Σφάλμα: ' + error.message, 'error');
+                        } finally {
+                            showLoadingIndicator(false);
+                        }
+                    });
+                }
+                
+                // Reset Forecast Button
+                if (resetForecastBtn) {
+                    resetForecastBtn.addEventListener('click', () => {
+                        currentForecast = null;
+                        document.getElementById('forecastResultsSection').style.display = 'none';
+                        document.getElementById('forecastEmptyState').style.display = 'block';
+                        resetForecastBtn.style.display = 'none';
+                        
+                        // Destroy chart
+                        if (STATE.charts['forecastChart']) {
+                            STATE.charts['forecastChart'].destroy();
+                            delete STATE.charts['forecastChart'];
+                        }
+                        
+                        showToast('Πρόβλεψη επαναφέρθηκε', 'info');
+                    });
+                }
+                
+                // Export CSV Button
+                if (exportForecastCsvBtn) {
+                    exportForecastCsvBtn.addEventListener('click', () => {
+                        if (!currentForecast) {
+                            showToast('Δημιουργήστε πρώτα μια πρόβλεψη', 'warning');
+                            return;
+                        }
+                        
+                        forecastingManager.exportForecastCSV(currentForecast);
+                    });
+                }
+                
+                // Export PDF Button
+                if (exportForecastPdfBtn) {
+                    exportForecastPdfBtn.addEventListener('click', async () => {
+                        if (!currentForecast) {
+                            showToast('Δημιουργήστε πρώτα μια πρόβλεψη', 'warning');
+                            return;
+                        }
+                        
+                        if (!STATE.cdnAvailable) {
+                            showToast('PDF export δεν είναι διαθέσιμο (CDN offline)', 'error');
+                            return;
+                        }
+                        
+                        showToast('Δημιουργία PDF...', 'info');
+                        
+                        try {
+                            await pdfExportManager.exportHeatmap('forecastChart', 'Forecast_Report');
+                            showToast('PDF δημιουργήθηκε επιτυχώς', 'success');
+                        } catch (error) {
+                            console.error('PDF export error:', error);
+                            showToast('Σφάλμα δημιουργίας PDF', 'error');
+                        }
+                    });
+                }
+                
+                // Fullscreen Chart Button
+                if (fullscreenChartBtn) {
+                    fullscreenChartBtn.addEventListener('click', () => {
+                        const canvas = document.getElementById('forecastChart');
+                        if (!canvas) return;
+                        
+                        if (canvas.classList.contains('chart-fullscreen')) {
+                            // Exit fullscreen
+                            canvas.classList.remove('chart-fullscreen');
+                            document.body.style.overflow = '';
+                            
+                            // Remove overlay
+                            const overlay = document.querySelector('.chart-fullscreen-overlay');
+                            if (overlay) {
+                                overlay.remove();
+                            }
+                        } else {
+                            // Enter fullscreen
+                            canvas.classList.add('chart-fullscreen');
+                            document.body.style.overflow = 'hidden';
+                            
+                            // Add overlay
+                            const overlay = document.createElement('div');
+                            overlay.className = 'chart-fullscreen-overlay';
+                            overlay.addEventListener('click', () => {
+                                fullscreenChartBtn.click(); // Exit fullscreen
+                            });
+                            document.body.appendChild(overlay);
+                        }
+                        
+                        // Trigger chart resize
+                        if (STATE.charts['forecastChart']) {
+                            STATE.charts['forecastChart'].resize();
+                        }
+                    });
+                }
+                
+                console.log('✅ Forecasting view setup complete');
+            }
+
+            /**
+         * Setup Heatmaps View
+         */
+        function setupHeatmapsView() {
+            console.log('⚙️ Setting up Heatmaps view...');
+            
+            const heatmapType = document.getElementById('heatmapType');
+            const heatmapMetric = document.getElementById('heatmapMetric');
+            const heatmapIncludeParakratisi = document.getElementById('heatmapIncludeParakratisi');
+            const generateHeatmapBtn = document.getElementById('generateHeatmapBtn');
+            const resetHeatmapBtn = document.getElementById('resetHeatmapBtn');
+            const exportHeatmapPngBtn = document.getElementById('exportHeatmapPngBtn');
+            const exportHeatmapPdfBtn = document.getElementById('exportHeatmapPdfBtn');
+            const zoomInBtn = document.getElementById('zoomInBtn');
+            const zoomOutBtn = document.getElementById('zoomOutBtn');
+            const fullscreenHeatmapBtn = document.getElementById('fullscreenHeatmapBtn');
+            
+            let currentHeatmap = null;
+            let currentZoom = 100; // Percentage
+            
+            // Type descriptions
+            const typeDescriptions = {
+                'month-year': 'Εμφάνιση κατανομής εσόδων ανά μήνα και έτος - ιδανικό για εντοπισμό εποχικών patterns',
+                'source-month': 'Δείτε ποια διαγνωστικά κέντρα είχαν έσοδα σε ποιους μήνες',
+                'insurance-month': 'Ανάλυση κατανομής ασφαλειών στο χρόνο'
+            };
+            
+            // Update type description
+            if (heatmapType) {
+                heatmapType.addEventListener('change', (e) => {
+                    const descEl = document.getElementById('heatmapTypeDescription');
+                    if (descEl) {
+                        descEl.textContent = typeDescriptions[e.target.value] || '';
+                        descEl.className = `help-text heatmap-type-info ${e.target.value}`;
+                    }
+                });
+            }
+            
+            // Generate Heatmap Button
+            if (generateHeatmapBtn) {
+                generateHeatmapBtn.addEventListener('click', async () => {
+                    console.log('🌡️ Generating heatmap...');
+                    
+                    // Get parameters
+                    const type = heatmapType?.value || 'month-year';
+                    const metric = heatmapMetric?.value || 'revenue';
+                    const includeParakratisi = heatmapIncludeParakratisi?.checked || false;
+                    
+                    // Validate data
+                    if (STATE.entries.length === 0) {
+                        showToast('Δεν υπάρχουν δεδομένα για heatmap', 'warning');
+                        return;
+                    }
+                    
+                    // Show loading
+                    showHeatmapLoadingIndicator(true);
+                    
+                    try {
+                        // Generate heatmap data
+                        let heatmapData;
+                        
+                        await new Promise(resolve => setTimeout(resolve, 300)); // UX delay
+                        
+                        switch (type) {
+                            case 'month-year':
+                                heatmapData = heatmapManager.generateMonthYearHeatmap(
+                                    STATE.entries,
+                                    { includeParakratisi, metric }
+                                );
+                                break;
+                            case 'source-month':
+                                heatmapData = heatmapManager.generateSourceMonthHeatmap(
+                                    STATE.entries,
+                                    { includeParakratisi, metric }
+                                );
+                                break;
+                            case 'insurance-month':
+                                heatmapData = heatmapManager.generateInsuranceMonthHeatmap(
+                                    STATE.entries,
+                                    { includeParakratisi, metric }
+                                );
+                                break;
+                            default:
+                                throw new Error('Άγνωστος τύπος heatmap');
+                        }
+                        
+                        // Render on canvas
+                        const result = heatmapManager.renderCanvas(heatmapData, 'heatmapCanvas');
+                        
+                        if (result) {
+                            currentHeatmap = { data: heatmapData, ...result };
+                            displayHeatmapResults(heatmapData);
+                            showToast('Heatmap δημιουργήθηκε επιτυχώς', 'success');
+                            
+                            if (resetHeatmapBtn) {
+                                resetHeatmapBtn.style.display = 'inline-flex';
+                            }
+                        } else {
+                            showToast('Σφάλμα rendering heatmap', 'error');
+                        }
+                        
+                    } catch (error) {
+                        console.error('Heatmap error:', error);
+                        showToast('Σφάλμα: ' + error.message, 'error');
+                    } finally {
+                        showHeatmapLoadingIndicator(false);
+                    }
+                });
+            }
+            
+            // Reset Heatmap Button
+            if (resetHeatmapBtn) {
+                resetHeatmapBtn.addEventListener('click', () => {
+                    currentHeatmap = null;
+                    currentZoom = 100;
+                    
+                    document.getElementById('heatmapDisplaySection').style.display = 'none';
+                    document.getElementById('heatmapEmptyState').style.display = 'block';
+                    resetHeatmapBtn.style.display = 'none';
+                    
+                    // Clear canvas
+                    const canvas = document.getElementById('heatmapCanvas');
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    }
+                    
+                    // Destroy heatmap
+                    heatmapManager.destroy('heatmapCanvas');
+                    
+                    showToast('Heatmap επαναφέρθηκε', 'info');
+                });
+            }
+            
+            // Export PNG Button
+            if (exportHeatmapPngBtn) {
+                exportHeatmapPngBtn.addEventListener('click', () => {
+                    if (!currentHeatmap) {
+                        showToast('Δημιουργήστε πρώτα ένα heatmap', 'warning');
+                        return;
+                    }
+                    
+                    heatmapManager.exportHeatmapPNG(
+                        'heatmapCanvas',
+                        `heatmap_${currentHeatmap.data.type}`
+                    );
+                });
+            }
+            
+            // Export PDF Button
+            if (exportHeatmapPdfBtn) {
+                exportHeatmapPdfBtn.addEventListener('click', async () => {
+                    if (!currentHeatmap) {
+                        showToast('Δημιουργήστε πρώτα ένα heatmap', 'warning');
+                        return;
+                    }
+                    
+                    if (!STATE.cdnAvailable) {
+                        showToast('PDF export δεν είναι διαθέσιμο (CDN offline)', 'error');
+                        return;
+                    }
+                    
+                    showToast('Δημιουργία PDF...', 'info');
+                    
+                    try {
+                        await pdfExportManager.exportHeatmap(
+                            'heatmapCanvas',
+                            `Heatmap_${currentHeatmap.data.type}`
+                        );
+                        showToast('PDF δημιουργήθηκε επιτυχώς', 'success');
+                    } catch (error) {
+                        console.error('PDF export error:', error);
+                        showToast('Σφάλμα δημιουργίας PDF', 'error');
+                    }
+                });
+            }
+            
+            // Zoom In Button
+            if (zoomInBtn) {
+                zoomInBtn.addEventListener('click', () => {
+                    if (!currentHeatmap) return;
+                    
+                    const canvas = document.getElementById('heatmapCanvas');
+                    if (canvas) {
+                        currentZoom = Math.min(200, currentZoom + 25);
+                        canvas.style.transform = `scale(${currentZoom / 100})`;
+                        canvas.style.transformOrigin = 'top left';
+                        
+                        updateZoomDisplay();
+                        showToast(`Zoom: ${currentZoom}%`, 'info');
+                    }
+                });
+            }
+            
+            // Zoom Out Button
+            if (zoomOutBtn) {
+                zoomOutBtn.addEventListener('click', () => {
+                    if (!currentHeatmap) return;
+                    
+                    const canvas = document.getElementById('heatmapCanvas');
+                    if (canvas) {
+                        currentZoom = Math.max(50, currentZoom - 25);
+                        canvas.style.transform = `scale(${currentZoom / 100})`;
+                        canvas.style.transformOrigin = 'top left';
+                        
+                        updateZoomDisplay();
+                        showToast(`Zoom: ${currentZoom}%`, 'info');
+                    }
+                });
+            }
+            
+            // Fullscreen Button
+            if (fullscreenHeatmapBtn) {
+                fullscreenHeatmapBtn.addEventListener('click', () => {
+                    if (!currentHeatmap) return;
+                    
+                    const container = document.querySelector('.heatmap-canvas-container');
+                    if (!container) return;
+                    
+                    if (container.classList.contains('heatmap-canvas-fullscreen')) {
+                        // Exit fullscreen
+                        container.classList.remove('heatmap-canvas-fullscreen');
+                        document.body.style.overflow = '';
+                        fullscreenHeatmapBtn.textContent = '⛶';
+                        
+                        // Remove overlay
+                        const overlay = document.querySelector('.heatmap-fullscreen-overlay');
+                        if (overlay) {
+                            overlay.remove();
                         }
                     } else {
-                        showToast(result.error || 'Σφάλμα δημιουργίας πρόβλεψης', 'error');
+                        // Enter fullscreen
+                        container.classList.add('heatmap-canvas-fullscreen');
+                        document.body.style.overflow = 'hidden';
+                        fullscreenHeatmapBtn.textContent = '✕';
+                        
+                        // Add overlay
+                        const overlay = document.createElement('div');
+                        overlay.className = 'heatmap-fullscreen-overlay';
+                        overlay.style.cssText = `
+                            position: fixed;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            background: rgba(0, 0, 0, 0.7);
+                            z-index: ${parseInt(getComputedStyle(document.documentElement).getPropertyValue('--z-modal')) - 1};
+                        `;
+                        overlay.addEventListener('click', () => {
+                            fullscreenHeatmapBtn.click();
+                        });
+                        document.body.appendChild(overlay);
                     }
-                } catch (error) {
-                    console.error('Forecast error:', error);
-                    showToast('Σφάλμα: ' + error.message, 'error');
-                } finally {
-                    showLoadingIndicator(false);
+                });
+            }
+            
+            function updateZoomDisplay() {
+                const label = document.querySelector('.zoom-level');
+                if (label) {
+                    label.textContent = `${currentZoom}%`;
                 }
-            });
+            }
+            
+            console.log('✅ Heatmaps view setup complete');
         }
-        
-        // Reset Forecast Button
-        if (resetForecastBtn) {
-            resetForecastBtn.addEventListener('click', () => {
-                currentForecast = null;
-                document.getElementById('forecastResultsSection').style.display = 'none';
-                document.getElementById('forecastEmptyState').style.display = 'block';
-                resetForecastBtn.style.display = 'none';
-                
-                // Destroy chart
-                if (STATE.charts['forecastChart']) {
-                    STATE.charts['forecastChart'].destroy();
-                    delete STATE.charts['forecastChart'];
-                }
-                
-                showToast('Πρόβλεψη επαναφέρθηκε', 'info');
-            });
+
+        /**
+         * Display heatmap results
+         */
+        function displayHeatmapResults(heatmapData) {
+            // Hide empty state, show results
+            document.getElementById('heatmapEmptyState').style.display = 'none';
+            document.getElementById('heatmapDisplaySection').style.display = 'block';
+            
+            // Update title
+            const titleEl = document.getElementById('heatmapCanvasTitle');
+            if (titleEl) {
+                titleEl.textContent = heatmapData.title;
+            }
+            
+            // Display color legend
+            displayColorLegend(heatmapData);
+            
+            // Display statistics
+            displayHeatmapStatistics(heatmapData);
+            
+            // Generate insights
+            generateHeatmapInsights(heatmapData);
         }
-        
-        // Export CSV Button
-        if (exportForecastCsvBtn) {
-            exportForecastCsvBtn.addEventListener('click', () => {
-                if (!currentForecast) {
-                    showToast('Δημιουργήστε πρώτα μια πρόβλεψη', 'warning');
-                    return;
-                }
-                
-                forecastingManager.exportForecastCSV(currentForecast);
-            });
+
+        /**
+         * Display color legend
+         */
+        function displayColorLegend(heatmapData) {
+            const container = document.getElementById('colorLegend');
+            if (!container) return;
+            
+            const colors = heatmapManager.colorSchemes[heatmapData.scheme].colors;
+            const colorScale = heatmapManager.calculateColorScale(heatmapData);
+            
+            // Create gradient
+            const gradient = colors.join(', ');
+            
+            container.innerHTML = `
+                <div style="flex: 1;">
+                    <div class="legend-gradient" style="background: linear-gradient(90deg, ${gradient});"></div>
+                    <div class="legend-labels">
+                        <span class="legend-label">
+                            ${heatmapData.metric === 'count' ? '0' : formatCurrency(colorScale.min)}
+                        </span>
+                        <span class="legend-label" style="color: var(--text-tertiary);">
+                            ${heatmapManager.colorSchemes[heatmapData.scheme].name}
+                        </span>
+                        <span class="legend-label">
+                            ${heatmapData.metric === 'count' ? colorScale.max : formatCurrency(colorScale.max)}
+                        </span>
+                    </div>
+                </div>
+            `;
         }
-        
-        // Export PDF Button
-        if (exportForecastPdfBtn) {
-            exportForecastPdfBtn.addEventListener('click', async () => {
-                if (!currentForecast) {
-                    showToast('Δημιουργήστε πρώτα μια πρόβλεψη', 'warning');
-                    return;
-                }
+
+        /**
+         * Display heatmap statistics
+         */
+        function displayHeatmapStatistics(heatmapData) {
+            const container = document.getElementById('heatmapStats');
+            if (!container) return;
+            
+            // Calculate stats
+            const allCells = heatmapData.matrix.flatMap(row => row.cells);
+            const nonZeroCells = allCells.filter(c => c.value > 0);
+            
+            const totalValue = allCells.reduce((sum, c) => sum + c.value, 0);
+            const avgValue = nonZeroCells.length > 0 
+                ? totalValue / nonZeroCells.length 
+                : 0;
+            
+            const maxCell = allCells.reduce((max, c) => c.value > max.value ? c : max, allCells[0]);
+            const minNonZeroCell = nonZeroCells.reduce((min, c) => 
+                c.value < min.value ? c : min, 
+                nonZeroCells[0] || { value: 0 }
+            );
+            
+            const totalCells = allCells.length;
+            const activeCells = nonZeroCells.length;
+            const emptyRate = ((totalCells - activeCells) / totalCells * 100);
+            
+            container.innerHTML = `
+                <div class="stat-card">
+                    <span class="stat-label">Συνολική Αξία</span>
+                    <span class="stat-value">${formatCurrency(totalValue)}</span>
+                    <span class="stat-description">Άθροισμα όλων των κελιών</span>
+                </div>
                 
-                if (!STATE.cdnAvailable) {
-                    showToast('PDF export δεν είναι διαθέσιμο (CDN offline)', 'error');
-                    return;
-                }
+                <div class="stat-card">
+                    <span class="stat-label">Μέσος Όρος</span>
+                    <span class="stat-value">${formatCurrency(avgValue)}</span>
+                    <span class="stat-description">Ανά ενεργό κελί</span>
+                </div>
                 
-                showToast('Δημιουργία PDF...', 'info');
+                <div class="stat-card">
+                    <span class="stat-label">Μέγιστη Τιμή</span>
+                    <span class="stat-value">${heatmapData.metric === 'count' ? maxCell.count : formatCurrency(maxCell.value)}</span>
+                    <span class="stat-description">${escapeHtml(maxCell.label)}</span>
+                </div>
                 
-                try {
-                    await pdfExportManager.exportHeatmap('forecastChart', 'Forecast_Report');
-                    showToast('PDF δημιουργήθηκε επιτυχώς', 'success');
-                } catch (error) {
-                    console.error('PDF export error:', error);
-                    showToast('Σφάλμα δημιουργίας PDF', 'error');
-                }
-            });
+                <div class="stat-card">
+                    <span class="stat-label">Ελάχιστη Τιμή</span>
+                    <span class="stat-value">${heatmapData.metric === 'count' ? minNonZeroCell.count : formatCurrency(minNonZeroCell.value)}</span>
+                    <span class="stat-description">${escapeHtml(minNonZeroCell.label || 'N/A')}</span>
+                </div>
+                
+                <div class="stat-card">
+                    <span class="stat-label">Ενεργά Κελιά</span>
+                    <span class="stat-value">${activeCells} / ${totalCells}</span>
+                    <span class="stat-description">${emptyRate.toFixed(1)}% κενά</span>
+                </div>
+            `;
         }
-        
-        // Fullscreen Chart Button
-        if (fullscreenChartBtn) {
-            fullscreenChartBtn.addEventListener('click', () => {
-                const canvas = document.getElementById('forecastChart');
-                if (!canvas) return;
+
+        /**
+         * Generate heatmap insights
+         */
+        function generateHeatmapInsights(heatmapData) {
+            const container = document.getElementById('heatmapInsights');
+            if (!container) return;
+            
+            const insights = [];
+            const allCells = heatmapData.matrix.flatMap(row => row.cells);
+            const nonZeroCells = allCells.filter(c => c.value > 0);
+            
+            // Find hotspots
+            const sorted = [...nonZeroCells].sort((a, b) => b.value - a.value);
+            const top3 = sorted.slice(0, 3);
+            
+            if (top3.length > 0) {
+                insights.push({
+                    icon: '🔥',
+                    text: `<strong>Top Hotspots:</strong> ${top3.map(c => escapeHtml(c.label)).join(', ')}`
+                });
+            }
+            
+            // Check for patterns
+            const emptyRate = ((allCells.length - nonZeroCells.length) / allCells.length * 100);
+            
+            if (emptyRate > 50) {
+                insights.push({
+                    icon: '⚠️',
+                    text: `<strong>Αραιή κατανομή:</strong> ${emptyRate.toFixed(1)}% των κελιών είναι κενά - υπάρχουν πολλές περίοδοι χωρίς δραστηριότητα.`
+                });
+            } else if (emptyRate < 20) {
+                insights.push({
+                    icon: '✅',
+                    text: `<strong>Πυκνή κατανομή:</strong> Μόνο ${emptyRate.toFixed(1)}% κενά κελιά - συνεχής δραστηριότητα στις περισσότερες περιόδους.`
+                });
+            }
+            
+            // Value distribution
+            const values = nonZeroCells.map(c => c.value);
+            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+            const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+            const stdDev = Math.sqrt(variance);
+            const cv = (stdDev / mean) * 100; // Coefficient of variation
+            
+            if (cv > 50) {
+                insights.push({
+                    icon: '📊',
+                    text: `<strong>Υψηλή διακύμανση:</strong> Τα έσοδα ποικίλλουν σημαντικά (CV: ${cv.toFixed(1)}%) - υπάρχουν έντονες διαφορές μεταξύ περιόδων.`
+                });
+            } else if (cv < 20) {
+                insights.push({
+                    icon: '➡️',
+                    text: `<strong>Σταθερότητα:</strong> Τα έσοδα είναι σχετικά σταθερά (CV: ${cv.toFixed(1)}%) - προβλέψιμο pattern.`
+                });
+            }
+            
+            // Type-specific insights
+            if (heatmapData.type === 'month-year') {
+                // Check for seasonality
+                const monthTotals = new Array(12).fill(0);
+                heatmapData.matrix.forEach((row, idx) => {
+                    const monthTotal = row.cells.reduce((sum, c) => sum + c.value, 0);
+                    monthTotals[idx] = monthTotal;
+                });
                 
-                if (canvas.classList.contains('chart-fullscreen')) {
-                    // Exit fullscreen
-                    canvas.classList.remove('chart-fullscreen');
-                    document.body.style.overflow = '';
-                    
-                    // Remove overlay
-                    const overlay = document.querySelector('.chart-fullscreen-overlay');
-                    if (overlay) {
-                        overlay.remove();
-                    }
-                } else {
-                    // Enter fullscreen
-                    canvas.classList.add('chart-fullscreen');
-                    document.body.style.overflow = 'hidden';
-                    
-                    // Add overlay
-                    const overlay = document.createElement('div');
-                    overlay.className = 'chart-fullscreen-overlay';
-                    overlay.addEventListener('click', () => {
-                        fullscreenChartBtn.click(); // Exit fullscreen
-                    });
-                    document.body.appendChild(overlay);
-                }
+                const maxMonth = monthTotals.indexOf(Math.max(...monthTotals));
+                const minMonth = monthTotals.indexOf(Math.min(...monthTotals.filter(v => v > 0)));
                 
-                // Trigger chart resize
-                if (STATE.charts['forecastChart']) {
-                    STATE.charts['forecastChart'].resize();
-                }
-            });
+                insights.push({
+                    icon: '📅',
+                    text: `<strong>Εποχικότητα:</strong> Ο καλύτερος μήνας είναι ${heatmapManager.getMonthLabel(maxMonth + 1)}, ο χειρότερος ${heatmapManager.getMonthLabel(minMonth + 1)}.`
+                });
+            }
+            
+            // Render insights
+            container.innerHTML = insights.map(insight => `
+                <div class="heatmap-insight-item">
+                    <div class="heatmap-insight-icon">${insight.icon}</div>
+                    <div class="heatmap-insight-content">
+                        <p>${insight.text}</p>
+                    </div>
+                </div>
+            `).join('');
         }
-        
-        console.log('✅ Forecasting view setup complete');
-    }
+
+        /**
+         * Show/hide heatmap loading indicator
+         */
+        function showHeatmapLoadingIndicator(show) {
+            const indicator = document.getElementById('heatmapLoadingIndicator');
+            if (indicator) {
+                indicator.style.display = show ? 'flex' : 'none';
+            }
+        }
 
     /**
      * Display forecast results
@@ -1615,6 +2092,7 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
             backupManager,
             cdnChecker,
             forecastingManager,
+            heatmapManager,
             getStateSnapshot,
             renderDashboard,
             renderEntriesTable,

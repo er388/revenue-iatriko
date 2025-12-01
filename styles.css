@@ -2613,3 +2613,487 @@ button:focus-visible {
     color: var(--text-primary) !important;
     box-shadow: var(--shadow-lg) !important;
 }
+
+/* Heatmap Canvas Container */
+.heatmap-canvas-container {
+    overflow: auto;
+    max-height: 600px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-secondary);
+    position: relative;
+}
+
+#heatmapCanvas {
+    display: block;
+    cursor: pointer;
+    transition: transform var(--transition-base);
+}
+
+/* Zoom states */
+#heatmapCanvas.zoom-100 {
+    transform: scale(1);
+}
+
+#heatmapCanvas.zoom-125 {
+    transform: scale(1.25);
+    transform-origin: top left;
+}
+
+#heatmapCanvas.zoom-150 {
+    transform: scale(1.5);
+    transform-origin: top left;
+}
+
+#heatmapCanvas.zoom-75 {
+    transform: scale(0.75);
+    transform-origin: top left;
+}
+
+/* Fullscreen Canvas */
+.heatmap-canvas-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: none !important;
+    z-index: var(--z-modal);
+    background-color: var(--bg-primary);
+    border: none;
+    border-radius: 0;
+    padding: var(--spacing-xl);
+    overflow: auto;
+}
+
+.heatmap-canvas-fullscreen #heatmapCanvas {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* Color Legend */
+.color-legend {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: linear-gradient(90deg, 
+        var(--bg-tertiary) 0%, 
+        var(--bg-hover) 100%);
+    border-radius: var(--radius-md);
+    flex-wrap: wrap;
+}
+
+.legend-gradient {
+    flex: 1;
+    min-width: 200px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    position: relative;
+    box-shadow: var(--shadow-sm);
+}
+
+.legend-labels {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: var(--spacing-xs);
+}
+
+.legend-label {
+    font-weight: 600;
+}
+
+/* Heatmap Stats Grid */
+.heatmap-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.stat-card {
+    background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-hover));
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    text-align: center;
+    transition: all var(--transition-fast);
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-card .stat-label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-card .stat-value {
+    display: block;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-xs);
+}
+
+.stat-card .stat-description {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+/* Heatmap Insights */
+.heatmap-insights {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(217, 119, 6, 0.05));
+    border: 2px solid var(--warning-color);
+}
+
+.heatmap-insights h3 {
+    color: var(--warning-color);
+}
+
+.heatmap-insight-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.heatmap-insight-item:last-child {
+    border-bottom: none;
+}
+
+.heatmap-insight-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.heatmap-insight-content p {
+    margin: 0;
+    line-height: 1.6;
+}
+
+.heatmap-insight-content strong {
+    color: var(--warning-color);
+}
+
+/* Heatmap Type Descriptions */
+.heatmap-type-info {
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    margin-top: var(--spacing-xs);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.heatmap-type-info.month-year {
+    background-color: rgba(37, 99, 235, 0.1);
+    color: var(--primary-color);
+}
+
+.heatmap-type-info.source-month {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.heatmap-type-info.insurance-month {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+}
+
+/* Zoom Controls */
+.zoom-controls {
+    display: flex;
+    gap: var(--spacing-xs);
+    align-items: center;
+}
+
+.zoom-level {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+    text-align: center;
+    font-weight: 600;
+}
+
+/* Heatmap Tooltip (created dynamically) */
+.heatmap-tooltip {
+    position: fixed;
+    display: none;
+    background: rgba(15, 23, 42, 0.95);
+    color: white;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    pointer-events: none;
+    z-index: 10000;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    max-width: 250px;
+    animation: tooltipFadeIn 0.2s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Dark theme tooltip */
+[data-theme="dark"] .heatmap-tooltip {
+    background: rgba(248, 250, 252, 0.95);
+    color: #0f172a;
+}
+
+/* Canvas Loading State */
+.heatmap-canvas-container.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+}
+
+.heatmap-canvas-container.loading::before {
+    content: '🌡️ Φόρτωση...';
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+}
+
+/* Export Buttons State */
+#exportHeatmapPngBtn:disabled,
+#exportHeatmapPdfBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Heatmap Pattern Indicators */
+.pattern-indicator {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: var(--spacing-xs);
+}
+
+.pattern-indicator.high {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: var(--danger-color);
+}
+
+.pattern-indicator.medium {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: var(--warning-color);
+}
+
+.pattern-indicator.low {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: var(--success-color);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .heatmap-canvas-container {
+        max-height: 400px;
+    }
+    
+    .heatmap-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-card .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .color-legend {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .legend-gradient {
+        min-width: 100%;
+    }
+    
+    #heatmapCanvas {
+        min-width: 600px; /* Force horizontal scroll on mobile */
+    }
+}
+
+/* Print Styles */
+@media print {
+    .heatmap-canvas-container {
+        max-height: none !important;
+        overflow: visible !important;
+        border: 1px solid #ccc;
+    }
+    
+    #heatmapCanvas {
+        max-width: 100% !important;
+        page-break-inside: avoid;
+    }
+    
+    .zoom-controls,
+    .view-actions,
+    #fullscreenHeatmapBtn,
+    #zoomInBtn,
+    #zoomOutBtn {
+        display: none !important;
+    }
+    
+    .heatmap-tooltip {
+        display: none !important;
+    }
+}
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] .heatmap-canvas-container {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color-dark);
+}
+
+[data-theme="dark"] .color-legend {
+    background: linear-gradient(90deg, 
+        var(--bg-secondary) 0%, 
+        var(--bg-tertiary) 100%);
+}
+
+[data-theme="dark"] .stat-card {
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+}
+
+[data-theme="dark"] .heatmap-insights {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.1));
+}
+
+[data-theme="dark"] .heatmap-type-info.month-year {
+    background-color: rgba(37, 99, 235, 0.2);
+}
+
+[data-theme="dark"] .heatmap-type-info.source-month {
+    background-color: rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="dark"] .heatmap-type-info.insurance-month {
+    background-color: rgba(245, 158, 11, 0.2);
+}
+
+/* Accessibility Enhancements */
+#heatmapCanvas:focus {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.zoom-controls button:focus-visible {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Animation for Heatmap Display */
+#heatmapDisplaySection {
+    animation: fadeInUp var(--transition-base);
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Canvas Context Menu Prevention */
+#heatmapCanvas {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Scrollbar Styling for Canvas Container */
+.heatmap-canvas-container::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.heatmap-canvas-container::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+}
+
+.heatmap-canvas-container::-webkit-scrollbar-thumb {
+    background: var(--secondary-color);
+    border-radius: var(--radius-sm);
+}
+
+.heatmap-canvas-container::-webkit-scrollbar-thumb:hover {
+    background: var(--secondary-dark);
+}
+
+/* Empty State Enhancement */
+#heatmapEmptyState ul li {
+    padding: var(--spacing-xs) 0;
+}
+
+/* Legend Color Swatches (if needed for discrete colors) */
+.legend-swatches {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.legend-swatch {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: 0.85rem;
+}
+
+.legend-swatch-color {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .heatmap-canvas-container {
+        border-width: 3px;
+    }
+    
+    #heatmapCanvas {
+        filter: contrast(1.2);
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    #heatmapCanvas {
+        transition: none;
+    }
+    
+    .heatmap-tooltip {
+        animation: none;
+    }
+    
+    #heatmapDisplaySection {
+        animation: none;
+    }
+}
