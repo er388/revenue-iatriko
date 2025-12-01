@@ -78,10 +78,6 @@ export const STATE = {
     editingEntry: null,
     userLabel: 'Admin',
     selectedEntries: [], // For bulk operations
-
-    // Sorting State
-    sortColumn: null, // Current sort column
-    sortDirection: 'asc', // 'asc' | 'desc'
     
     // Dashboard State
     dashboardPeriod: 'all', // 'all' | 'month' | 'year'

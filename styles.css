@@ -675,7 +675,10 @@ textarea {
     padding: 0.2rem 0.4rem;
 }
 
-/* KPI Color Variants - Applied inline via JS for dynamic colors */
+/* KPI Color Variants */
+.kpi-card[style*="background"] {
+    /* Custom background colors already set inline */
+}
 
 /* ========================================
    Charts Grid

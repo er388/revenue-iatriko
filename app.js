@@ -12,8 +12,7 @@ import {
     showToast,
     renderDashboard, 
     renderEntriesTable,
-    renderSourcesAndInsurances,
-    setupTableSorting
+    renderSourcesAndInsurances 
 } from './uiRenderers.js';
 import {
     showDeductionFields,
