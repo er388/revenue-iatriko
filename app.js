@@ -2388,6 +2388,8 @@ window.exportChartPDF = async function(canvasId) {
             }
         };
 
+    }); // ← ΚΛΕΙΣΙΜΟ του DOMContentLoaded event listener
+
     // ========================================
     // Service Worker Registration (PWA)
     // ========================================
@@ -2482,7 +2484,6 @@ window.exportChartPDF = async function(canvasId) {
             });
         }
     };
-});
 
     // ========================================
     // Export for Debugging
