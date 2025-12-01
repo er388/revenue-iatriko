@@ -880,27 +880,176 @@
         </div>
 
         <!-- ========================================
-             FORECASTING VIEW (Placeholder)
-             ======================================== -->
+            FORECASTING VIEW - Add to index.html
+            Replace placeholder in index.html
+            ======================================== -->
         <div id="forecastingView" class="view">
             <div class="view-header">
                 <h2>🔮 Προβλέψεις Εσόδων</h2>
+                <div class="view-actions">
+                    <button id="exportForecastCsvBtn" class="btn-secondary btn-compact">📄 Export CSV</button>
+                    <button id="exportForecastPdfBtn" class="btn-secondary btn-compact">📄 Export PDF</button>
+                </div>
             </div>
-            <div class="card">
-                <h3>Revenue Forecasting</h3>
-                <p>Η λειτουργικότητα προβλέψεων θα υλοποιηθεί σε επόμενη φάση.</p>
-                <p>Προγραμματισμένες μέθοδοι:</p>
-                <ul>
-                    <li>Linear Regression</li>
-                    <li>Seasonal Naive</li>
-                    <li>Holt-Winters Exponential Smoothing</li>
-                    <li>Confidence intervals (95%)</li>
-                    <li>Γραφήματα προβλέψεων με historical data</li>
-                    <li>Accuracy metrics</li>
-                </ul>
+
+            <!-- Configuration Card -->
+            <div class="card card-compact">
+                <h3>⚙️ Ρυθμίσεις Πρόβλεψης</h3>
+                
+                <div class="form-row">
+                    <!-- Model Selection -->
+                    <div class="form-group form-group-compact">
+                        <label>Μέθοδος Πρόβλεψης</label>
+                        <select id="forecastMethod" class="form-select form-select-compact">
+                            <option value="linear">Linear Regression (Γραμμική Τάση)</option>
+                            <option value="seasonal" selected>Seasonal Naive (Εποχικότητα)</option>
+                            <option value="holt-winters">Holt-Winters (Προηγμένο)</option>
+                        </select>
+                        <small class="help-text" id="methodDescription">
+                            Επιλέξτε μέθοδο ανάλογα με τα δεδομένα σας
+                        </small>
+                    </div>
+
+                    <!-- Forecast Periods -->
+                    <div class="form-group form-group-compact">
+                        <label>Περίοδος Πρόβλεψης: <span id="forecastPeriodsLabel">6 μήνες</span></label>
+                        <input type="range" id="forecastPeriods" class="form-range" min="3" max="12" value="6" step="1">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-tertiary); margin-top: 0.25rem;">
+                            <span>3 μήνες</span>
+                            <span>12 μήνες</span>
+                        </div>
+                    </div>
+
+                    <!-- Include Parakratisi -->
+                    <div class="form-group form-group-compact">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="forecastIncludeParakratisi">
+                            <span>Με Παρακράτηση</span>
+                        </label>
+                        <small class="help-text">Χρήση αρχικών ποσών αντί τελικών</small>
+                    </div>
+                </div>
+
+                <!-- Holt-Winters Advanced Options (collapsible) -->
+                <div id="hwAdvancedOptions" class="hw-advanced-options" style="display: none;">
+                    <h4 style="margin-top: var(--spacing-md); margin-bottom: var(--spacing-sm); font-size: 0.95rem;">
+                        Παράμετροι Holt-Winters
+                    </h4>
+                    <div class="form-row form-row-tight">
+                        <div class="form-group form-group-compact">
+                            <label>Alpha (Level): <span id="hwAlphaLabel">0.2</span></label>
+                            <input type="range" id="hwAlpha" class="form-range" min="0.01" max="0.99" value="0.2" step="0.01">
+                        </div>
+                        <div class="form-group form-group-compact">
+                            <label>Beta (Trend): <span id="hwBetaLabel">0.1</span></label>
+                            <input type="range" id="hwBeta" class="form-range" min="0.01" max="0.99" value="0.1" step="0.01">
+                        </div>
+                        <div class="form-group form-group-compact">
+                            <label>Gamma (Seasonal): <span id="hwGammaLabel">0.1</span></label>
+                            <input type="range" id="hwGamma" class="form-range" min="0.01" max="0.99" value="0.1" step="0.01">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button id="generateForecastBtn" class="btn-primary btn-compact">🔮 Δημιουργία Πρόβλεψης</button>
+                    <button id="resetForecastBtn" class="btn-secondary btn-compact" style="display: none;">🔄 Επαναφορά</button>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="forecastLoadingIndicator" class="loading-indicator" style="display: none;">
+                <div class="spinner"></div>
+                <p>Υπολογισμός πρόβλεψης...</p>
+            </div>
+
+            <!-- Results Section -->
+            <div id="forecastResultsSection" style="display: none;">
+                
+                <!-- Chart Card -->
+                <div class="card card-compact">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+                        <h3>📊 Γράφημα Πρόβλεψης</h3>
+                        <button id="fullscreenChartBtn" class="btn-icon btn-compact" title="Πλήρης οθόνη">
+                            ⛶
+                        </button>
+                    </div>
+                    <canvas id="forecastChart" style="max-height: 400px;"></canvas>
+                </div>
+
+                <!-- Metrics Card -->
+                <div class="card card-compact">
+                    <div class="collapsible-header" onclick="document.getElementById('forecastMetricsContent').classList.toggle('collapsed')">
+                        <h3>📈 Μετρικές Ακρίβειας</h3>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div id="forecastMetricsContent" class="collapsible-content">
+                        <div id="forecastMetricsDisplay">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Forecast Table -->
+                <div class="card card-compact">
+                    <div class="collapsible-header" onclick="document.getElementById('forecastTableContent').classList.toggle('collapsed')">
+                        <h3>📋 Πίνακας Προβλέψεων</h3>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div id="forecastTableContent" class="collapsible-content collapsed">
+                        <div class="table-responsive">
+                            <table class="data-table data-table-compact">
+                                <thead>
+                                    <tr>
+                                        <th>Μήνας</th>
+                                        <th class="text-right">Πρόβλεψη</th>
+                                        <th class="text-right">Κάτω Όριο (95%)</th>
+                                        <th class="text-right">Άνω Όριο (95%)</th>
+                                        <th class="text-right">Εύρος</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="forecastTableBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insights Card -->
+                <div class="card card-compact forecast-insights">
+                    <h3>💡 Insights</h3>
+                    <div id="forecastInsights">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Empty State -->
+            <div id="forecastEmptyState" class="card card-compact">
+                <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-secondary);">
+                    <p style="font-size: 3rem; margin-bottom: var(--spacing-md);">🔮</p>
+                    <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: var(--spacing-sm);">
+                        Δημιουργία Προβλέψεων Εσόδων
+                    </p>
+                    <p style="margin-bottom: var(--spacing-lg);">
+                        Επιλέξτε μέθοδο πρόβλεψης και περίοδο, στη συνέχεια πατήστε "Δημιουργία Πρόβλεψης"
+                    </p>
+                    <div style="background-color: var(--bg-tertiary); padding: var(--spacing-md); border-radius: var(--radius-md); text-align: left;">
+                        <p style="font-weight: 600; margin-bottom: var(--spacing-sm);">📚 Οδηγίες:</p>
+                        <ul style="list-style: disc; padding-left: var(--spacing-lg); line-height: 1.8;">
+                            <li><strong>Linear Regression:</strong> Καλύτερη για σταθερές τάσεις</li>
+                            <li><strong>Seasonal Naive:</strong> Ιδανική για εποχικά patterns</li>
+                            <li><strong>Holt-Winters:</strong> Προηγμένη μέθοδος με παραμέτρους</li>
+                        </ul>
+                        <p style="margin-top: var(--spacing-sm); font-size: 0.85rem; color: var(--text-tertiary);">
+                            💡 Απαιτούνται τουλάχιστον 6 μήνες ιστορικών δεδομένων
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
-        <!-- END FORECASTING VIEW -->
 
         <!-- ========================================
              HEATMAPS VIEW (Placeholder)

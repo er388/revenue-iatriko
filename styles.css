@@ -2234,3 +2234,382 @@ button:focus-visible {
     background-color: rgba(100, 116, 139, 0.2);
     color: var(--secondary-color);
 }
+
+/* Loading Indicator */
+.loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    gap: var(--spacing-md);
+}
+
+.loading-indicator .spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-indicator p {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Form Range Slider */
+.form-range {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    outline: none;
+    transition: all var(--transition-fast);
+}
+
+.form-range:hover {
+    background: var(--border-color);
+}
+
+.form-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+}
+
+.form-range::-webkit-slider-thumb:hover {
+    background: var(--primary-dark);
+    transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+}
+
+.form-range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--primary-color);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+}
+
+.form-range::-moz-range-thumb:hover {
+    background: var(--primary-dark);
+    transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+}
+
+/* Holt-Winters Advanced Options */
+.hw-advanced-options {
+    background-color: var(--bg-tertiary);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-top: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    animation: slideDown var(--transition-base);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 500px;
+        padding-top: var(--spacing-md);
+        padding-bottom: var(--spacing-md);
+    }
+}
+
+/* Forecast Metrics Display */
+#forecastMetricsDisplay {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.metric-card {
+    background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-hover));
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    text-align: center;
+    transition: all var(--transition-fast);
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.metric-card .metric-label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-card .metric-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.metric-card .metric-description {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin-top: var(--spacing-xs);
+}
+
+/* Accuracy Indicator */
+.accuracy-good {
+    color: var(--success-color) !important;
+}
+
+.accuracy-medium {
+    color: var(--warning-color) !important;
+}
+
+.accuracy-poor {
+    color: var(--danger-color) !important;
+}
+
+/* Forecast Insights */
+.forecast-insights {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(59, 130, 246, 0.05));
+    border: 2px solid var(--primary-color);
+}
+
+.forecast-insights h3 {
+    color: var(--primary-color);
+}
+
+.insight-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.insight-item:last-child {
+    border-bottom: none;
+}
+
+.insight-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.insight-content p {
+    margin: 0;
+    line-height: 1.6;
+}
+
+.insight-content strong {
+    color: var(--primary-color);
+}
+
+/* Forecast Table Styling */
+#forecastTableBody tr {
+    transition: background-color var(--transition-fast);
+}
+
+#forecastTableBody tr:hover {
+    background-color: rgba(37, 99, 235, 0.05);
+}
+
+#forecastTableBody .forecast-date {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+#forecastTableBody .forecast-value {
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+#forecastTableBody .confidence-range {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Chart Container */
+#forecastChart {
+    transition: all var(--transition-base);
+}
+
+.chart-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: var(--z-modal);
+    background-color: var(--bg-primary);
+    max-height: none !important;
+    padding: var(--spacing-xl);
+}
+
+/* Fullscreen Overlay */
+.chart-fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: calc(var(--z-modal) - 1);
+}
+
+/* Method Description Colors */
+.method-description {
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    margin-top: var(--spacing-xs);
+    font-size: 0.85rem;
+}
+
+.method-description.linear {
+    background-color: rgba(37, 99, 235, 0.1);
+    color: var(--primary-color);
+}
+
+.method-description.seasonal {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.method-description.holt-winters {
+    background-color: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    #forecastMetricsDisplay {
+        grid-template-columns: 1fr;
+    }
+
+    .metric-card {
+        padding: var(--spacing-sm);
+    }
+
+    .metric-card .metric-value {
+        font-size: 1.25rem;
+    }
+
+    #forecastChart {
+        max-height: 250px !important;
+    }
+
+    .hw-advanced-options {
+        padding: var(--spacing-sm);
+    }
+
+    .form-row-tight {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] .metric-card {
+    background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
+}
+
+[data-theme="dark"] .forecast-insights {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(59, 130, 246, 0.1));
+}
+
+[data-theme="dark"] .method-description.linear {
+    background-color: rgba(37, 99, 235, 0.2);
+}
+
+[data-theme="dark"] .method-description.seasonal {
+    background-color: rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="dark"] .method-description.holt-winters {
+    background-color: rgba(139, 92, 246, 0.2);
+}
+
+/* Print Styles */
+@media print {
+    .loading-indicator,
+    .view-actions,
+    .form-actions,
+    #fullscreenChartBtn,
+    #resetForecastBtn {
+        display: none !important;
+    }
+
+    #forecastResultsSection {
+        display: block !important;
+    }
+
+    .collapsible-content {
+        display: block !important;
+    }
+
+    #forecastChart {
+        max-height: 15cm !important;
+    }
+}
+
+/* Accessibility Enhancements */
+.form-range:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.form-range:focus-visible {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 3px;
+}
+
+/* Animation for Results Section */
+#forecastResultsSection {
+    animation: fadeInUp var(--transition-base);
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Tooltip for Chart */
+.chartjs-tooltip {
+    background-color: var(--bg-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-primary) !important;
+    box-shadow: var(--shadow-lg) !important;
+}

@@ -37,6 +37,7 @@ import {
     formatMonthYear
 } from './utils.js';
 import reportsManager from './reports.js';
+import forecastingManager from './forecasting.js';
 
 // ========================================
 // Initialization
@@ -336,72 +337,503 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         });
     }
 
-    // ========================================
-    // Reports View Setup
-    // ========================================
-    setupReportsView();
+        // ========================================
+        // Reports View Setup
+        // ========================================
+        setupReportsView();
+        setupForecastingView();
 
-    function setupReportsView() {
-        const reportPeriodType = document.getElementById('reportPeriodType');
-        const generateReportBtn = document.getElementById('generateReportBtn');
-        const exportReportCsvBtn = document.getElementById('exportReportCsvBtn');
-        
-        // Populate years
-        const years = reportsManager.getAvailableYears();
-        const reportYearSelect = document.getElementById('reportYear');
-        if (reportYearSelect && years.length > 0) {
-            reportYearSelect.innerHTML = years.map(y => 
-                `<option value="${y}">${y}</option>`
-            ).join('');
+
+        function setupReportsView() {
+            const reportPeriodType = document.getElementById('reportPeriodType');
+            const generateReportBtn = document.getElementById('generateReportBtn');
+            const exportReportCsvBtn = document.getElementById('exportReportCsvBtn');
+            
+            // Populate years
+            const years = reportsManager.getAvailableYears();
+            const reportYearSelect = document.getElementById('reportYear');
+            if (reportYearSelect && years.length > 0) {
+                reportYearSelect.innerHTML = years.map(y => 
+                    `<option value="${y}">${y}</option>`
+                ).join('');
+            }
+            
+            // Period type change handler
+            if (reportPeriodType) {
+                reportPeriodType.addEventListener('change', (e) => {
+                    const type = e.target.value;
+                    
+                    // Hide all option groups
+                    document.getElementById('reportAnnualOptions').style.display = 'none';
+                    document.getElementById('reportQuarterlyOptions').style.display = 'none';
+                    document.getElementById('reportSemiannualOptions').style.display = 'none';
+                    document.getElementById('reportCustomOptions').style.display = 'none';
+                    
+                    // Show relevant options
+                    if (type === 'annual') {
+                        document.getElementById('reportAnnualOptions').style.display = 'block';
+                    } else if (type === 'quarterly') {
+                        document.getElementById('reportAnnualOptions').style.display = 'block';
+                        document.getElementById('reportQuarterlyOptions').style.display = 'block';
+                    } else if (type === 'semiannual') {
+                        document.getElementById('reportAnnualOptions').style.display = 'block';
+                        document.getElementById('reportSemiannualOptions').style.display = 'block';
+                    } else if (type === 'custom') {
+                        document.getElementById('reportCustomOptions').style.display = 'flex';
+                        document.getElementById('reportCustomOptions').style.gap = 'var(--spacing-md)';
+                    }
+                });
+            }
+            
+            // Generate report
+            if (generateReportBtn) {
+                generateReportBtn.addEventListener('click', () => {
+                    generateAndDisplayReport();
+                });
+            }
+            
+            // Export CSV
+            if (exportReportCsvBtn) {
+                exportReportCsvBtn.addEventListener('click', () => {
+                    if (window.currentReport) {
+                        const csv = reportsManager.exportToCSV(window.currentReport);
+                        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = `report_${new Date().toISOString().slice(0, 10)}.csv`;
+                        link.click();
+                        showToast('CSV εξήχθη επιτυχώς', 'success');
+                    }
+                });
+            }
         }
+
+        /**
+     * Setup Forecasting View
+     */
+    function setupForecastingView() {
+        console.log('⚙️ Setting up Forecasting view...');
         
-        // Period type change handler
-        if (reportPeriodType) {
-            reportPeriodType.addEventListener('change', (e) => {
-                const type = e.target.value;
+        const forecastMethod = document.getElementById('forecastMethod');
+        const forecastPeriods = document.getElementById('forecastPeriods');
+        const forecastPeriodsLabel = document.getElementById('forecastPeriodsLabel');
+        const forecastIncludeParakratisi = document.getElementById('forecastIncludeParakratisi');
+        const generateForecastBtn = document.getElementById('generateForecastBtn');
+        const resetForecastBtn = document.getElementById('resetForecastBtn');
+        const exportForecastCsvBtn = document.getElementById('exportForecastCsvBtn');
+        const exportForecastPdfBtn = document.getElementById('exportForecastPdfBtn');
+        const fullscreenChartBtn = document.getElementById('fullscreenChartBtn');
+        
+        // Holt-Winters parameters
+        const hwAlpha = document.getElementById('hwAlpha');
+        const hwBeta = document.getElementById('hwBeta');
+        const hwGamma = document.getElementById('hwGamma');
+        const hwAlphaLabel = document.getElementById('hwAlphaLabel');
+        const hwBetaLabel = document.getElementById('hwBetaLabel');
+        const hwGammaLabel = document.getElementById('hwGammaLabel');
+        const hwAdvancedOptions = document.getElementById('hwAdvancedOptions');
+        
+        let currentForecast = null;
+        
+        // Update method description
+        const methodDescriptions = {
+            linear: 'Γραμμική τάση - Καλύτερη για σταθερά αυξανόμενα/μειούμενα έσοδα',
+            seasonal: 'Εποχικό μοντέλο - Ιδανικό όταν υπάρχει επαναλαμβανόμενο pattern',
+            'holt-winters': 'Προηγμένο μοντέλο - Συνδυάζει τάση και εποχικότητα'
+        };
+        
+        if (forecastMethod) {
+            forecastMethod.addEventListener('change', (e) => {
+                const method = e.target.value;
+                const descEl = document.getElementById('methodDescription');
                 
-                // Hide all option groups
-                document.getElementById('reportAnnualOptions').style.display = 'none';
-                document.getElementById('reportQuarterlyOptions').style.display = 'none';
-                document.getElementById('reportSemiannualOptions').style.display = 'none';
-                document.getElementById('reportCustomOptions').style.display = 'none';
+                if (descEl) {
+                    descEl.textContent = methodDescriptions[method] || '';
+                    descEl.className = `help-text method-description ${method}`;
+                }
                 
-                // Show relevant options
-                if (type === 'annual') {
-                    document.getElementById('reportAnnualOptions').style.display = 'block';
-                } else if (type === 'quarterly') {
-                    document.getElementById('reportAnnualOptions').style.display = 'block';
-                    document.getElementById('reportQuarterlyOptions').style.display = 'block';
-                } else if (type === 'semiannual') {
-                    document.getElementById('reportAnnualOptions').style.display = 'block';
-                    document.getElementById('reportSemiannualOptions').style.display = 'block';
-                } else if (type === 'custom') {
-                    document.getElementById('reportCustomOptions').style.display = 'flex';
-                    document.getElementById('reportCustomOptions').style.gap = 'var(--spacing-md)';
+                // Show/hide Holt-Winters options
+                if (hwAdvancedOptions) {
+                    hwAdvancedOptions.style.display = method === 'holt-winters' ? 'block' : 'none';
                 }
             });
         }
         
-        // Generate report
-        if (generateReportBtn) {
-            generateReportBtn.addEventListener('click', () => {
-                generateAndDisplayReport();
+        // Update periods label
+        if (forecastPeriods && forecastPeriodsLabel) {
+            forecastPeriods.addEventListener('input', (e) => {
+                const periods = e.target.value;
+                forecastPeriodsLabel.textContent = `${periods} μήνες`;
             });
         }
         
-        // Export CSV
-        if (exportReportCsvBtn) {
-            exportReportCsvBtn.addEventListener('click', () => {
-                if (window.currentReport) {
-                    const csv = reportsManager.exportToCSV(window.currentReport);
-                    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.download = `report_${new Date().toISOString().slice(0, 10)}.csv`;
-                    link.click();
-                    showToast('CSV εξήχθη επιτυχώς', 'success');
+        // Update HW parameter labels
+        if (hwAlpha && hwAlphaLabel) {
+            hwAlpha.addEventListener('input', (e) => {
+                hwAlphaLabel.textContent = parseFloat(e.target.value).toFixed(2);
+            });
+        }
+        
+        if (hwBeta && hwBetaLabel) {
+            hwBeta.addEventListener('input', (e) => {
+                hwBetaLabel.textContent = parseFloat(e.target.value).toFixed(2);
+            });
+        }
+        
+        if (hwGamma && hwGammaLabel) {
+            hwGamma.addEventListener('input', (e) => {
+                hwGammaLabel.textContent = parseFloat(e.target.value).toFixed(2);
+            });
+        }
+        
+        // Generate Forecast Button
+        if (generateForecastBtn) {
+            generateForecastBtn.addEventListener('click', async () => {
+                console.log('🔮 Generating forecast...');
+                
+                // Get parameters
+                const method = forecastMethod?.value || 'linear';
+                const periods = parseInt(forecastPeriods?.value || 6);
+                const includeParakratisi = forecastIncludeParakratisi?.checked || false;
+                
+                // HW parameters
+                const hwOptions = method === 'holt-winters' ? {
+                    alpha: parseFloat(hwAlpha?.value || 0.2),
+                    beta: parseFloat(hwBeta?.value || 0.1),
+                    gamma: parseFloat(hwGamma?.value || 0.1)
+                } : {};
+                
+                // Validate data
+                if (STATE.entries.length === 0) {
+                    showToast('Δεν υπάρχουν δεδομένα για πρόβλεψη', 'warning');
+                    return;
+                }
+                
+                // Show loading
+                showLoadingIndicator(true);
+                
+                try {
+                    // Generate forecast
+                    const result = await new Promise((resolve) => {
+                        setTimeout(() => {
+                            const forecast = forecastingManager.generateForecast(
+                                STATE.entries,
+                                method,
+                                periods,
+                                { includeParakratisi, ...hwOptions }
+                            );
+                            resolve(forecast);
+                        }, 500); // Small delay for UX
+                    });
+                    
+                    if (result.success) {
+                        currentForecast = result;
+                        displayForecastResults(result);
+                        showToast('Πρόβλεψη δημιουργήθηκε επιτυχώς', 'success');
+                        
+                        if (resetForecastBtn) {
+                            resetForecastBtn.style.display = 'inline-flex';
+                        }
+                    } else {
+                        showToast(result.error || 'Σφάλμα δημιουργίας πρόβλεψης', 'error');
+                    }
+                } catch (error) {
+                    console.error('Forecast error:', error);
+                    showToast('Σφάλμα: ' + error.message, 'error');
+                } finally {
+                    showLoadingIndicator(false);
                 }
             });
+        }
+        
+        // Reset Forecast Button
+        if (resetForecastBtn) {
+            resetForecastBtn.addEventListener('click', () => {
+                currentForecast = null;
+                document.getElementById('forecastResultsSection').style.display = 'none';
+                document.getElementById('forecastEmptyState').style.display = 'block';
+                resetForecastBtn.style.display = 'none';
+                
+                // Destroy chart
+                if (STATE.charts['forecastChart']) {
+                    STATE.charts['forecastChart'].destroy();
+                    delete STATE.charts['forecastChart'];
+                }
+                
+                showToast('Πρόβλεψη επαναφέρθηκε', 'info');
+            });
+        }
+        
+        // Export CSV Button
+        if (exportForecastCsvBtn) {
+            exportForecastCsvBtn.addEventListener('click', () => {
+                if (!currentForecast) {
+                    showToast('Δημιουργήστε πρώτα μια πρόβλεψη', 'warning');
+                    return;
+                }
+                
+                forecastingManager.exportForecastCSV(currentForecast);
+            });
+        }
+        
+        // Export PDF Button
+        if (exportForecastPdfBtn) {
+            exportForecastPdfBtn.addEventListener('click', async () => {
+                if (!currentForecast) {
+                    showToast('Δημιουργήστε πρώτα μια πρόβλεψη', 'warning');
+                    return;
+                }
+                
+                if (!STATE.cdnAvailable) {
+                    showToast('PDF export δεν είναι διαθέσιμο (CDN offline)', 'error');
+                    return;
+                }
+                
+                showToast('Δημιουργία PDF...', 'info');
+                
+                try {
+                    await pdfExportManager.exportHeatmap('forecastChart', 'Forecast_Report');
+                    showToast('PDF δημιουργήθηκε επιτυχώς', 'success');
+                } catch (error) {
+                    console.error('PDF export error:', error);
+                    showToast('Σφάλμα δημιουργίας PDF', 'error');
+                }
+            });
+        }
+        
+        // Fullscreen Chart Button
+        if (fullscreenChartBtn) {
+            fullscreenChartBtn.addEventListener('click', () => {
+                const canvas = document.getElementById('forecastChart');
+                if (!canvas) return;
+                
+                if (canvas.classList.contains('chart-fullscreen')) {
+                    // Exit fullscreen
+                    canvas.classList.remove('chart-fullscreen');
+                    document.body.style.overflow = '';
+                    
+                    // Remove overlay
+                    const overlay = document.querySelector('.chart-fullscreen-overlay');
+                    if (overlay) {
+                        overlay.remove();
+                    }
+                } else {
+                    // Enter fullscreen
+                    canvas.classList.add('chart-fullscreen');
+                    document.body.style.overflow = 'hidden';
+                    
+                    // Add overlay
+                    const overlay = document.createElement('div');
+                    overlay.className = 'chart-fullscreen-overlay';
+                    overlay.addEventListener('click', () => {
+                        fullscreenChartBtn.click(); // Exit fullscreen
+                    });
+                    document.body.appendChild(overlay);
+                }
+                
+                // Trigger chart resize
+                if (STATE.charts['forecastChart']) {
+                    STATE.charts['forecastChart'].resize();
+                }
+            });
+        }
+        
+        console.log('✅ Forecasting view setup complete');
+    }
+
+    /**
+     * Display forecast results
+     */
+    function displayForecastResults(result) {
+        // Hide empty state, show results
+        document.getElementById('forecastEmptyState').style.display = 'none';
+        document.getElementById('forecastResultsSection').style.display = 'block';
+        
+        // Render chart
+        forecastingManager.visualizeForecast(result, 'forecastChart');
+        
+        // Display metrics
+        displayForecastMetrics(result.metrics);
+        
+        // Populate forecast table
+        populateForecastTable(result.forecast);
+        
+        // Generate insights
+        generateForecastInsights(result);
+    }
+
+    /**
+     * Display forecast metrics
+     */
+    function displayForecastMetrics(metrics) {
+        const container = document.getElementById('forecastMetricsDisplay');
+        if (!container) return;
+        
+        if (!metrics.available) {
+            container.innerHTML = `
+                <div class="metric-card">
+                    <span class="metric-label">Μετρικές</span>
+                    <span class="metric-value">-</span>
+                    <span class="metric-description">${escapeHtml(metrics.message)}</span>
+                </div>
+            `;
+            return;
+        }
+        
+        // Determine accuracy class
+        let accuracyClass = 'accuracy-good';
+        if (metrics.accuracy < 70) {
+            accuracyClass = 'accuracy-poor';
+        } else if (metrics.accuracy < 85) {
+            accuracyClass = 'accuracy-medium';
+        }
+        
+        container.innerHTML = `
+            <div class="metric-card">
+                <span class="metric-label">Ακρίβεια</span>
+                <span class="metric-value ${accuracyClass}">${metrics.accuracy.toFixed(1)}%</span>
+                <span class="metric-description">Συνολική απόδοση μοντέλου</span>
+            </div>
+            
+            <div class="metric-card">
+                <span class="metric-label">MAE</span>
+                <span class="metric-value">${formatCurrency(metrics.mae)}</span>
+                <span class="metric-description">Μέσο απόλυτο σφάλμα</span>
+            </div>
+            
+            <div class="metric-card">
+                <span class="metric-label">RMSE</span>
+                <span class="metric-value">${formatCurrency(metrics.rmse)}</span>
+                <span class="metric-description">Ρίζα μέσου τετραγωνικού σφάλματος</span>
+            </div>
+            
+            <div class="metric-card">
+                <span class="metric-label">MAPE</span>
+                <span class="metric-value ${accuracyClass}">${metrics.mape.toFixed(2)}%</span>
+                <span class="metric-description">Μέσο ποσοστό σφάλματος</span>
+            </div>
+        `;
+    }
+
+    /**
+     * Populate forecast table
+     */
+    function populateForecastTable(forecasts) {
+        const tbody = document.getElementById('forecastTableBody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = forecasts.map(f => {
+            const range = f.upper && f.lower ? f.upper - f.lower : 0;
+            
+            return `
+                <tr>
+                    <td class="forecast-date">${escapeHtml(f.date)}</td>
+                    <td class="text-right forecast-value">${formatCurrency(f.value)}</td>
+                    <td class="text-right confidence-range">${formatCurrency(f.lower || 0)}</td>
+                    <td class="text-right confidence-range">${formatCurrency(f.upper || 0)}</td>
+                    <td class="text-right confidence-range">${formatCurrency(range)}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    /**
+     * Generate insights from forecast
+     */
+    function generateForecastInsights(result) {
+        const container = document.getElementById('forecastInsights');
+        if (!container) return;
+        
+        const { historical, forecast, method } = result;
+        const insights = [];
+        
+        // Calculate trend
+        const lastHistorical = historical[historical.length - 1].value;
+        const avgForecast = forecast.reduce((sum, f) => sum + f.value, 0) / forecast.length;
+        const trendPercent = ((avgForecast - lastHistorical) / lastHistorical * 100);
+        
+        if (trendPercent > 5) {
+            insights.push({
+                icon: '📈',
+                text: `<strong>Ανοδική τάση:</strong> Τα έσοδα αναμένεται να αυξηθούν κατά <strong>${trendPercent.toFixed(1)}%</strong> στους επόμενους μήνες.`
+            });
+        } else if (trendPercent < -5) {
+            insights.push({
+                icon: '📉',
+                text: `<strong>Καθοδική τάση:</strong> Τα έσοδα αναμένεται να μειωθούν κατά <strong>${Math.abs(trendPercent).toFixed(1)}%</strong> στους επόμενους μήνες.`
+            });
+        } else {
+            insights.push({
+                icon: '➡️',
+                text: `<strong>Σταθερή τάση:</strong> Τα έσοδα αναμένεται να παραμείνουν σχετικά σταθερά (±${Math.abs(trendPercent).toFixed(1)}%).`
+            });
+        }
+        
+        // Best/worst month
+        const maxForecast = forecast.reduce((max, f) => f.value > max.value ? f : max, forecast[0]);
+        const minForecast = forecast.reduce((min, f) => f.value < min.value ? f : min, forecast[0]);
+        
+        if (maxForecast !== minForecast) {
+            insights.push({
+                icon: '🌟',
+                text: `<strong>Καλύτερος μήνας:</strong> ${maxForecast.date} με πρόβλεψη ${formatCurrency(maxForecast.value)}`
+            });
+            
+            insights.push({
+                icon: '⚠️',
+                text: `<strong>Χειρότερος μήνας:</strong> ${minForecast.date} με πρόβλεψη ${formatCurrency(minForecast.value)}`
+            });
+        }
+        
+        // Confidence interval width
+        if (forecast[0].upper && forecast[0].lower) {
+            const avgRange = forecast.reduce((sum, f) => sum + (f.upper - f.lower), 0) / forecast.length;
+            const rangePercent = (avgRange / avgForecast * 100);
+            
+            if (rangePercent < 20) {
+                insights.push({
+                    icon: '✅',
+                    text: `<strong>Υψηλή βεβαιότητα:</strong> Το εύρος πρόβλεψης είναι στενό (±${rangePercent.toFixed(1)}%), υποδεικνύοντας αξιόπιστη πρόβλεψη.`
+                });
+            } else if (rangePercent > 40) {
+                insights.push({
+                    icon: '⚡',
+                    text: `<strong>Υψηλή αβεβαιότητα:</strong> Το εύρος πρόβλεψης είναι ευρύ (±${rangePercent.toFixed(1)}%). Χρησιμοποιήστε με προσοχή.`
+                });
+            }
+        }
+        
+        // Method-specific insights
+        if (method === 'seasonal') {
+            insights.push({
+                icon: '🔄',
+                text: '<strong>Εποχικό μοντέλο:</strong> Η πρόβλεψη βασίζεται στο επαναλαμβανόμενο pattern των τελευταίων 12 μηνών.'
+            });
+        } else if (method === 'holt-winters') {
+            insights.push({
+                icon: '🧮',
+                text: '<strong>Holt-Winters:</strong> Προηγμένο μοντέλο που συνδυάζει τάση και εποχικότητα για ακριβέστερες προβλέψεις.'
+            });
+        }
+        
+        // Render insights
+        container.innerHTML = insights.map(insight => `
+            <div class="insight-item">
+                <div class="insight-icon">${insight.icon}</div>
+                <div class="insight-content">
+                    <p>${insight.text}</p>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    /**
+     * Show/hide loading indicator
+     */
+    function showLoadingIndicator(show) {
+        const indicator = document.getElementById('forecastLoadingIndicator');
+        if (indicator) {
+            indicator.style.display = show ? 'flex' : 'none';
         }
     }
 
@@ -1182,6 +1614,7 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
             eopyyDeductionsManager,
             backupManager,
             cdnChecker,
+            forecastingManager,
             getStateSnapshot,
             renderDashboard,
             renderEntriesTable,
