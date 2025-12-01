@@ -1003,15 +1003,6 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         });
     }
 
-    // ========================================
-    // Reports View Setup
-    // ========================================
-    setupReportsView();
-    setupHeatmapsView();
-    setupForecastingView();
-    setupComparisonView();
-
-
     function generateAndDisplayReport() {
         const type = document.getElementById('reportPeriodType').value;
         const includeParakratisi = document.getElementById('reportIncludeParakratisi').checked;
@@ -2083,6 +2074,11 @@ window.exportChartPDF = async function(canvasId) {
         showToast('Σφάλμα export PDF', 'error');
     }
 };
+
+    setupReportsView();
+    setupHeatmapsView();
+    setupForecastingView();
+    setupComparisonView();
 
     // ========================================
         // Final Initialization Complete
