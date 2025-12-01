@@ -880,204 +880,47 @@
         </div>
 
         <!-- ========================================
-             FORECASTING VIEW
+             FORECASTING VIEW (Placeholder)
              ======================================== -->
         <div id="forecastingView" class="view">
             <div class="view-header">
                 <h2>🔮 Προβλέψεις Εσόδων</h2>
-                <div class="view-actions">
-                    <button id="exportForecastCsvBtn" class="btn-secondary btn-compact">📄 Export CSV</button>
-                </div>
             </div>
-
-            <!-- Configuration Card -->
-            <div class="card card-compact">
-                <h3>Ρυθμίσεις Πρόβλεψης</h3>
-                <div class="form-row">
-                    <div class="form-group form-group-compact">
-                        <label>Μέθοδος Πρόβλεψης</label>
-                        <select id="forecastMethod" class="form-select form-select-compact">
-                            <option value="linear">Linear Regression</option>
-                            <option value="seasonal">Seasonal Naive</option>
-                            <option value="holtwinters">Holt-Winters</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group form-group-compact">
-                        <label>Περίοδοι Πρόβλεψης (Μήνες)</label>
-                        <select id="forecastPeriods" class="form-select form-select-compact">
-                            <option value="3">3 μήνες</option>
-                            <option value="6" selected>6 μήνες</option>
-                            <option value="12">12 μήνες</option>
-                            <option value="24">24 μήνες</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group form-group-compact">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="forecastIncludeParakratisi">
-                            <span>Με Παρακράτηση</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    <button id="generateForecastBtn" class="btn-primary btn-compact">🔄 Δημιουργία Πρόβλεψης</button>
-                </div>
-            </div>
-
-            <!-- Results -->
-            <div id="forecastResults" style="display: none;">
-                <!-- Summary -->
-                <div class="card card-compact">
-                    <h3>Σύνοψη</h3>
-                    <div id="forecastSummary">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-
-                <!-- Chart -->
-                <div class="card card-compact">
-                    <h3>Γράφημα Πρόβλεψης</h3>
-                    <canvas id="forecastChart"></canvas>
-                </div>
-
-                <!-- Predictions Table -->
-                <div class="card card-compact">
-                    <div class="collapsible-header" onclick="document.getElementById('forecastTableContent').classList.toggle('collapsed')">
-                        <h3>Προβλέψεις (Πίνακας)</h3>
-                        <span class="collapse-icon">▼</span>
-                    </div>
-                    <div id="forecastTableContent" class="collapsible-content">
-                        <div class="table-responsive">
-                            <table class="data-table data-table-compact">
-                                <thead>
-                                    <tr>
-                                        <th>Ημερομηνία</th>
-                                        <th class="text-right">Πρόβλεψη</th>
-                                        <th class="text-right">Κάτω Όριο (95%)</th>
-                                        <th class="text-right">Άνω Όριο (95%)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="forecastTableBody">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Accuracy Metrics -->
-                <div class="card card-compact">
-                    <div class="collapsible-header" onclick="document.getElementById('forecastAccuracyContent').classList.toggle('collapsed')">
-                        <h3>Μετρικές Ακρίβειας</h3>
-                        <span class="collapse-icon">▼</span>
-                    </div>
-                    <div id="forecastAccuracyContent" class="collapsible-content collapsed">
-                        <div id="forecastAccuracy">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Empty State -->
-            <div id="forecastEmptyState" class="card card-compact">
-                <p style="text-align: center; color: var(--text-secondary); padding: var(--spacing-xl);">
-                    Ρυθμίστε τις παραμέτρους και πατήστε "Δημιουργία Πρόβλεψης"
-                </p>
+            <div class="card">
+                <h3>Revenue Forecasting</h3>
+                <p>Η λειτουργικότητα προβλέψεων θα υλοποιηθεί σε επόμενη φάση.</p>
+                <p>Προγραμματισμένες μέθοδοι:</p>
+                <ul>
+                    <li>Linear Regression</li>
+                    <li>Seasonal Naive</li>
+                    <li>Holt-Winters Exponential Smoothing</li>
+                    <li>Confidence intervals (95%)</li>
+                    <li>Γραφήματα προβλέψεων με historical data</li>
+                    <li>Accuracy metrics</li>
+                </ul>
             </div>
         </div>
         <!-- END FORECASTING VIEW -->
 
         <!-- ========================================
-             HEATMAPS VIEW
+             HEATMAPS VIEW (Placeholder)
              ======================================== -->
         <div id="heatmapsView" class="view">
             <div class="view-header">
                 <h2>🌡️ Heatmaps</h2>
             </div>
-
-            <!-- Configuration Card -->
-            <div class="card card-compact">
-                <h3>Ρυθμίσεις Heatmaps</h3>
-                <div class="form-row">
-                    <div class="form-group form-group-compact">
-                        <label>Έτος</label>
-                        <select id="heatmapYear" class="form-select form-select-compact">
-                            <!-- Populated by JS -->
-                        </select>
-                    </div>
-                    <div class="form-group form-group-compact">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="heatmapIncludeParakratisi">
-                            <span>Με Παρακράτηση</span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Month × Year Heatmap -->
-            <div class="card card-compact">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3>Μήνας × Έτος</h3>
-                    <button id="generateMonthYearHeatmap" class="btn-primary btn-compact">
-                        🔄 Δημιουργία
-                    </button>
-                </div>
-                
-                <div id="monthYearHeatmapCard" style="display: none; margin-top: var(--spacing-md);">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-sm);">
-                        <small style="color: var(--text-secondary);">
-                            Έσοδα ανά μήνα και έτος
-                        </small>
-                        <button id="exportMonthYearPdfBtn" class="btn-secondary btn-compact btn-sm">
-                            📄 Export PDF
-                        </button>
-                    </div>
-                    <canvas id="monthYearCanvas" style="border: 1px solid var(--border-color); border-radius: var(--radius-md);"></canvas>
-                </div>
-            </div>
-
-            <!-- Source × Month Heatmap -->
-            <div class="card card-compact">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3>Διαγνωστικό × Μήνας</h3>
-                    <button id="generateSourceMonthHeatmap" class="btn-primary btn-compact">
-                        🔄 Δημιουργία
-                    </button>
-                </div>
-                
-                <div id="sourceMonthHeatmapCard" style="display: none; margin-top: var(--spacing-md);">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-sm);">
-                        <small style="color: var(--text-secondary);">
-                            Έσοδα ανά διαγνωστικό και μήνα (επιλεγμένο έτος)
-                        </small>
-                        <button id="exportSourceMonthPdfBtn" class="btn-secondary btn-compact btn-sm">
-                            📄 Export PDF
-                        </button>
-                    </div>
-                    <canvas id="sourceMonthCanvas" style="border: 1px solid var(--border-color); border-radius: var(--radius-md);"></canvas>
-                </div>
-            </div>
-
-            <!-- Legend -->
-            <div class="card card-compact">
-                <h4>Υπόμνημα</h4>
-                <div style="display: flex; gap: var(--spacing-lg); flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
-                        <div style="width: 20px; height: 20px; background: #e0f2fe; border: 1px solid var(--border-color);"></div>
-                        <span>Χαμηλά έσοδα</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
-                        <div style="width: 20px; height: 20px; background: #3b82f6; border: 1px solid var(--border-color);"></div>
-                        <span>Μεσαία έσοδα</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
-                        <div style="width: 20px; height: 20px; background: #1e40af; border: 1px solid var(--border-color);"></div>
-                        <span>Υψηλά έσοδα</span>
-                    </div>
-                </div>
+            <div class="card">
+                <h3>Οπτικοποίηση με Heatmaps</h3>
+                <p>Η λειτουργικότητα heatmaps θα υλοποιηθεί σε επόμενη φάση.</p>
+                <p>Προγραμματισμένες οπτικοποιήσεις:</p>
+                <ul>
+                    <li>Month × Year heatmap</li>
+                    <li>Source × Month heatmap</li>
+                    <li>Insurance × Month heatmap</li>
+                    <li>Canvas-based με interactivity (hover tooltips)</li>
+                    <li>Color-coded με gradient scales</li>
+                    <li>Export σε PNG/PDF</li>
+                </ul>
             </div>
         </div>
         <!-- END HEATMAPS VIEW -->
