@@ -376,6 +376,64 @@ function applySorting(entries) {
     return STATE.sortDirection === 'desc' ? sorted.reverse() : sorted;
 }
 
+/**
+ * Apply sorting based on STATE.sortColumn and STATE.sortDirection
+ * @param {Array} entries - Entries to sort
+ * @returns {Array} Sorted entries
+ */
+function applySorting(entries) {
+    if (!STATE.sortColumn) {
+        // Default: sort by date DESC
+        return [...entries].sort((a, b) => compareDates(b.date, a.date));
+    }
+    
+    const sorted = [...entries].sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (STATE.sortColumn) {
+            case 'date':
+                return compareDates(a.date, b.date);
+            
+            case 'source':
+                aVal = (a.source || '').toLowerCase();
+                bVal = (b.source || '').toLowerCase();
+                break;
+            
+            case 'insurance':
+                aVal = (a.insurance || '').toLowerCase();
+                bVal = (b.insurance || '').toLowerCase();
+                break;
+            
+            case 'type':
+                aVal = a.type === 'cash' ? 0 : 1;
+                bVal = b.type === 'cash' ? 0 : 1;
+                break;
+            
+            case 'originalAmount':
+                aVal = parseFloat(a.originalAmount || a.amount || 0);
+                bVal = parseFloat(b.originalAmount || b.amount || 0);
+                break;
+            
+            case 'finalAmount':
+                const amountsA = eopyyDeductionsManager.getAmountsBreakdown(a);
+                const amountsB = eopyyDeductionsManager.getAmountsBreakdown(b);
+                aVal = amountsA.finalAmount;
+                bVal = amountsB.finalAmount;
+                break;
+            
+            default:
+                return 0;
+        }
+        
+        // Proper comparison
+        if (aVal < bVal) return -1;
+        if (aVal > bVal) return 1;
+        return 0;
+    });
+    
+    // Apply direction
+    return STATE.sortDirection === 'desc' ? sorted.reverse() : sorted;
+}
 
 /**
  * Temporary filter stub (will be replaced by filters.js)
