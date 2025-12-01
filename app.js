@@ -705,6 +705,8 @@ import comparisonManager from './comparison.js';
         }
     }
 
+    await setupCloudSyncView();
+
 // ========================================
 // Initialization
 // ========================================
