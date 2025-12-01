@@ -22,6 +22,41 @@
 
 ---
 
+## 📂 MODULE STATUS REFERENCE
+
+### ✅ STABLE & COMPLETE
+```
+state.js          - Global state (με pageSize config)
+storage.js        - IndexedDB wrapper (stable)
+utils.js          - Helpers (complete)
+dataManager.js    - CRUD (stable)
+eopyyClawback.js  - Deductions (FIXED logic)
+backup.js         - Backup/restore (complete)
+csvValidator.js   - CSV validation (needs testing)
+cdnChecker.js     - CDN monitoring (working)
+service-worker.js - PWA (complete)
+```
+
+### 🟡 NEEDS WORK
+```
+uiRenderers.js    - Missing: setupTableSorting()
+formHandlers.js   - Bug: Percentage memory
+eventHandlers.js  - Enhance: Modal draggable
+app.js            - Add: Reports/Comparison handlers
+```
+
+### ⏳ STUBS READY
+```
+reports.js        - Backend ready, UI partial
+comparison.js     - Backend ready, UI not connected
+cloudAdapters.js  - OAuth ready, UI missing
+```
+
+### ❌ NOT STARTED
+```
+forecasting.js    - Placeholder only
+heatmaps.js       - Not created yet
+```
 
 ---
 
