@@ -12,6 +12,10 @@ import eopyyDeductionsManager from './eopyyClawback.js';
 import pdfExportManager from './pdfExport.js';
 import storage from './storage.js';
 import { STRINGS, isValidMonthYear } from './utils.js';
+import reportsManager from './reports.js';
+import heatmapManager from './heatmaps.js';
+import forecastingManager from './forecasting.js';
+import comparisonManager from './comparison.js';
 
 // ========================================
 // Global Window Handlers (onclick events)
@@ -306,7 +310,7 @@ export function setupNavigationHandlers() {
             // Update state
             STATE.currentView = tab.getAttribute('data-view');
 
-            // ✅ ADD: Initialize content based on view
+            // ✅ Initialize content based on view
             switch(STATE.currentView) {
                 case 'entries':
                     renderEntriesTable();
