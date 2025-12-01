@@ -2080,8 +2080,6 @@ window.exportChartPDF = async function(canvasId) {
     setupForecastingView();
     setupComparisonView();
 
-    await setupCloudSyncView();
-
     // ========================================
         // Final Initialization Complete
         // ========================================
