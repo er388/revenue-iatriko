@@ -1,3 +1,61 @@
+# Revenue Management System - Συνέχιση Ανάπτυξης
+
+## 📊 ΤΡΕΧΟΝΤΑ ΣΗΜΕΙΟ
+
+**Phase 1 (MVP): ✅ COMPLETE**
+- Core modules functional
+- Dashboard working
+- CRUD operations working
+- ΕΟΠΥΥ deductions logic FIXED
+- Παρακράτηση logic CORRECTED
+
+**Phase 2 (Extended): 🟡 IN PROGRESS**
+- ✅ Filters working
+- ✅ Backup/restore working
+- ✅ CSV import/export working
+- ✅ PDF export basic
+- ⏳ Reports partially done
+- ⏳ Comparison stub ready
+- ❌ Forecasting not started
+- ❌ Heatmaps not started
+- ❌ Cloud sync not connected
+
+---
+
+## 🔴 IMMEDIATE PRIORITIES (Αμεσες)
+
+### 1. Fix Critical Bugs
+```
+
+c) Modal draggable
+   File: eventHandlers.js
+   Function: setupDraggableModals() (enhance existing)
+```
+
+### 2. Complete Reports View
+```
+a) Connect PDF export
+   File: app.js
+   Add: Event handler for exportReportPdfBtn
+
+b) Add charts to reports
+   File: app.js → displayReport()
+   Add: Chart.js integration
+```
+
+### 3. Implement Comparison View
+```
+a) Period selection UI
+   File: app.js
+   Add: setupComparisonView()
+
+b) Rendering logic
+   File: app.js
+   Connect: comparisonManager.comparePeriods()
+```
+
+---
+
 ## 🎯 DEVELOPMENT WORKFLOW
 
 **Για κάθε task:**
@@ -14,6 +72,7 @@
 3. **Περίμενε confirmation**
    - ΜΗΝ γράψεις πολύ κώδικα μαζί
    - Μία αλλαγή τη φορά
+   - Testing checklist
 
 4. **Iterate based on feedback**
    - Fix bugs

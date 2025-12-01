@@ -562,78 +562,6 @@
                     </div>
                 </div>
 
-                <!-- Charts Section -->
-                <div class="charts-grid charts-grid-compact" style="margin-bottom: var(--spacing-lg);">
-                    <!-- Monthly Trend -->
-                    <div class="card card-compact">
-                        <h4>Μηνιαία Εξέλιξη</h4>
-                        <canvas id="reportMonthlyChart"></canvas>
-                    </div>
-                    
-                    <!-- Source Breakdown -->
-                    <div class="card card-compact">
-                        <h4>Κατανομή ανά Διαγνωστικό</h4>
-                        <canvas id="reportSourceChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Report Results -->
-                <div id="reportResults" style="display: none;">
-                    <!-- Summary Card -->
-                    <div class="card card-compact">
-                        <h3>Συνολικά</h3>
-                        <div id="reportSummary">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
-
-                    <!-- Charts Section -->
-                    <div class="charts-grid charts-grid-compact" style="margin-bottom: var(--spacing-lg);">
-                        <!-- Monthly Trend -->
-                        <div class="card card-compact">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
-                                <h4 style="margin: 0;">Μηνιαία Εξέλιξη</h4>
-                                <button type="button" class="btn-secondary btn-compact btn-sm" onclick="window.exportChartPDF('reportMonthlyChart')">📄 PDF</button>
-                            </div>
-                            <div style="height: 300px;">
-                                <canvas id="reportMonthlyChart"></canvas>
-                            </div>
-                        </div>
-                        
-                        <!-- Source Breakdown -->
-                        <div class="card card-compact">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
-                                <h4 style="margin: 0;">Κατανομή ανά Διαγνωστικό</h4>
-                                <button type="button" class="btn-secondary btn-compact btn-sm" onclick="window.exportChartPDF('reportSourceChart')">📄 PDF</button>
-                            </div>
-                            <div style="height: 300px;">
-                                <canvas id="reportSourceChart"></canvas>
-                            </div>
-                        </div>
-                        
-                        <!-- Insurance Breakdown -->
-                        <div class="card card-compact">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
-                                <h4 style="margin: 0;">Κατανομή ανά Ασφάλεια</h4>
-                                <button type="button" class="btn-secondary btn-compact btn-sm" onclick="window.exportChartPDF('reportInsuranceChart')">📄 PDF</button>
-                            </div>
-                            <div style="height: 300px;">
-                                <canvas id="reportInsuranceChart"></canvas>
-                            </div>
-                        </div>
-                        
-                        <!-- Deductions Breakdown (ΕΟΠΥΥ only) -->
-                        <div id="reportDeductionsChartCard" class="card card-compact" style="display: none;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
-                                <h4 style="margin: 0;">Ανάλυση Κρατήσεων ΕΟΠΥΥ</h4>
-                                <button type="button" class="btn-secondary btn-compact btn-sm" onclick="window.exportChartPDF('reportDeductionsChart')">📄 PDF</button>
-                            </div>
-                            <div style="height: 300px;">
-                                <canvas id="reportDeductionsChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
                 <!-- Monthly Breakdown -->
                 <div class="card card-compact">
                     <div class="collapsible-header" onclick="document.getElementById('reportMonthlyContent').classList.toggle('collapsed')">
@@ -1155,129 +1083,24 @@
         <!-- END HEATMAPS VIEW -->
 
         <!-- ========================================
-             CLOUD VIEW
+             CLOUD VIEW (Placeholder)
              ======================================== -->
         <div id="cloudView" class="view">
             <div class="view-header">
                 <h2>☁️ Cloud Storage</h2>
             </div>
-
-            <!-- Connection Status Cards -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
-                
-                <!-- Google Drive -->
-                <div class="card card-compact" style="border-left: 4px solid #4285f4;">
-                    <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
-                        <div style="font-size: 2rem;">📁</div>
-                        <div style="flex: 1;">
-                            <h3 style="margin: 0;">Google Drive</h3>
-                            <small id="googledriveStatus" style="color: var(--text-secondary);">Μη συνδεδεμένο</small>
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button id="googledriveConnectBtn" class="btn-primary btn-compact">🔗 Σύνδεση</button>
-                        <button id="googledriveSyncBtn" class="btn-secondary btn-compact" style="display: none;">☁️ Sync</button>
-                        <button id="googledriveDisconnectBtn" class="btn-danger btn-compact" style="display: none;">🔌 Αποσύνδεση</button>
-                    </div>
-                    <div id="googledriveInfo" style="margin-top: var(--spacing-md); font-size: 0.85rem; color: var(--text-secondary); display: none;">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-
-                <!-- Dropbox -->
-                <div class="card card-compact" style="border-left: 4px solid #0061ff;">
-                    <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
-                        <div style="font-size: 2rem;">📦</div>
-                        <div style="flex: 1;">
-                            <h3 style="margin: 0;">Dropbox</h3>
-                            <small id="dropboxStatus" style="color: var(--text-secondary);">Μη συνδεδεμένο</small>
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button id="dropboxConnectBtn" class="btn-primary btn-compact">🔗 Σύνδεση</button>
-                        <button id="dropboxSyncBtn" class="btn-secondary btn-compact" style="display: none;">☁️ Sync</button>
-                        <button id="dropboxDisconnectBtn" class="btn-danger btn-compact" style="display: none;">🔌 Αποσύνδεση</button>
-                    </div>
-                    <div id="dropboxInfo" style="margin-top: var(--spacing-md); font-size: 0.85rem; color: var(--text-secondary); display: none;">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-
-                <!-- OneDrive -->
-                <div class="card card-compact" style="border-left: 4px solid #094ab2;">
-                    <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
-                        <div style="font-size: 2rem;">☁️</div>
-                        <div style="flex: 1;">
-                            <h3 style="margin: 0;">OneDrive</h3>
-                            <small id="onedriveStatus" style="color: var(--text-secondary);">Μη συνδεδεμένο</small>
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button id="onedriveConnectBtn" class="btn-primary btn-compact">🔗 Σύνδεση</button>
-                        <button id="onedriveSyncBtn" class="btn-secondary btn-compact" style="display: none;">☁️ Sync</button>
-                        <button id="onedriveDisconnectBtn" class="btn-danger btn-compact" style="display: none;">🔌 Αποσύνδεση</button>
-                    </div>
-                    <div id="onedriveInfo" style="margin-top: var(--spacing-md); font-size: 0.85rem; color: var(--text-secondary); display: none;">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Auto-Sync Settings -->
-            <div class="card card-compact">
-                <h3>Αυτόματο Sync</h3>
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="autoSyncEnabled">
-                        <span>Ενεργοποίηση αυτόματου sync</span>
-                    </label>
-                    <p class="help-text">Αυτόματη δημιουργία backup στο cloud κάθε 15 λεπτά</p>
-                </div>
-                
-                <div id="autoSyncProviderSelect" style="margin-top: var(--spacing-md); display: none;">
-                    <label>Cloud Provider για Auto-Sync</label>
-                    <select id="autoSyncProvider" class="form-select form-select-compact">
-                        <option value="">Επιλέξτε...</option>
-                        <option value="googledrive">Google Drive</option>
-                        <option value="dropbox">Dropbox</option>
-                        <option value="onedrive">OneDrive</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Recent Backups -->
-            <div class="card card-compact">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
-                    <h3 style="margin: 0;">Πρόσφατα Cloud Backups</h3>
-                    <button id="refreshBackupsBtn" class="btn-secondary btn-compact btn-sm">🔄 Ανανέωση</button>
-                </div>
-                <div id="cloudBackupsList">
-                    <p style="text-align: center; color: var(--text-secondary); padding: var(--spacing-lg);">
-                        Συνδεθείτε σε cloud provider για να δείτε τα backups
-                    </p>
-                </div>
-            </div>
-
-            <!-- Instructions -->
-            <div class="card card-compact" style="background-color: var(--bg-tertiary);">
-                <h3>📖 Οδηγίες</h3>
-                <ol style="line-height: 1.8; padding-left: 1.5rem;">
-                    <li><strong>Σύνδεση:</strong> Πατήστε "Σύνδεση" στο cloud provider της επιλογής σας</li>
-                    <li><strong>Εξουσιοδότηση:</strong> Θα ανοίξει νέο παράθυρο για login</li>
-                    <li><strong>Sync:</strong> Μετά τη σύνδεση, πατήστε "Sync" για να ανεβάσετε backup</li>
-                    <li><strong>Auto-Sync:</strong> Ενεργοποιήστε για αυτόματα backups κάθε 15 λεπτά</li>
-                    <li><strong>Restore:</strong> Επιλέξτε backup από τη λίστα για ανάκτηση δεδομένων</li>
-                </ol>
-                
-                <div style="margin-top: var(--spacing-lg); padding: var(--spacing-md); background: rgba(239, 68, 68, 0.1); border-radius: var(--radius-md);">
-                    <p><strong>⚠️ Σημαντικό:</strong> Για να χρησιμοποιήσετε την πλήρη λειτουργικότητα, χρειάζεστε:</p>
-                    <ul style="margin: 0.5rem 0 0 1.5rem;">
-                        <li>Google OAuth Client ID (από Google Cloud Console)</li>
-                        <li>Dropbox App Key (από Dropbox Developer Portal)</li>
-                        <li>Microsoft App ID (από Azure Portal)</li>
-                    </ul>
-                    <p style="margin-top: 0.5rem;"><small>Δείτε την τεκμηρίωση για οδηγίες ρύθμισης.</small></p>
-                </div>
+            <div class="card">
+                <h3>Cloud Sync</h3>
+                <p>Η λειτουργικότητα cloud storage θα υλοποιηθεί σε επόμενη φάση.</p>
+                <p>Προγραμματισμένες ενσωματώσεις:</p>
+                <ul>
+                    <li>Google Drive</li>
+                    <li>Dropbox</li>
+                    <li>OneDrive</li>
+                    <li>OAuth2 PKCE authentication</li>
+                    <li>Auto-sync με configurable intervals</li>
+                    <li>Conflict resolution (last-write-wins / manual merge)</li>
+                </ul>
             </div>
         </div>
         <!-- END CLOUD VIEW -->
