@@ -2231,16 +2231,3 @@ button:focus-visible {
     background-color: rgba(100, 116, 139, 0.2);
     color: var(--secondary-color);
 }
-
-/* ========================================
-   Modal Dragging State
-   ======================================== */
-
-.modal-content.dragging {
-    transition: none !important; /* Disable transitions during drag */
-    cursor: move;
-}
-
-.modal-header:active {
-    cursor: grabbing !important;
-}

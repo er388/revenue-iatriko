@@ -347,26 +347,7 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         const reportPeriodType = document.getElementById('reportPeriodType');
         const generateReportBtn = document.getElementById('generateReportBtn');
         const exportReportCsvBtn = document.getElementById('exportReportCsvBtn');
-        const exportReportPdfBtn = document.getElementById('exportReportPdfBtn');
-        if (exportReportPdfBtn) {
-            exportReportPdfBtn.addEventListener('click', async () => {
-                if (!window.currentReport) {
-                    showToast('Δημιουργήστε πρώτα μια αναφορά', 'warning');
-                    return;
-                }
-                
-                showToast('Δημιουργία PDF...', 'info');
-                
-                try {
-                    await pdfExportManager.exportReport(window.currentReport);
-                    showToast('PDF δημιουργήθηκε επιτυχώς!', 'success');
-                } catch (error) {
-                    console.error('PDF export error:', error);
-                    showToast('Σφάλμα δημιουργίας PDF', 'error');
-                }
-            });
-        }
-
+        
         // Populate years
         const years = reportsManager.getAvailableYears();
         const reportYearSelect = document.getElementById('reportYear');
