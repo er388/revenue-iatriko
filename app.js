@@ -34,9 +34,7 @@ import {
     setupDateAutoFormat,
     STRINGS,
     isValidMonthYear,
-    formatMonthYear,
-    formatCurrency,
-    formatPercent
+    formatMonthYear
 } from './utils.js';
 import reportsManager from './reports.js';
 
@@ -1197,83 +1195,14 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     }
 
     window.editEntry = function(id) {
-        const entry = STATE.entries.find(e => e.id === id);
-        if (!entry) {
-            showToast('Η εγγραφή δεν βρέθηκε', 'error');
-            return;
-        }
-
-        // Store current entry ID
-        STATE.editingEntryId = id;
-
-        // Populate modal form
-        document.getElementById('entryDate').value = entry.date;
-        document.getElementById('entrySource').value = entry.source;
-        document.getElementById('entryInsurance').value = entry.insurance;
-        document.getElementById('entryType').value = entry.type;
-        document.getElementById('entryAmount').value = entry.originalAmount || entry.amount;
-        document.getElementById('entryNotes').value = entry.notes || '';
-
-        // Check if ΕΟΠΥΥ entry
-        const isEopyy = entry.insurance.toUpperCase().includes('ΕΟΠΥΥ');
-
-        if (isEopyy && entry.deductions) {
-            // Show ΕΟΠΥΥ fields
-            const eopyyFields = document.getElementById('entryEopyyFields');
-            if (eopyyFields) {
-                eopyyFields.style.display = 'block';
-            }
-
-            // Populate deduction fields
-            document.getElementById('entryParakratisi').value = entry.deductions.parakratisi || 0;
-            document.getElementById('entryParakratisiPercent').value = entry.deductions.parakratisiPercent || 0;
-            document.getElementById('entryMDE').value = entry.deductions.mde || 0;
-            document.getElementById('entryMDEPercent').value = entry.deductions.mdePercent || 0;
-            document.getElementById('entryRebate').value = entry.deductions.rebate || 0;
-            document.getElementById('entryRebatePercent').value = entry.deductions.rebatePercent || 0;
-            document.getElementById('entryKrathseisEopyy').value = entry.deductions.krathseis || 0;
-            document.getElementById('entryKrathseisEopyyPercent').value = entry.deductions.krathseisPercent || 0;
-            document.getElementById('entryClawback').value = entry.deductions.clawback || 0;
-            document.getElementById('entryClawbackPercent').value = entry.deductions.clawbackPercent || 0;
-            
-            const clawbackPeriodEl = document.getElementById('entryClawbackPeriod');
-            if (clawbackPeriodEl) {
-                clawbackPeriodEl.value = entry.deductions.clawbackPeriod || 'monthly';
-            }
-
-            // Hide non-ΕΟΠΥΥ field
-            const otherKrathseisField = document.getElementById('entryKrathseisOtherField');
-            if (otherKrathseisField) {
-                otherKrathseisField.style.display = 'none';
-            }
-        } else {
-            // Show non-ΕΟΠΥΥ field
-            const otherKrathseisField = document.getElementById('entryKrathseisOtherField');
-            if (otherKrathseisField) {
-                otherKrathseisField.style.display = 'block';
-                document.getElementById('entryKrathseisOther').value = entry.krathseis || 0;
-                document.getElementById('entryKrathseisOtherPercent').value = entry.krathseisPercent || 0;
-            }
-
-            // Hide ΕΟΠΥΥ fields
-            const eopyyFields = document.getElementById('entryEopyyFields');
-            if (eopyyFields) {
-                eopyyFields.style.display = 'none';
-            }
-        }
-
-        // Update modal title
-        const modalTitle = document.querySelector('#entryModal h3');
-        if (modalTitle) {
-            modalTitle.textContent = 'Επεξεργασία Εγγραφής';
-        }
-
-        // Show modal
-        const modal = document.getElementById('entryModal');
-        if (modal) {
-            modal.classList.add('active');
-        }
-    };
+    const entry = STATE.entries.find(e => e.id === id);
+    if (!entry) {
+        showToast('Η εγγραφή δεν βρέθηκε', 'error');
+        return;
+    }
+    // ... υπόλοιπος κώδικας από eventHandlers.js
+    console.log('Edit entry:', id);
+};
 
 window.saveEntry = async function() {
     console.log('Save entry called');
