@@ -1007,9 +1007,6 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     // Reports View Setup
     // ========================================
     setupReportsView();
-    setupHeatmapsView();
-    setupForecastingView();
-    setupComparisonView();
 
 
     function generateAndDisplayReport() {
@@ -1307,7 +1304,10 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
 
 
-
+    // Call in DOMContentLoaded (after setupReportsView)
+    setupHeatmapsView();
+    setupForecastingView();
+    setupComparisonView();
 
 
 
