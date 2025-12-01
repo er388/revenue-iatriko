@@ -306,75 +306,14 @@ export function setupNavigationHandlers() {
             // Update state
             STATE.currentView = tab.getAttribute('data-view');
 
-            // ✅ ADD: Initialize content based on view
-            switch(STATE.currentView) {
-                case 'entries':
-                    renderEntriesTable();
-                    break;
-                case 'dashboard':
-                    renderDashboard();
-                    break;
-                case 'reports':
-                    initializeReportsTab();
-                    break;
-                case 'comparison':
-                    initializeComparisonTab();
-                    break;
-                case 'forecasting':
-                    initializeForecastingTab();
-                    break;
-                case 'heatmaps':
-                    initializeHeatmapsTab();
-                    break;
-                case 'cloud':
-                    initializeCloudTab();
-                    break;
+            // Re-render if needed
+            if (STATE.currentView === 'entries') {
+                renderEntriesTable();
+            } else if (STATE.currentView === 'dashboard') {
+                renderDashboard();
             }
         });
     });
-}
-
-function initializeReportsTab() {
-    // Populate year dropdown if empty
-    const reportYear = document.getElementById('reportYear');
-    if (reportYear && reportYear.options.length === 0) {
-        const years = reportsManager.getAvailableYears();
-        reportYear.innerHTML = years.map(y => 
-            `<option value="${y}">${y}</option>`
-        ).join('');
-    }
-}
-
-function initializeComparisonTab() {
-    // Populate year dropdowns if empty
-    const years = reportsManager.getAvailableYears();
-    ['comparison1Year', 'comparison2Year'].forEach(id => {
-        const select = document.getElementById(id);
-        if (select && select.options.length === 0) {
-            select.innerHTML = years.map(y => 
-                `<option value="${y}">${y}</option>`
-            ).join('');
-        }
-    });
-}
-
-function initializeForecastingTab() {
-    // No special initialization needed - form is pre-configured
-}
-
-function initializeHeatmapsTab() {
-    // Populate year dropdown if empty
-    const heatmapYear = document.getElementById('heatmapYear');
-    if (heatmapYear && heatmapYear.options.length === 0) {
-        const years = reportsManager.getAvailableYears();
-        heatmapYear.innerHTML = years.map(y => 
-            `<option value="${y}">${y}</option>`
-        ).join('');
-    }
-}
-
-function initializeCloudTab() {
-    // Cloud initialization is handled by setupCloudSyncView()
 }
 
 // ========================================

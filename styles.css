@@ -2244,21 +2244,3 @@ button:focus-visible {
 .modal-header:active {
     cursor: grabbing !important;
 }
-
-.card.empty-state {
-    background: linear-gradient(135deg, #f9fafb, #f3f4f6);
-    border: 2px dashed var(--border-color);
-    padding: var(--spacing-xl);
-    text-align: center;
-    min-height: 200px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.empty-state-icon {
-    font-size: 3rem;
-    margin-bottom: var(--spacing-md);
-    opacity: 0.5;
-}
