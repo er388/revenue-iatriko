@@ -83,10 +83,7 @@
             ======================================== -->
         <div class="card card-compact">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
-                <h3>⚡ Γρήγορη Καταχώριση</h3>
-                <button type="button" class="btn-icon btn-compact" onclick="document.getElementById('quickAddForm').reset()" title="Καθαρισμός">
-                    🔄
-                </button>
+                <h3>⚡ Καταχώριση</h3>
             </div>
             
             <form id="quickAddForm">
@@ -388,9 +385,12 @@
         <div class="view-header">
             <h2>📋 Εγγραφές</h2>
             <div class="view-actions">
-                <button id="addEntryBtn" class="btn-primary btn-compact">➕ Νέα Εγγραφή</button>
-                <button id="exportCsvBtn" class="btn-secondary btn-compact">📄 Export CSV</button>
-                <button id="exportEntriesPdfBtn" class="btn-secondary btn-compact">📄 Export PDF</button>
+                <!-- CSV Export Group (side-by-side) -->
+                <div style="display: flex; gap: var(--spacing-xs);">
+                    <button id="exportCsvBtn" class="btn-secondary btn-compact">📄 CSV</button>
+                    <button id="exportEntriesPdfBtn" class="btn-secondary btn-compact">📄 PDF</button>
+                </div>
+                
                 <button id="importCsvBtn" class="btn-secondary btn-compact">📥 Import CSV</button>
                 <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
             </div>
