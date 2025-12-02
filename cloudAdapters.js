@@ -1,945 +1,832 @@
 /**
- * cloudAdapters.js - Cloud Storage Integration Module
- * Supports Google Drive, Dropbox, OneDrive with OAuth2 PKCE
- * Version: 2.0
+ * cloudAdapters.js - Cloud Storage Sync Module
+ * OAuth2 PKCE authentication for multiple providers
+ * Version: 1.0
  */
 
 import { STATE } from './state.js';
 import storage from './storage.js';
-import backupManager from './backup.js';
-import { logError, generateId, formatDateTime } from './utils.js';
+import { showToast } from './uiRenderers.js';
+import { escapeHtml } from './utils.js';
 
-// ========================================
-// Configuration
-// ========================================
-const CLOUD_CONFIG = {
-    // OAuth2 endpoints and client IDs
-    providers: {
-        googledrive: {
-            name: 'Google Drive',
-            authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
-            tokenUrl: 'https://oauth2.googleapis.com/token',
-            apiUrl: 'https://www.googleapis.com/drive/v3',
-            uploadUrl: 'https://www.googleapis.com/upload/drive/v3',
-            clientId: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
-            scope: 'https://www.googleapis.com/auth/drive.file',
-            redirectUri: window.location.origin + '/oauth-callback.html'
-        },
-        dropbox: {
-            name: 'Dropbox',
-            authUrl: 'https://www.dropbox.com/oauth2/authorize',
-            tokenUrl: 'https://api.dropboxapi.com/oauth2/token',
-            apiUrl: 'https://api.dropboxapi.com/2',
-            clientId: 'YOUR_DROPBOX_CLIENT_ID',
-            scope: 'files.content.write files.content.read',
-            redirectUri: window.location.origin + '/oauth-callback.html'
-        },
-        onedrive: {
-            name: 'OneDrive',
-            authUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
-            tokenUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
-            apiUrl: 'https://graph.microsoft.com/v1.0',
-            clientId: 'YOUR_ONEDRIVE_CLIENT_ID',
-            scope: 'Files.ReadWrite.All offline_access',
-            redirectUri: window.location.origin + '/oauth-callback.html'
-        }
-    },
-    
-    // Sync settings
-    autoSyncInterval: 15 * 60 * 1000, // 15 minutes
-    conflictResolution: 'last-write-wins', // 'last-write-wins' | 'manual'
-    backupFolder: 'Revenue Management Backups',
-    maxBackupsToKeep: 10
-};
-
-// ========================================
-// Base Cloud Adapter Class
-// ========================================
-class CloudAdapter {
-    constructor(providerConfig) {
-        this.config = providerConfig;
-        this.accessToken = null;
-        this.refreshToken = null;
-        this.tokenExpiry = null;
-        this.isAuthenticated = false;
+/**
+ * Cloud Sync Manager - Main Class
+ */
+class CloudSyncManager {
+    constructor() {
+        // OAuth2 configurations
+        this.providers = {
+            gdrive: {
+                name: 'Google Drive',
+                icon: '📁',
+                clientId: '', // User must configure
+                authEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+                tokenEndpoint: 'https://oauth2.googleapis.com/token',
+                scopes: ['https://www.googleapis.com/auth/drive.file'],
+                apiBase: 'https://www.googleapis.com/drive/v3'
+            },
+            dropbox: {
+                name: 'Dropbox',
+                icon: '📦',
+                clientId: '', // User must configure
+                authEndpoint: 'https://www.dropbox.com/oauth2/authorize',
+                tokenEndpoint: 'https://api.dropboxapi.com/oauth2/token',
+                scopes: ['files.content.write', 'files.content.read'],
+                apiBase: 'https://api.dropboxapi.com/2'
+            },
+            onedrive: {
+                name: 'OneDrive',
+                icon: '☁️',
+                clientId: '', // User must configure
+                authEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+                tokenEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+                scopes: ['files.readwrite', 'offline_access'],
+                apiBase: 'https://graph.microsoft.com/v1.0'
+            }
+        };
         
-        // Load saved tokens
-        this.loadTokens();
+        // Sync state
+        this.syncState = {
+            activeProvider: null,
+            lastSync: null,
+            autoSyncInterval: null,
+            isSyncing: false
+        };
+        
+        // Adapters
+        this.adapters = {
+            gdrive: new GoogleDriveAdapter(this.providers.gdrive),
+            dropbox: new DropboxAdapter(this.providers.dropbox),
+            onedrive: new OneDriveAdapter(this.providers.onedrive)
+        };
+        
+        // Default sync interval (minutes)
+        this.syncIntervals = [
+            { value: 0, label: 'Μη αυτόματο' },
+            { value: 5, label: '5 λεπτά' },
+            { value: 15, label: '15 λεπτά' },
+            { value: 30, label: '30 λεπτά' },
+            { value: 60, label: '1 ώρα' }
+        ];
+        
+        console.log('☁️ CloudSyncManager initialized');
     }
 
     /**
-     * Load tokens from storage
+     * Authenticate with provider
      */
-    async loadTokens() {
+    async authenticate(provider) {
+        console.log(`🔐 Authenticating with ${provider}...`);
+        
+        if (!this.providers[provider]) {
+            throw new Error('Άγνωστος provider');
+        }
+        
+        const adapter = this.adapters[provider];
+        if (!adapter) {
+            throw new Error('Adapter δεν βρέθηκε');
+        }
+        
         try {
-            const tokens = await storage.loadSetting(`${this.config.name}_tokens`);
-            if (tokens) {
-                this.accessToken = tokens.accessToken;
-                this.refreshToken = tokens.refreshToken;
-                this.tokenExpiry = tokens.expiry;
-                this.isAuthenticated = Date.now() < this.tokenExpiry;
+            const result = await adapter.authenticate();
+            
+            if (result.success) {
+                this.syncState.activeProvider = provider;
+                await this.saveProviderConfig(provider, result.tokens);
+                
+                console.log('✅ Authentication successful');
+                return { success: true, provider };
+            } else {
+                throw new Error(result.error || 'Authentication failed');
             }
         } catch (error) {
-            logError('Load tokens', error);
+            console.error('Authentication error:', error);
+            return { success: false, error: error.message };
         }
     }
 
     /**
-     * Save tokens to storage
+     * Disconnect from provider
      */
-    async saveTokens() {
+    async disconnect(provider) {
+        console.log(`🔌 Disconnecting from ${provider}...`);
+        
         try {
-            await storage.saveSetting(`${this.config.name}_tokens`, {
-                accessToken: this.accessToken,
-                refreshToken: this.refreshToken,
-                expiry: this.tokenExpiry
-            });
+            // Clear tokens
+            await storage.saveSetting(`cloud_${provider}_tokens`, null);
+            
+            // Stop auto-sync if active
+            if (this.syncState.activeProvider === provider) {
+                this.stopAutoSync();
+                this.syncState.activeProvider = null;
+            }
+            
+            console.log('✅ Disconnected successfully');
+            return { success: true };
         } catch (error) {
-            logError('Save tokens', error);
+            console.error('Disconnect error:', error);
+            return { success: false, error: error.message };
         }
+    }
+
+    /**
+     * Sync data (upload/download)
+     */
+    async sync(provider, strategy = 'last-write-wins') {
+        console.log(`🔄 Syncing with ${provider} (${strategy})...`);
+        
+        if (this.syncState.isSyncing) {
+            console.warn('Sync already in progress');
+            return { success: false, error: 'Sync σε εξέλιξη' };
+        }
+        
+        this.syncState.isSyncing = true;
+        
+        try {
+            const adapter = this.adapters[provider];
+            if (!adapter) {
+                throw new Error('Adapter δεν βρέθηκε');
+            }
+            
+            // Check authentication
+            const isAuth = await this.checkAuthentication(provider);
+            if (!isAuth) {
+                throw new Error('Δεν έχετε συνδεθεί');
+            }
+            
+            // Get local data
+            const localData = await this.getLocalBackup();
+            
+            // Download remote data
+            const remoteData = await adapter.download();
+            
+            // Resolve conflicts based on strategy
+            let finalData;
+            if (strategy === 'last-write-wins') {
+                finalData = this.resolveLastWriteWins(localData, remoteData);
+            } else if (strategy === 'merge') {
+                finalData = this.resolveMerge(localData, remoteData);
+            } else {
+                throw new Error('Άγνωστη στρατηγική');
+            }
+            
+            // Upload merged data
+            await adapter.upload(finalData);
+            
+            // Apply locally if needed
+            if (strategy !== 'last-write-wins' || remoteData.timestamp > localData.timestamp) {
+                await this.applyBackup(finalData);
+            }
+            
+            // Update sync state
+            this.syncState.lastSync = Date.now();
+            await storage.saveSetting('cloud_last_sync', this.syncState.lastSync);
+            
+            console.log('✅ Sync completed');
+            
+            return {
+                success: true,
+                timestamp: this.syncState.lastSync,
+                strategy,
+                conflicts: finalData.conflicts || 0
+            };
+            
+        } catch (error) {
+            console.error('Sync error:', error);
+            return { success: false, error: error.message };
+        } finally {
+            this.syncState.isSyncing = false;
+        }
+    }
+
+    /**
+     * Start auto-sync
+     */
+    startAutoSync(intervalMinutes) {
+        if (intervalMinutes <= 0) {
+            console.log('Auto-sync disabled');
+            return;
+        }
+        
+        // Clear existing interval
+        this.stopAutoSync();
+        
+        const intervalMs = intervalMinutes * 60 * 1000;
+        
+        this.syncState.autoSyncInterval = setInterval(async () => {
+            console.log('⏰ Auto-sync triggered');
+            
+            if (this.syncState.activeProvider) {
+                const result = await this.sync(
+                    this.syncState.activeProvider,
+                    'last-write-wins'
+                );
+                
+                if (result.success) {
+                    showToast('Auto-sync ολοκληρώθηκε', 'success');
+                } else {
+                    console.error('Auto-sync failed:', result.error);
+                }
+            }
+        }, intervalMs);
+        
+        console.log(`⏰ Auto-sync started: ${intervalMinutes} minutes`);
+    }
+
+    /**
+     * Stop auto-sync
+     */
+    stopAutoSync() {
+        if (this.syncState.autoSyncInterval) {
+            clearInterval(this.syncState.autoSyncInterval);
+            this.syncState.autoSyncInterval = null;
+            console.log('⏸️ Auto-sync stopped');
+        }
+    }
+
+    /**
+     * Check if authenticated
+     */
+    async checkAuthentication(provider) {
+        try {
+            const tokens = await storage.getSetting(`cloud_${provider}_tokens`);
+            return tokens && tokens.access_token;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Get local backup data
+     */
+    async getLocalBackup() {
+        return {
+            version: '2.0',
+            timestamp: Date.now(),
+            entries: STATE.entries,
+            sources: STATE.sources,
+            insurances: STATE.insurances,
+            userLabel: STATE.userLabel
+        };
+    }
+
+    /**
+     * Apply backup data locally
+     */
+    async applyBackup(data) {
+        if (data.entries) STATE.entries = data.entries;
+        if (data.sources) STATE.sources = data.sources;
+        if (data.insurances) STATE.insurances = data.insurances;
+        if (data.userLabel) STATE.userLabel = data.userLabel;
+        
+        await storage.saveEntries(STATE.entries);
+        await storage.saveSetting('sources', STATE.sources);
+        await storage.saveSetting('insurances', STATE.insurances);
+        await storage.saveSetting('userLabel', STATE.userLabel);
+    }
+
+    /**
+     * Resolve conflicts: Last Write Wins
+     */
+    resolveLastWriteWins(localData, remoteData) {
+        if (!remoteData || !remoteData.timestamp) {
+            return localData;
+        }
+        
+        return localData.timestamp > remoteData.timestamp 
+            ? localData 
+            : remoteData;
+    }
+
+    /**
+     * Resolve conflicts: Merge
+     */
+    resolveMerge(localData, remoteData) {
+        if (!remoteData || !remoteData.entries) {
+            return localData;
+        }
+        
+        // Merge entries by ID
+        const entriesMap = new Map();
+        
+        // Add local entries
+        localData.entries.forEach(entry => {
+            entriesMap.set(entry.id, entry);
+        });
+        
+        // Merge remote entries
+        let conflicts = 0;
+        remoteData.entries.forEach(remoteEntry => {
+            const localEntry = entriesMap.get(remoteEntry.id);
+            
+            if (!localEntry) {
+                // New entry from remote
+                entriesMap.set(remoteEntry.id, remoteEntry);
+            } else {
+                // Conflict: keep newer
+                const remoteTime = new Date(remoteEntry.timestamp || 0).getTime();
+                const localTime = new Date(localEntry.timestamp || 0).getTime();
+                
+                if (remoteTime > localTime) {
+                    entriesMap.set(remoteEntry.id, remoteEntry);
+                    conflicts++;
+                }
+            }
+        });
+        
+        // Merge sources and insurances (union)
+        const mergedSources = [...new Set([...localData.sources, ...(remoteData.sources || [])])];
+        const mergedInsurances = [...new Set([...localData.insurances, ...(remoteData.insurances || [])])];
+        
+        return {
+            version: '2.0',
+            timestamp: Date.now(),
+            entries: Array.from(entriesMap.values()),
+            sources: mergedSources,
+            insurances: mergedInsurances,
+            userLabel: localData.userLabel,
+            conflicts
+        };
+    }
+
+    /**
+     * Save provider config
+     */
+    async saveProviderConfig(provider, tokens) {
+        await storage.saveSetting(`cloud_${provider}_tokens`, tokens);
+        await storage.saveSetting('cloud_active_provider', provider);
+    }
+
+    /**
+     * Get sync status
+     */
+    getSyncStatus() {
+        return {
+            activeProvider: this.syncState.activeProvider,
+            lastSync: this.syncState.lastSync,
+            isSyncing: this.syncState.isSyncing,
+            autoSyncEnabled: this.syncState.autoSyncInterval !== null
+        };
+    }
+}
+
+/**
+ * Base Cloud Adapter Class
+ */
+class CloudAdapter {
+    constructor(config) {
+        this.config = config;
+        this.tokens = null;
     }
 
     /**
      * Generate PKCE challenge
      */
     async generatePKCE() {
-        const verifier = this.generateCodeVerifier();
-        const challenge = await this.generateCodeChallenge(verifier);
-        
-        // Store verifier for later use
-        sessionStorage.setItem('pkce_verifier', verifier);
-        
-        return { verifier, challenge };
-    }
-
-    /**
-     * Generate code verifier (random string)
-     */
-    generateCodeVerifier() {
+        // Generate random code verifier
         const array = new Uint8Array(32);
         crypto.getRandomValues(array);
-        return this.base64UrlEncode(array);
-    }
-
-    /**
-     * Generate code challenge from verifier
-     */
-    async generateCodeChallenge(verifier) {
+        const codeVerifier = this.base64URLEncode(array);
+        
+        // Create SHA-256 hash
         const encoder = new TextEncoder();
-        const data = encoder.encode(verifier);
+        const data = encoder.encode(codeVerifier);
         const hash = await crypto.subtle.digest('SHA-256', data);
-        return this.base64UrlEncode(new Uint8Array(hash));
+        
+        // Base64 URL encode the hash
+        const codeChallenge = this.base64URLEncode(new Uint8Array(hash));
+        
+        return { codeVerifier, codeChallenge };
     }
 
     /**
-     * Base64 URL encoding
+     * Base64 URL encode
      */
-    base64UrlEncode(buffer) {
-        const base64 = btoa(String.fromCharCode.apply(null, buffer));
-        return base64
+    base64URLEncode(buffer) {
+        return btoa(String.fromCharCode(...buffer))
             .replace(/\+/g, '-')
             .replace(/\//g, '_')
             .replace(/=/g, '');
     }
 
     /**
-     * Authenticate with OAuth2 PKCE
+     * Open OAuth2 popup
      */
+    openAuthPopup(url) {
+        const width = 600;
+        const height = 700;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        return window.open(
+            url,
+            'oauth2',
+            `width=${width},height=${height},left=${left},top=${top}`
+        );
+    }
+
+    /**
+     * Wait for OAuth2 callback
+     */
+    waitForCallback(popup) {
+        return new Promise((resolve, reject) => {
+            const checkInterval = setInterval(() => {
+                try {
+                    if (popup.closed) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Παράθυρο έκλεισε'));
+                        return;
+                    }
+                    
+                    // Check for callback URL
+                    const url = popup.location.href;
+                    if (url.includes('code=') || url.includes('error=')) {
+                        clearInterval(checkInterval);
+                        popup.close();
+                        
+                        const params = new URLSearchParams(url.split('?')[1]);
+                        
+                        if (params.has('error')) {
+                            reject(new Error(params.get('error')));
+                        } else {
+                            resolve(params.get('code'));
+                        }
+                    }
+                } catch (e) {
+                    // Cross-origin error (expected until redirect)
+                }
+            }, 100);
+            
+            // Timeout after 5 minutes
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                if (!popup.closed) {
+                    popup.close();
+                }
+                reject(new Error('Timeout'));
+            }, 5 * 60 * 1000);
+        });
+    }
+}
+
+/**
+ * Google Drive Adapter
+ */
+class GoogleDriveAdapter extends CloudAdapter {
     async authenticate() {
+        console.log('🔐 Google Drive authentication...');
+        
+        if (!this.config.clientId) {
+            return { 
+                success: false, 
+                error: 'Client ID δεν έχει ρυθμιστεί. Ρυθμίστε το στις Ρυθμίσεις Cloud.' 
+            };
+        }
+        
         try {
-            // Generate PKCE challenge
-            const { challenge } = await this.generatePKCE();
+            // Generate PKCE
+            const { codeVerifier, codeChallenge } = await this.generatePKCE();
+            
+            // Store verifier
+            sessionStorage.setItem('pkce_verifier', codeVerifier);
             
             // Build auth URL
-            const params = new URLSearchParams({
-                client_id: this.config.clientId,
-                redirect_uri: this.config.redirectUri,
-                response_type: 'code',
-                scope: this.config.scope,
-                code_challenge: challenge,
-                code_challenge_method: 'S256',
-                state: generateId() // CSRF protection
-            });
+            const redirectUri = `${window.location.origin}/oauth-callback.html`;
+            const state = btoa(JSON.stringify({ provider: 'gdrive', timestamp: Date.now() }));
             
-            const authUrl = `${this.config.authUrl}?${params.toString()}`;
+            const authUrl = new URL(this.config.authEndpoint);
+            authUrl.searchParams.set('client_id', this.config.clientId);
+            authUrl.searchParams.set('redirect_uri', redirectUri);
+            authUrl.searchParams.set('response_type', 'code');
+            authUrl.searchParams.set('scope', this.config.scopes.join(' '));
+            authUrl.searchParams.set('code_challenge', codeChallenge);
+            authUrl.searchParams.set('code_challenge_method', 'S256');
+            authUrl.searchParams.set('state', state);
+            authUrl.searchParams.set('access_type', 'offline');
+            authUrl.searchParams.set('prompt', 'consent');
             
-            // Open popup for authentication
-            const popup = window.open(
-                authUrl,
-                'OAuth2 Authentication',
-                'width=600,height=700,scrollbars=yes'
-            );
+            // Open popup
+            const popup = this.openAuthPopup(authUrl.toString());
             
-            // Wait for callback
-            return new Promise((resolve, reject) => {
-                const checkClosed = setInterval(() => {
-                    if (popup.closed) {
-                        clearInterval(checkClosed);
-                        reject(new Error('Authentication cancelled'));
-                    }
-                }, 1000);
-                
-                // Listen for callback message
-                window.addEventListener('message', async (event) => {
-                    if (event.origin !== window.location.origin) return;
-                    
-                    clearInterval(checkClosed);
-                    popup.close();
-                    
-                    if (event.data.error) {
-                        reject(new Error(event.data.error));
-                    } else if (event.data.code) {
-                        // Exchange code for token
-                        await this.exchangeCodeForToken(event.data.code);
-                        resolve(true);
-                    }
-                }, { once: true });
-            });
+            // Wait for code
+            const code = await this.waitForCallback(popup);
+            
+            // Exchange code for tokens
+            const tokens = await this.exchangeCode(code, codeVerifier, redirectUri);
+            
+            this.tokens = tokens;
+            
+            return { success: true, tokens };
             
         } catch (error) {
-            logError('Authentication', error);
-            throw error;
+            console.error('Google Drive auth error:', error);
+            return { success: false, error: error.message };
         }
     }
 
-    /**
-     * Exchange authorization code for access token
-     */
-    async exchangeCodeForToken(code) {
-        throw new Error('Must be implemented by subclass');
-    }
-
-    /**
-     * Refresh access token
-     */
-    async refreshAccessToken() {
-        throw new Error('Must be implemented by subclass');
-    }
-
-    /**
-     * Check if token is expired and refresh if needed
-     */
-    async ensureValidToken() {
-        if (Date.now() >= this.tokenExpiry - 60000) { // Refresh 1 min before expiry
-            await this.refreshAccessToken();
-        }
-    }
-
-    /**
-     * Make authenticated API request
-     */
-    async makeRequest(endpoint, options = {}) {
-        await this.ensureValidToken();
-        
-        const headers = {
-            'Authorization': `Bearer ${this.accessToken}`,
-            ...options.headers
-        };
-        
-        const response = await fetch(endpoint, {
-            ...options,
-            headers
+    async exchangeCode(code, codeVerifier, redirectUri) {
+        const response = await fetch(this.config.tokenEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                client_id: this.config.clientId,
+                code,
+                code_verifier: codeVerifier,
+                redirect_uri: redirectUri,
+                grant_type: 'authorization_code'
+            })
         });
         
         if (!response.ok) {
-            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+            throw new Error('Token exchange failed');
         }
         
         return response.json();
     }
 
-    /**
-     * Upload file to cloud
-     */
-    async upload(data, filename) {
-        throw new Error('Must be implemented by subclass');
-    }
-
-    /**
-     * Download file from cloud
-     */
-    async download(fileId) {
-        throw new Error('Must be implemented by subclass');
-    }
-
-    /**
-     * List files in cloud folder
-     */
-    async list() {
-        throw new Error('Must be implemented by subclass');
-    }
-
-    /**
-     * Delete file from cloud
-     */
-    async delete(fileId) {
-        throw new Error('Must be implemented by subclass');
-    }
-
-    /**
-     * Logout (revoke tokens)
-     */
-    async logout() {
-        this.accessToken = null;
-        this.refreshToken = null;
-        this.tokenExpiry = null;
-        this.isAuthenticated = false;
-        
-        await storage.saveSetting(`${this.config.name}_tokens`, null);
-    }
-}
-
-// ========================================
-// Google Drive Adapter
-// ========================================
-class GoogleDriveAdapter extends CloudAdapter {
-    constructor() {
-        super(CLOUD_CONFIG.providers.googledrive);
-    }
-
-    async exchangeCodeForToken(code) {
-        const verifier = sessionStorage.getItem('pkce_verifier');
-        
-        const response = await fetch(this.config.tokenUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                client_id: this.config.clientId,
-                code: code,
-                code_verifier: verifier,
-                redirect_uri: this.config.redirectUri,
-                grant_type: 'authorization_code'
-            })
-        });
-        
-        const data = await response.json();
-        
-        this.accessToken = data.access_token;
-        this.refreshToken = data.refresh_token;
-        this.tokenExpiry = Date.now() + (data.expires_in * 1000);
-        this.isAuthenticated = true;
-        
-        await this.saveTokens();
-        sessionStorage.removeItem('pkce_verifier');
-    }
-
-    async refreshAccessToken() {
-        if (!this.refreshToken) {
-            throw new Error('No refresh token available');
-        }
-        
-        const response = await fetch(this.config.tokenUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                client_id: this.config.clientId,
-                refresh_token: this.refreshToken,
-                grant_type: 'refresh_token'
-            })
-        });
-        
-        const data = await response.json();
-        
-        this.accessToken = data.access_token;
-        this.tokenExpiry = Date.now() + (data.expires_in * 1000);
-        
-        await this.saveTokens();
-    }
-
-    async upload(data, filename) {
-        await this.ensureValidToken();
-        
-        // First, create folder if doesn't exist
-        const folderId = await this.ensureFolder(CLOUD_CONFIG.backupFolder);
-        
-        // Upload file
+    async upload(data) {
+        // Upload to Google Drive
         const metadata = {
-            name: filename,
-            parents: [folderId],
+            name: 'revenue_backup.json',
             mimeType: 'application/json'
         };
         
-        const form = new FormData();
-        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-        form.append('file', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+        const formData = new FormData();
+        formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        formData.append('file', new Blob([JSON.stringify(data)], { type: 'application/json' }));
         
-        const response = await fetch(`${this.config.uploadUrl}/files?uploadType=multipart`, {
+        const response = await fetch(`${this.config.apiBase}/files?uploadType=multipart`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${this.accessToken}`
+                'Authorization': `Bearer ${this.tokens.access_token}`
             },
-            body: form
+            body: formData
         });
+        
+        if (!response.ok) {
+            throw new Error('Upload failed');
+        }
         
         return response.json();
     }
 
-    async download(fileId) {
-        const response = await this.makeRequest(
-            `${this.config.apiUrl}/files/${fileId}?alt=media`
+    async download() {
+        // Search for backup file
+        const searchResponse = await fetch(
+            `${this.config.apiBase}/files?q=name='revenue_backup.json'`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${this.tokens.access_token}`
+                }
+            }
         );
         
-        return response;
-    }
-
-    async list() {
-        const folderId = await this.ensureFolder(CLOUD_CONFIG.backupFolder);
-        
-        const response = await this.makeRequest(
-            `${this.config.apiUrl}/files?q='${folderId}'+in+parents&orderBy=modifiedTime+desc`
-        );
-        
-        return response.files || [];
-    }
-
-    async delete(fileId) {
-        await this.makeRequest(
-            `${this.config.apiUrl}/files/${fileId}`,
-            { method: 'DELETE' }
-        );
-    }
-
-    /**
-     * Ensure folder exists, create if not
-     */
-    async ensureFolder(folderName) {
-        // Search for folder
-        const searchResponse = await this.makeRequest(
-            `${this.config.apiUrl}/files?q=name='${folderName}'+and+mimeType='application/vnd.google-apps.folder'`
-        );
-        
-        if (searchResponse.files && searchResponse.files.length > 0) {
-            return searchResponse.files[0].id;
+        if (!searchResponse.ok) {
+            throw new Error('Search failed');
         }
         
-        // Create folder
-        const createResponse = await fetch(`${this.config.apiUrl}/files`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${this.accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                name: folderName,
-                mimeType: 'application/vnd.google-apps.folder'
-            })
-        });
+        const searchData = await searchResponse.json();
         
-        const folder = await createResponse.json();
-        return folder.id;
+        if (!searchData.files || searchData.files.length === 0) {
+            return null; // No backup found
+        }
+        
+        const fileId = searchData.files[0].id;
+        
+        // Download file
+        const downloadResponse = await fetch(
+            `${this.config.apiBase}/files/${fileId}?alt=media`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${this.tokens.access_token}`
+                }
+            }
+        );
+        
+        if (!downloadResponse.ok) {
+            throw new Error('Download failed');
+        }
+        
+        return downloadResponse.json();
     }
 }
 
-// ========================================
-// Dropbox Adapter
-// ========================================
+/**
+ * Dropbox Adapter
+ */
 class DropboxAdapter extends CloudAdapter {
-    constructor() {
-        super(CLOUD_CONFIG.providers.dropbox);
+    async authenticate() {
+        console.log('🔐 Dropbox authentication...');
+        
+        if (!this.config.clientId) {
+            return { 
+                success: false, 
+                error: 'Client ID δεν έχει ρυθμιστεί' 
+            };
+        }
+        
+        try {
+            // Generate PKCE
+            const { codeVerifier, codeChallenge } = await this.generatePKCE();
+            
+            sessionStorage.setItem('pkce_verifier', codeVerifier);
+            
+            const redirectUri = `${window.location.origin}/oauth-callback.html`;
+            const state = btoa(JSON.stringify({ provider: 'dropbox', timestamp: Date.now() }));
+            
+            const authUrl = new URL(this.config.authEndpoint);
+            authUrl.searchParams.set('client_id', this.config.clientId);
+            authUrl.searchParams.set('redirect_uri', redirectUri);
+            authUrl.searchParams.set('response_type', 'code');
+            authUrl.searchParams.set('code_challenge', codeChallenge);
+            authUrl.searchParams.set('code_challenge_method', 'S256');
+            authUrl.searchParams.set('state', state);
+            authUrl.searchParams.set('token_access_type', 'offline');
+            
+            const popup = this.openAuthPopup(authUrl.toString());
+            const code = await this.waitForCallback(popup);
+            const tokens = await this.exchangeCode(code, codeVerifier, redirectUri);
+            
+            this.tokens = tokens;
+            return { success: true, tokens };
+            
+        } catch (error) {
+            console.error('Dropbox auth error:', error);
+            return { success: false, error: error.message };
+        }
     }
 
-    async exchangeCodeForToken(code) {
-        const verifier = sessionStorage.getItem('pkce_verifier');
-        
-        const response = await fetch(this.config.tokenUrl, {
+    async exchangeCode(code, codeVerifier, redirectUri) {
+        const response = await fetch(this.config.tokenEndpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
             body: new URLSearchParams({
                 client_id: this.config.clientId,
-                code: code,
-                code_verifier: verifier,
-                redirect_uri: this.config.redirectUri,
+                code,
+                code_verifier: codeVerifier,
+                redirect_uri: redirectUri,
                 grant_type: 'authorization_code'
             })
         });
         
-        const data = await response.json();
-        
-        this.accessToken = data.access_token;
-        this.refreshToken = data.refresh_token;
-        this.tokenExpiry = Date.now() + (data.expires_in * 1000);
-        this.isAuthenticated = true;
-        
-        await this.saveTokens();
-        sessionStorage.removeItem('pkce_verifier');
-    }
-
-    async refreshAccessToken() {
-        if (!this.refreshToken) {
-            throw new Error('No refresh token available');
+        if (!response.ok) {
+            throw new Error('Token exchange failed');
         }
         
-        const response = await fetch(this.config.tokenUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                client_id: this.config.clientId,
-                refresh_token: this.refreshToken,
-                grant_type: 'refresh_token'
-            })
-        });
-        
-        const data = await response.json();
-        
-        this.accessToken = data.access_token;
-        this.tokenExpiry = Date.now() + (data.expires_in * 1000);
-        
-        await this.saveTokens();
+        return response.json();
     }
 
-    async upload(data, filename) {
-        await this.ensureValidToken();
-        
-        const path = `/${CLOUD_CONFIG.backupFolder}/${filename}`;
-        
-        const response = await fetch(`${this.config.apiUrl}/files/upload`, {
+    async upload(data) {
+        const response = await fetch(`${this.config.apiBase}/files/upload`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${this.accessToken}`,
+                'Authorization': `Bearer ${this.tokens.access_token}`,
                 'Content-Type': 'application/octet-stream',
                 'Dropbox-API-Arg': JSON.stringify({
-                    path: path,
-                    mode: 'add',
-                    autorename: true
+                    path: '/revenue_backup.json',
+                    mode: 'overwrite'
                 })
             },
             body: JSON.stringify(data)
         });
         
+        if (!response.ok) {
+            throw new Error('Upload failed');
+        }
+        
         return response.json();
     }
 
-    async download(path) {
-        await this.ensureValidToken();
-        
-        const response = await fetch(`${this.config.apiUrl}/files/download`, {
+    async download() {
+        const response = await fetch(`${this.config.apiBase}/files/download`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${this.accessToken}`,
-                'Dropbox-API-Arg': JSON.stringify({ path })
+                'Authorization': `Bearer ${this.tokens.access_token}`,
+                'Dropbox-API-Arg': JSON.stringify({
+                    path: '/revenue_backup.json'
+                })
             }
         });
         
+        if (!response.ok) {
+            if (response.status === 409) {
+                return null; // File not found
+            }
+            throw new Error('Download failed');
+        }
+        
         return response.json();
-    }
-
-    async list() {
-        await this.ensureValidToken();
-        
-        const response = await fetch(`${this.config.apiUrl}/files/list_folder`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${this.accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                path: `/${CLOUD_CONFIG.backupFolder}`
-            })
-        });
-        
-        const data = await response.json();
-        return data.entries || [];
-    }
-
-    async delete(path) {
-        await this.ensureValidToken();
-        
-        await fetch(`${this.config.apiUrl}/files/delete_v2`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${this.accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ path })
-        });
     }
 }
 
-// ========================================
-// OneDrive Adapter
-// ========================================
+/**
+ * OneDrive Adapter
+ */
 class OneDriveAdapter extends CloudAdapter {
-    constructor() {
-        super(CLOUD_CONFIG.providers.onedrive);
+    async authenticate() {
+        console.log('🔐 OneDrive authentication...');
+        
+        if (!this.config.clientId) {
+            return { 
+                success: false, 
+                error: 'Client ID δεν έχει ρυθμιστεί' 
+            };
+        }
+        
+        try {
+            const { codeVerifier, codeChallenge } = await this.generatePKCE();
+            
+            sessionStorage.setItem('pkce_verifier', codeVerifier);
+            
+            const redirectUri = `${window.location.origin}/oauth-callback.html`;
+            const state = btoa(JSON.stringify({ provider: 'onedrive', timestamp: Date.now() }));
+            
+            const authUrl = new URL(this.config.authEndpoint);
+            authUrl.searchParams.set('client_id', this.config.clientId);
+            authUrl.searchParams.set('redirect_uri', redirectUri);
+            authUrl.searchParams.set('response_type', 'code');
+            authUrl.searchParams.set('scope', this.config.scopes.join(' '));
+            authUrl.searchParams.set('code_challenge', codeChallenge);
+            authUrl.searchParams.set('code_challenge_method', 'S256');
+            authUrl.searchParams.set('state', state);
+            
+            const popup = this.openAuthPopup(authUrl.toString());
+            const code = await this.waitForCallback(popup);
+            const tokens = await this.exchangeCode(code, codeVerifier, redirectUri);
+            
+            this.tokens = tokens;
+            return { success: true, tokens };
+            
+        } catch (error) {
+            console.error('OneDrive auth error:', error);
+            return { success: false, error: error.message };
+        }
     }
 
-    async exchangeCodeForToken(code) {
-        const verifier = sessionStorage.getItem('pkce_verifier');
-        
-        const response = await fetch(this.config.tokenUrl, {
+    async exchangeCode(code, codeVerifier, redirectUri) {
+        const response = await fetch(this.config.tokenEndpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
             body: new URLSearchParams({
                 client_id: this.config.clientId,
-                code: code,
-                code_verifier: verifier,
-                redirect_uri: this.config.redirectUri,
+                code,
+                code_verifier: codeVerifier,
+                redirect_uri: redirectUri,
                 grant_type: 'authorization_code'
             })
         });
         
-        const data = await response.json();
-        
-        this.accessToken = data.access_token;
-        this.refreshToken = data.refresh_token;
-        this.tokenExpiry = Date.now() + (data.expires_in * 1000);
-        this.isAuthenticated = true;
-        
-        await this.saveTokens();
-        sessionStorage.removeItem('pkce_verifier');
-    }
-
-    async refreshAccessToken() {
-        if (!this.refreshToken) {
-            throw new Error('No refresh token available');
+        if (!response.ok) {
+            throw new Error('Token exchange failed');
         }
         
-        const response = await fetch(this.config.tokenUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                client_id: this.config.clientId,
-                refresh_token: this.refreshToken,
-                grant_type: 'refresh_token'
-            })
-        });
-        
-        const data = await response.json();
-        
-        this.accessToken = data.access_token;
-        this.tokenExpiry = Date.now() + (data.expires_in * 1000);
-        
-        await this.saveTokens();
+        return response.json();
     }
 
-    async upload(data, filename) {
-        await this.ensureValidToken();
-        
-        const folderId = await this.ensureFolder(CLOUD_CONFIG.backupFolder);
-        const path = `/me/drive/items/${folderId}:/${filename}:/content`;
-        
-        const response = await fetch(`${this.config.apiUrl}${path}`, {
+    async upload(data) {
+        const response = await fetch(`${this.config.apiBase}/me/drive/root:/revenue_backup.json:/content`, {
             method: 'PUT',
             headers: {
-                'Authorization': `Bearer ${this.accessToken}`,
+                'Authorization': `Bearer ${this.tokens.access_token}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(data)
         });
         
+        if (!response.ok) {
+            throw new Error('Upload failed');
+        }
+        
         return response.json();
     }
 
-    async download(itemId) {
-        const response = await this.makeRequest(
-            `${this.config.apiUrl}/me/drive/items/${itemId}/content`
-        );
-        
-        return response;
-    }
-
-    async list() {
-        const folderId = await this.ensureFolder(CLOUD_CONFIG.backupFolder);
-        
-        const response = await this.makeRequest(
-            `${this.config.apiUrl}/me/drive/items/${folderId}/children`
-        );
-        
-        return response.value || [];
-    }
-
-    async delete(itemId) {
-        await this.makeRequest(
-            `${this.config.apiUrl}/me/drive/items/${itemId}`,
-            { method: 'DELETE' }
-        );
-    }
-
-    /**
-     * Ensure folder exists, create if not
-     */
-    async ensureFolder(folderName) {
-        // Search for folder
-        const searchResponse = await this.makeRequest(
-            `${this.config.apiUrl}/me/drive/root/children?$filter=name eq '${folderName}' and folder ne null`
-        );
-        
-        if (searchResponse.value && searchResponse.value.length > 0) {
-            return searchResponse.value[0].id;
-        }
-        
-        // Create folder
-        const createResponse = await fetch(`${this.config.apiUrl}/me/drive/root/children`, {
-            method: 'POST',
+    async download() {
+        const response = await fetch(`${this.config.apiBase}/me/drive/root:/revenue_backup.json:/content`, {
             headers: {
-                'Authorization': `Bearer ${this.accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                name: folderName,
-                folder: {}
-            })
+                'Authorization': `Bearer ${this.tokens.access_token}`
+            }
         });
         
-        const folder = await createResponse.json();
-        return folder.id;
+        if (!response.ok) {
+            if (response.status === 404) {
+                return null; // File not found
+            }
+            throw new Error('Download failed');
+        }
+        
+        return response.json();
     }
 }
 
-// ========================================
-// Cloud Sync Manager
-// ========================================
-class CloudSyncManager {
-    constructor() {
-        this.adapters = new Map();
-        this.autoSyncTimer = null;
-        this.lastSyncTimestamp = {};
-        
-        // Register adapters
-        this.registerAdapter('googledrive', new GoogleDriveAdapter());
-        this.registerAdapter('dropbox', new DropboxAdapter());
-        this.registerAdapter('onedrive', new OneDriveAdapter());
-        
-        // Load last sync timestamps
-        this.loadSyncTimestamps();
-    }
-
-    /**
-     * Register a cloud adapter
-     */
-    registerAdapter(name, adapter) {
-        this.adapters.set(name, adapter);
-    }
-
-    /**
-     * Get adapter by name
-     */
-    getAdapter(name) {
-        return this.adapters.get(name);
-    }
-
-    /**
-     * Load sync timestamps from storage
-     */
-    async loadSyncTimestamps() {
-        try {
-            const timestamps = await storage.loadSetting('cloud_sync_timestamps');
-            if (timestamps) {
-                this.lastSyncTimestamp = timestamps;
-            }
-        } catch (error) {
-            logError('Load sync timestamps', error);
-        }
-    }
-
-    /**
-     * Save sync timestamps to storage
-     */
-    async saveSyncTimestamps() {
-        try {
-            await storage.saveSetting('cloud_sync_timestamps', this.lastSyncTimestamp);
-        } catch (error) {
-            logError('Save sync timestamps', error);
-        }
-    }
-
-    /**
-     * Sync data to cloud
-     */
-    async syncToCloud(provider) {
-        try {
-            const adapter = this.getAdapter(provider);
-            if (!adapter) {
-                throw new Error(`Unknown provider: ${provider}`);
-            }
-
-            if (!adapter.isAuthenticated) {
-                throw new Error('Not authenticated. Please login first.');
-            }
-
-            // Create backup
-            const backup = await backupManager.createBackup();
-            
-            // Generate filename
-            const filename = `backup_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
-            
-            // Upload to cloud
-            await adapter.upload(backup, filename);
-            
-            // Update timestamp
-            this.lastSyncTimestamp[provider] = Date.now();
-            await this.saveSyncTimestamps();
-            
-            // Clean old backups
-            await this.cleanOldBackups(provider);
-            
-            console.log(`[Cloud] Synced to ${provider}`);
-            return { success: true, filename };
-            
-        } catch (error) {
-            logError(`Sync to ${provider}`, error);
-            throw error;
-        }
-    }
-
-    /**
-     * Restore data from cloud
-     */
-    async restoreFromCloud(provider, fileId) {
-        try {
-            const adapter = this.getAdapter(provider);
-            if (!adapter) {
-                throw new Error(`Unknown provider: ${provider}`);
-            }
-
-            if (!adapter.isAuthenticated) {
-                throw new Error('Not authenticated. Please login first.');
-            }
-
-            // Download from cloud
-            const backup = await adapter.download(fileId);
-            
-            // Import backup
-            const mode = CLOUD_CONFIG.conflictResolution === 'last-write-wins' 
-                ? 'overwrite' 
-                : 'merge';
-            
-            const report = await backupManager.importBackup(
-                new File([JSON.stringify(backup)], 'cloud-backup.json'),
-                mode
-            );
-            
-            console.log(`[Cloud] Restored from ${provider}`);
-            return report;
-            
-        } catch (error) {
-            logError(`Restore from ${provider}`, error);
-            throw error;
-        }
-    }
-
-    /**
-     * List backups in cloud
-     */
-    async listBackups(provider) {
-        try {
-            const adapter = this.getAdapter(provider);
-            if (!adapter) {
-                throw new Error(`Unknown provider: ${provider}`);
-            }
-
-            if (!adapter.isAuthenticated) {
-                throw new Error('Not authenticated. Please login first.');
-            }
-
-            return await adapter.list();
-            
-        } catch (error) {
-            logError(`List backups from ${provider}`, error);
-            throw error;
-        }
-    }
-
-    /**
-     * Clean old backups (keep only latest N)
-     */
-    async cleanOldBackups(provider) {
-        try {
-            const adapter = this.getAdapter(provider);
-            const backups = await adapter.list();
-            
-            // Sort by date (newest first)
-            backups.sort((a, b) => {
-                const dateA = new Date(a.modifiedTime || a.client_modified || a.lastModifiedDateTime);
-                const dateB = new Date(b.modifiedTime || b.client_modified || b.lastModifiedDateTime);
-                return dateB - dateA;
-            });
-            
-            // Delete old backups
-            const toDelete = backups.slice(CLOUD_CONFIG.maxBackupsToKeep);
-            
-            for (const backup of toDelete) {
-                await adapter.delete(backup.id || backup.path_display || backup.id);
-            }
-            
-            if (toDelete.length > 0) {
-                console.log(`[Cloud] Cleaned ${toDelete.length} old backups from ${provider}`);
-            }
-            
-        } catch (error) {
-            logError(`Clean old backups from ${provider}`, error);
-        }
-    }
-
-    /**
-     * Enable auto-sync
-     */
-    enableAutoSync(provider, interval = CLOUD_CONFIG.autoSyncInterval) {
-        this.disableAutoSync();
-        
-        this.autoSyncTimer = setInterval(async () => {
-            try {
-                await this.syncToCloud(provider);
-            } catch (error) {
-                console.warn('[Cloud] Auto-sync failed:', error);
-            }
-        }, interval);
-        
-        console.log(`[Cloud] Auto-sync enabled for ${provider} (interval: ${interval}ms)`);
-    }
-
-    /**
-     * Disable auto-sync
-     */
-    disableAutoSync() {
-        if (this.autoSyncTimer) {
-            clearInterval(this.autoSyncTimer);
-            this.autoSyncTimer = null;
-            console.log('[Cloud] Auto-sync disabled');
-        }
-    }
-
-    /**
-     * Get sync status
-     */
-    getSyncStatus(provider) {
-        const adapter = this.getAdapter(provider);
-        return {
-            provider: provider,
-            authenticated: adapter?.isAuthenticated || false,
-            lastSync: this.lastSyncTimestamp[provider] 
-                ? formatDateTime(this.lastSyncTimestamp[provider])
-                : 'Ποτέ'
-        };
-    }
-}
-
-// ========================================
-// Singleton Instance
-// ========================================
+// Create singleton instance
 const cloudSyncManager = new CloudSyncManager();
 
-// ========================================
 // Export
-// ========================================
-export { 
-    CloudAdapter, 
-    GoogleDriveAdapter, 
-    DropboxAdapter, 
-    OneDriveAdapter, 
-    CloudSyncManager,
-    CLOUD_CONFIG 
-};
 export default cloudSyncManager;
+export { CloudSyncManager, CloudAdapter, GoogleDriveAdapter, DropboxAdapter, OneDriveAdapter };

@@ -3097,3 +3097,472 @@ button:focus-visible {
         animation: none;
     }
 }
+
+/* ========================================
+   CLOUD STORAGE MODULE STYLES
+   Add to the end of styles.css (after Heatmaps)
+   ======================================== */
+
+/* Cloud Status Banner */
+.cloud-status-banner {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    animation: slideDown var(--transition-base);
+}
+
+.cloud-status-banner.syncing {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.cloud-status-banner.error {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.cloud-status-banner .status-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.cloud-status-banner .status-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.cloud-status-banner .status-text strong {
+    display: block;
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+}
+
+.cloud-status-banner .status-text p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 0.9rem;
+}
+
+/* Providers Grid */
+.providers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+/* Provider Card */
+.provider-card {
+    background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-hover));
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    text-align: center;
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+}
+
+.provider-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary-color);
+}
+
+.provider-card.connected {
+    border-color: var(--success-color);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1));
+}
+
+.provider-card.syncing {
+    border-color: var(--info-color);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1));
+}
+
+.provider-card.error {
+    border-color: var(--danger-color);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
+}
+
+/* Provider Icon */
+.provider-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-sm);
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.provider-card h4 {
+    margin: 0 0 var(--spacing-xs);
+    font-size: 1.25rem;
+    color: var(--text-primary);
+}
+
+.provider-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: var(--spacing-md);
+    line-height: 1.5;
+}
+
+/* Provider Status */
+.provider-status {
+    margin-bottom: var(--spacing-md);
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+}
+
+.status-badge.status-connected {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: var(--success-color);
+}
+
+.status-badge.status-disconnected {
+    background-color: rgba(100, 116, 139, 0.2);
+    color: var(--secondary-color);
+}
+
+.status-badge.status-syncing {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: var(--info-color);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.status-badge.status-error {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: var(--danger-color);
+}
+
+/* Provider Actions */
+.provider-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.provider-actions button {
+    width: 100%;
+}
+
+/* Sync Status Indicator */
+.sync-status-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    margin-top: var(--spacing-md);
+    border: 1px solid var(--border-color);
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--secondary-color);
+    animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.sync-status-indicator.active .status-dot {
+    background-color: var(--success-color);
+}
+
+.sync-status-indicator.syncing .status-dot {
+    background-color: var(--info-color);
+}
+
+.sync-status-indicator.error .status-dot {
+    background-color: var(--danger-color);
+}
+
+#syncStatusText {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Sync History List */
+.sync-history-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.sync-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color var(--transition-fast);
+}
+
+.sync-history-item:hover {
+    background-color: var(--bg-hover);
+}
+
+.sync-history-item:last-child {
+    border-bottom: none;
+}
+
+.sync-history-icon {
+    font-size: 1.5rem;
+    margin-right: var(--spacing-md);
+    flex-shrink: 0;
+}
+
+.sync-history-details {
+    flex: 1;
+}
+
+.sync-history-details strong {
+    display: block;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+.sync-history-details small {
+    color: var(--text-tertiary);
+    font-size: 0.85rem;
+}
+
+.sync-history-time {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-align: right;
+}
+
+/* Configuration Sections */
+.config-section {
+    padding: var(--spacing-md);
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+    border: 1px solid var(--border-color);
+}
+
+.config-section h4 {
+    margin: 0 0 var(--spacing-md);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.config-section .form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.config-section .form-group:last-of-type {
+    margin-bottom: 0;
+}
+
+.config-section code {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+}
+
+/* OAuth2 Info Alert */
+.oauth-info-alert {
+    padding: var(--spacing-md);
+    background-color: rgba(245, 158, 11, 0.1);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--warning-color);
+    margin-top: var(--spacing-md);
+}
+
+.oauth-info-alert p {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.oauth-info-alert strong {
+    color: var(--warning-color);
+}
+
+/* Conflict Resolution Selector */
+#conflictStrategy {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .providers-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .provider-card {
+        padding: var(--spacing-md);
+    }
+    
+    .provider-icon {
+        font-size: 2.5rem;
+    }
+    
+    .cloud-status-banner .status-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .sync-history-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+    }
+    
+    .sync-history-time {
+        text-align: left;
+        width: 100%;
+    }
+}
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] .provider-card {
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+}
+
+[data-theme="dark"] .provider-card.connected {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15));
+}
+
+[data-theme="dark"] .provider-card.syncing {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.15));
+}
+
+[data-theme="dark"] .provider-card.error {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15));
+}
+
+[data-theme="dark"] .config-section {
+    background-color: var(--bg-secondary);
+}
+
+[data-theme="dark"] .config-section code {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Print Styles */
+@media print {
+    .cloud-status-banner,
+    .provider-actions,
+    .sync-status-indicator,
+    .config-section,
+    .oauth-info-alert {
+        display: none !important;
+    }
+    
+    .provider-card {
+        page-break-inside: avoid;
+        border: 1px solid #ccc;
+    }
+}
+
+/* Accessibility Enhancements */
+.provider-card:focus-within {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.status-badge:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+/* Animation for Status Changes */
+.provider-card {
+    transition: all var(--transition-base), 
+                border-color var(--transition-base),
+                background var(--transition-base);
+}
+
+/* Loading State */
+.provider-card.loading {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.provider-card.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Success/Error Animations */
+@keyframes successPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes errorShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.provider-card.success-animation {
+    animation: successPulse 0.5s ease-out;
+}
+
+.provider-card.error-animation {
+    animation: errorShake 0.5s ease-out;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .provider-card {
+        border-width: 3px;
+    }
+    
+    .status-badge {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    .provider-icon,
+    .status-dot,
+    .status-badge.status-syncing {
+        animation: none;
+    }
+    
+    .provider-card.loading::after {
+        animation: none;
+        opacity: 0.5;
+    }
+}

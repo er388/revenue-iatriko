@@ -39,6 +39,7 @@ import {
 import reportsManager from './reports.js';
 import forecastingManager from './forecasting.js';
 import heatmapManager from './heatmaps.js';
+import cloudSyncManager from './cloudAdapters.js';
 
 // ========================================
 // Initialization
@@ -344,6 +345,7 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         setupReportsView();
         setupForecastingView();
         setupHeatmapsView();
+        setupCloudView();
 
 
         function setupReportsView() {
@@ -907,6 +909,421 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
             }
             
             console.log('✅ Heatmaps view setup complete');
+        }
+
+        /**
+         * Setup Cloud Storage View
+         */
+        function setupCloudView() {
+            console.log('⚙️ Setting up Cloud Storage view...');
+            
+            const autoSyncEnabled = document.getElementById('autoSyncEnabled');
+            const autoSyncInterval = document.getElementById('autoSyncInterval');
+            const conflictStrategy = document.getElementById('conflictStrategy');
+            const manualSyncBtn = document.getElementById('manualSyncBtn');
+            
+            // Load saved settings
+            loadCloudSettings();
+            
+            // Auto-sync toggle
+            if (autoSyncEnabled) {
+                autoSyncEnabled.addEventListener('change', async (e) => {
+                    const enabled = e.target.checked;
+                    
+                    if (autoSyncInterval) {
+                        autoSyncInterval.disabled = !enabled;
+                    }
+                    
+                    if (enabled) {
+                        const interval = parseInt(autoSyncInterval?.value || 15);
+                        cloudSyncManager.startAutoSync(interval);
+                        showToast('Auto-sync ενεργοποιήθηκε', 'success');
+                    } else {
+                        cloudSyncManager.stopAutoSync();
+                        showToast('Auto-sync απενεργοποιήθηκε', 'info');
+                    }
+                    
+                    await storage.saveSetting('cloud_auto_sync_enabled', enabled);
+                });
+            }
+            
+            // Auto-sync interval
+            if (autoSyncInterval) {
+                autoSyncInterval.addEventListener('change', async (e) => {
+                    const interval = parseInt(e.target.value);
+                    
+                    if (autoSyncEnabled?.checked) {
+                        cloudSyncManager.stopAutoSync();
+                        
+                        if (interval > 0) {
+                            cloudSyncManager.startAutoSync(interval);
+                            showToast(`Auto-sync: κάθε ${interval} λεπτά`, 'info');
+                        }
+                    }
+                    
+                    await storage.saveSetting('cloud_auto_sync_interval', interval);
+                });
+            }
+            
+            // Conflict strategy
+            if (conflictStrategy) {
+                conflictStrategy.addEventListener('change', async (e) => {
+                    await storage.saveSetting('cloud_conflict_strategy', e.target.value);
+                });
+            }
+            
+            // Manual sync button
+            if (manualSyncBtn) {
+                manualSyncBtn.addEventListener('click', async () => {
+                    const status = cloudSyncManager.getSyncStatus();
+                    
+                    if (!status.activeProvider) {
+                        showToast('Συνδεθείτε πρώτα σε έναν provider', 'warning');
+                        return;
+                    }
+                    
+                    if (status.isSyncing) {
+                        showToast('Συγχρονισμός σε εξέλιξη...', 'info');
+                        return;
+                    }
+                    
+                    const strategy = conflictStrategy?.value || 'last-write-wins';
+                    
+                    showToast('Έναρξη συγχρονισμού...', 'info');
+                    updateSyncStatus('syncing', 'Συγχρονισμός σε εξέλιξη...');
+                    
+                    const result = await cloudSyncManager.sync(status.activeProvider, strategy);
+                    
+                    if (result.success) {
+                        showToast('Συγχρονισμός ολοκληρώθηκε!', 'success');
+                        updateSyncStatus('active', `Τελευταίος: ${new Date(result.timestamp).toLocaleString('el-GR')}`);
+                        addSyncHistoryEntry(result);
+                    } else {
+                        showToast('Σφάλμα συγχρονισμού: ' + result.error, 'error');
+                        updateSyncStatus('error', 'Σφάλμα συγχρονισμού');
+                    }
+                });
+            }
+            
+            // Check initial authentication status
+            checkAllProviders();
+            
+            console.log('✅ Cloud Storage view setup complete');
+        }
+
+        /**
+         * Connect to provider
+         */
+        window.connectProvider = async function(provider) {
+            console.log('🔗 Connecting to', provider);
+            
+            const card = document.querySelector(`.provider-card[data-provider="${provider}"]`);
+            if (card) {
+                card.classList.add('loading');
+            }
+            
+            showToast(`Σύνδεση με ${cloudSyncManager.providers[provider].name}...`, 'info');
+            
+            try {
+                const result = await cloudSyncManager.authenticate(provider);
+                
+                if (result.success) {
+                    showToast('Σύνδεση επιτυχής!', 'success');
+                    updateProviderStatus(provider, 'connected');
+                    
+                    // Enable manual sync
+                    const manualSyncBtn = document.getElementById('manualSyncBtn');
+                    if (manualSyncBtn) {
+                        manualSyncBtn.disabled = false;
+                    }
+                    
+                    // Show status banner
+                    showCloudStatusBanner(provider);
+                    
+                } else {
+                    showToast('Σφάλμα σύνδεσης: ' + result.error, 'error');
+                    updateProviderStatus(provider, 'error');
+                }
+            } catch (error) {
+                console.error('Connection error:', error);
+                showToast('Σφάλμα: ' + error.message, 'error');
+                updateProviderStatus(provider, 'error');
+            } finally {
+                if (card) {
+                    card.classList.remove('loading');
+                }
+            }
+        };
+
+        /**
+         * Disconnect from provider
+         */
+        window.disconnectProvider = async function(provider) {
+            if (!confirm(`Αποσύνδεση από ${cloudSyncManager.providers[provider].name};\n\nΤα δεδομένα στο cloud δεν θα διαγραφούν.`)) {
+                return;
+            }
+            
+            console.log('🔌 Disconnecting from', provider);
+            
+            try {
+                const result = await cloudSyncManager.disconnect(provider);
+                
+                if (result.success) {
+                    showToast('Αποσύνδεση επιτυχής', 'success');
+                    updateProviderStatus(provider, 'disconnected');
+                    
+                    // Hide status banner
+                    hideCloudStatusBanner();
+                    
+                    // Disable manual sync
+                    const manualSyncBtn = document.getElementById('manualSyncBtn');
+                    if (manualSyncBtn) {
+                        manualSyncBtn.disabled = true;
+                    }
+                } else {
+                    showToast('Σφάλμα αποσύνδεσης: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Disconnect error:', error);
+                showToast('Σφάλμα: ' + error.message, 'error');
+            }
+        };
+
+        /**
+         * Save client ID configuration
+         */
+        window.saveClientId = async function(provider) {
+            const input = document.getElementById(`${provider}ClientId`);
+            if (!input) return;
+            
+            const clientId = input.value.trim();
+            
+            if (!clientId) {
+                showToast('Εισάγετε Client ID', 'warning');
+                return;
+            }
+            
+            try {
+                // Save to provider config
+                cloudSyncManager.providers[provider].clientId = clientId;
+                
+                // Save to storage
+                await storage.saveSetting(`cloud_${provider}_client_id`, clientId);
+                
+                showToast('Client ID αποθηκεύτηκε', 'success');
+            } catch (error) {
+                console.error('Save client ID error:', error);
+                showToast('Σφάλμα αποθήκευσης', 'error');
+            }
+        };
+
+        /**
+         * Update provider status UI
+         */
+        function updateProviderStatus(provider, status) {
+            const statusEl = document.getElementById(`${provider}-status`);
+            const card = document.querySelector(`.provider-card[data-provider="${provider}"]`);
+            
+            if (!statusEl || !card) return;
+            
+            // Update badge
+            const badge = statusEl.querySelector('.status-badge');
+            if (badge) {
+                badge.className = 'status-badge';
+                
+                switch (status) {
+                    case 'connected':
+                        badge.classList.add('status-connected');
+                        badge.textContent = 'Συνδεδεμένο ✓';
+                        card.classList.add('connected');
+                        card.classList.remove('error');
+                        break;
+                    case 'disconnected':
+                        badge.classList.add('status-disconnected');
+                        badge.textContent = 'Αποσυνδεδεμένο';
+                        card.classList.remove('connected', 'error');
+                        break;
+                    case 'syncing':
+                        badge.classList.add('status-syncing');
+                        badge.textContent = 'Συγχρονισμός...';
+                        card.classList.add('syncing');
+                        break;
+                    case 'error':
+                        badge.classList.add('status-error');
+                        badge.textContent = 'Σφάλμα';
+                        card.classList.add('error');
+                        card.classList.remove('connected');
+                        break;
+                }
+            }
+            
+            // Toggle buttons
+            const buttons = card.querySelectorAll('button');
+            buttons.forEach((btn, idx) => {
+                if (status === 'connected') {
+                    btn.style.display = idx === 0 ? 'none' : 'inline-flex';
+                } else {
+                    btn.style.display = idx === 0 ? 'inline-flex' : 'none';
+                }
+            });
+        }
+
+        /**
+         * Check all providers authentication status
+         */
+        async function checkAllProviders() {
+            const providers = ['gdrive', 'dropbox', 'onedrive'];
+            
+            for (const provider of providers) {
+                const isAuth = await cloudSyncManager.checkAuthentication(provider);
+                
+                if (isAuth) {
+                    updateProviderStatus(provider, 'connected');
+                    cloudSyncManager.syncState.activeProvider = provider;
+                    
+                    // Enable manual sync
+                    const manualSyncBtn = document.getElementById('manualSyncBtn');
+                    if (manualSyncBtn) {
+                        manualSyncBtn.disabled = false;
+                    }
+                    
+                    // Show status banner
+                    showCloudStatusBanner(provider);
+                }
+                
+                // Load client ID
+                const clientId = await storage.getSetting(`cloud_${provider}_client_id`);
+                if (clientId) {
+                    cloudSyncManager.providers[provider].clientId = clientId;
+                    const input = document.getElementById(`${provider}ClientId`);
+                    if (input) {
+                        input.value = clientId;
+                    }
+                }
+            }
+        }
+
+        /**
+         * Load saved cloud settings
+         */
+        async function loadCloudSettings() {
+            try {
+                const autoSyncEnabledSaved = await storage.getSetting('cloud_auto_sync_enabled');
+                const autoSyncIntervalSaved = await storage.getSetting('cloud_auto_sync_interval');
+                const conflictStrategySaved = await storage.getSetting('cloud_conflict_strategy');
+                
+                const autoSyncEnabled = document.getElementById('autoSyncEnabled');
+                const autoSyncInterval = document.getElementById('autoSyncInterval');
+                const conflictStrategy = document.getElementById('conflictStrategy');
+                
+                if (autoSyncEnabled && autoSyncEnabledSaved !== null) {
+                    autoSyncEnabled.checked = autoSyncEnabledSaved;
+                }
+                
+                if (autoSyncInterval && autoSyncIntervalSaved) {
+                    autoSyncInterval.value = autoSyncIntervalSaved;
+                    autoSyncInterval.disabled = !autoSyncEnabled?.checked;
+                }
+                
+                if (conflictStrategy && conflictStrategySaved) {
+                    conflictStrategy.value = conflictStrategySaved;
+                }
+                
+                // Restart auto-sync if enabled
+                if (autoSyncEnabled?.checked && autoSyncIntervalSaved > 0) {
+                    cloudSyncManager.startAutoSync(autoSyncIntervalSaved);
+                }
+                
+            } catch (error) {
+                console.error('Load cloud settings error:', error);
+            }
+        }
+
+        /**
+         * Show cloud status banner
+         */
+        function showCloudStatusBanner(provider) {
+            const banner = document.getElementById('cloudStatusBanner');
+            if (!banner) return;
+            
+            const providerName = cloudSyncManager.providers[provider].name;
+            const detailsEl = document.getElementById('cloudStatusDetails');
+            
+            banner.style.display = 'block';
+            
+            if (detailsEl) {
+                const lastSync = cloudSyncManager.syncState.lastSync;
+                detailsEl.textContent = lastSync 
+                    ? `Τελευταίος συγχρονισμός: ${new Date(lastSync).toLocaleString('el-GR')}`
+                    : `Συνδεδεμένο με ${providerName}`;
+            }
+        }
+
+        /**
+         * Hide cloud status banner
+         */
+        function hideCloudStatusBanner() {
+            const banner = document.getElementById('cloudStatusBanner');
+            if (banner) {
+                banner.style.display = 'none';
+            }
+        }
+
+        /**
+         * Update sync status indicator
+         */
+        function updateSyncStatus(status, text) {
+            const indicator = document.getElementById('syncStatusIndicator');
+            const textEl = document.getElementById('syncStatusText');
+            
+            if (!indicator || !textEl) return;
+            
+            indicator.style.display = 'flex';
+            indicator.className = 'sync-status-indicator ' + status;
+            textEl.textContent = text;
+        }
+
+        /**
+         * Add entry to sync history
+         */
+        function addSyncHistoryEntry(result) {
+            const container = document.getElementById('syncHistory');
+            if (!container) return;
+            
+            // Remove empty state
+            const emptyState = container.querySelector('p');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            // Create history item
+            const item = document.createElement('div');
+            item.className = 'sync-history-item';
+            
+            const icon = result.success ? '✅' : '❌';
+            const provider = cloudSyncManager.providers[cloudSyncManager.syncState.activeProvider].name;
+            
+            item.innerHTML = `
+                <div class="sync-history-icon">${icon}</div>
+                <div class="sync-history-details">
+                    <strong>${provider} - ${result.strategy === 'merge' ? 'Merge' : 'Last Write Wins'}</strong>
+                    <small>
+                        ${result.conflicts ? `${result.conflicts} συγκρούσεις επιλύθηκαν` : 'Χωρίς συγκρούσεις'}
+                    </small>
+                </div>
+                <div class="sync-history-time">
+                    ${new Date(result.timestamp).toLocaleTimeString('el-GR')}
+                </div>
+            `;
+            
+            // Prepend (newest first)
+            container.insertBefore(item, container.firstChild);
+            
+            // Limit to 10 entries
+            const items = container.querySelectorAll('.sync-history-item');
+            if (items.length > 10) {
+                items[items.length - 1].remove();
+            }
         }
 
         /**
@@ -2093,6 +2510,7 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
             cdnChecker,
             forecastingManager,
             heatmapManager,
+            cloudSyncManager,
             getStateSnapshot,
             renderDashboard,
             renderEntriesTable,

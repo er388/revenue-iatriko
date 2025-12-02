@@ -1222,27 +1222,239 @@
         </div>
 
         <!-- ========================================
-             CLOUD VIEW (Placeholder)
-             ======================================== -->
+            CLOUD STORAGE VIEW - Add to index.html
+            Replace placeholder in index.html
+            ======================================== -->
         <div id="cloudView" class="view">
             <div class="view-header">
-                <h2>☁️ Cloud Storage</h2>
+                <h2>☁️ Cloud Storage - Συγχρονισμός</h2>
+                <div class="view-actions">
+                    <button id="manualSyncBtn" class="btn-primary btn-compact" disabled>
+                        🔄 Χειροκίνητος Συγχρονισμός
+                    </button>
+                </div>
             </div>
-            <div class="card">
-                <h3>Cloud Sync</h3>
-                <p>Η λειτουργικότητα cloud storage θα υλοποιηθεί σε επόμενη φάση.</p>
-                <p>Προγραμματισμένες ενσωματώσεις:</p>
-                <ul>
-                    <li>Google Drive</li>
-                    <li>Dropbox</li>
-                    <li>OneDrive</li>
-                    <li>OAuth2 PKCE authentication</li>
-                    <li>Auto-sync με configurable intervals</li>
-                    <li>Conflict resolution (last-write-wins / manual merge)</li>
+
+            <!-- Status Banner -->
+            <div id="cloudStatusBanner" class="cloud-status-banner" style="display: none;">
+                <div class="status-content">
+                    <span class="status-icon">✅</span>
+                    <div class="status-text">
+                        <strong>Συνδεδεμένο</strong>
+                        <p id="cloudStatusDetails">Τελευταίος συγχρονισμός: Ποτέ</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provider Selection -->
+            <div class="card card-compact">
+                <h3>📡 Επιλογή Provider</h3>
+                <p style="margin-bottom: var(--spacing-md); color: var(--text-secondary);">
+                    Επιλέξτε cloud storage provider για αυτόματο backup των δεδομένων σας
+                </p>
+                
+                <div class="providers-grid">
+                    <!-- Google Drive -->
+                    <div class="provider-card" data-provider="gdrive">
+                        <div class="provider-icon">📁</div>
+                        <h4>Google Drive</h4>
+                        <p class="provider-description">Αποθήκευση στο Google Drive με OAuth2</p>
+                        <div class="provider-status" id="gdrive-status">
+                            <span class="status-badge status-disconnected">Αποσυνδεδεμένο</span>
+                        </div>
+                        <div class="provider-actions">
+                            <button class="btn-primary btn-compact btn-block" onclick="window.connectProvider('gdrive')">
+                                🔗 Σύνδεση
+                            </button>
+                            <button class="btn-danger btn-compact btn-block" onclick="window.disconnectProvider('gdrive')" style="display: none;">
+                                🔌 Αποσύνδεση
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dropbox -->
+                    <div class="provider-card" data-provider="dropbox">
+                        <div class="provider-icon">📦</div>
+                        <h4>Dropbox</h4>
+                        <p class="provider-description">Backup στο Dropbox με ασφάλεια</p>
+                        <div class="provider-status" id="dropbox-status">
+                            <span class="status-badge status-disconnected">Αποσυνδεδεμένο</span>
+                        </div>
+                        <div class="provider-actions">
+                            <button class="btn-primary btn-compact btn-block" onclick="window.connectProvider('dropbox')">
+                                🔗 Σύνδεση
+                            </button>
+                            <button class="btn-danger btn-compact btn-block" onclick="window.disconnectProvider('dropbox')" style="display: none;">
+                                🔌 Αποσύνδεση
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- OneDrive -->
+                    <div class="provider-card" data-provider="onedrive">
+                        <div class="provider-icon">☁️</div>
+                        <h4>OneDrive</h4>
+                        <p class="provider-description">Microsoft OneDrive integration</p>
+                        <div class="provider-status" id="onedrive-status">
+                            <span class="status-badge status-disconnected">Αποσυνδεδεμένο</span>
+                        </div>
+                        <div class="provider-actions">
+                            <button class="btn-primary btn-compact btn-block" onclick="window.connectProvider('onedrive')">
+                                🔗 Σύνδεση
+                            </button>
+                            <button class="btn-danger btn-compact btn-block" onclick="window.disconnectProvider('onedrive')" style="display: none;">
+                                🔌 Αποσύνδεση
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auto-Sync Settings -->
+            <div class="card card-compact">
+                <h3>⏰ Αυτόματος Συγχρονισμός</h3>
+                
+                <div class="form-row">
+                    <div class="form-group form-group-compact">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="autoSyncEnabled">
+                            <span>Ενεργοποίηση Auto-Sync</span>
+                        </label>
+                        <small class="help-text">
+                            Αυτόματος συγχρονισμός σε τακτά διαστήματα
+                        </small>
+                    </div>
+
+                    <div class="form-group form-group-compact">
+                        <label>Συχνότητα Συγχρονισμού</label>
+                        <select id="autoSyncInterval" class="form-select form-select-compact" disabled>
+                            <option value="0">Μη αυτόματο</option>
+                            <option value="5">Κάθε 5 λεπτά</option>
+                            <option value="15" selected>Κάθε 15 λεπτά</option>
+                            <option value="30">Κάθε 30 λεπτά</option>
+                            <option value="60">Κάθε 1 ώρα</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group form-group-compact">
+                        <label>Στρατηγική Συγκρούσεων</label>
+                        <select id="conflictStrategy" class="form-select form-select-compact">
+                            <option value="last-write-wins" selected>Last Write Wins (Απλό)</option>
+                            <option value="merge">Merge (Έξυπνο)</option>
+                        </select>
+                        <small class="help-text">
+                            Τι θα γίνει αν υπάρχουν διαφορές στα δεδομένα
+                        </small>
+                    </div>
+                </div>
+
+                <div class="sync-status-indicator" id="syncStatusIndicator" style="display: none;">
+                    <div class="status-dot"></div>
+                    <span id="syncStatusText">Αναμονή συγχρονισμού...</span>
+                </div>
+            </div>
+
+            <!-- Sync History -->
+            <div class="card card-compact">
+                <div class="collapsible-header" onclick="document.getElementById('syncHistoryContent').classList.toggle('collapsed')">
+                    <h3>📜 Ιστορικό Συγχρονισμού</h3>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div id="syncHistoryContent" class="collapsible-content collapsed">
+                    <div id="syncHistory" class="sync-history-list">
+                        <p style="text-align: center; color: var(--text-secondary); padding: var(--spacing-md);">
+                            Δεν υπάρχει ιστορικό συγχρονισμού
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration (Client IDs) -->
+            <div class="card card-compact">
+                <div class="collapsible-header" onclick="document.getElementById('cloudConfigContent').classList.toggle('collapsed')">
+                    <h3>🔧 Ρυθμίσεις OAuth2</h3>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div id="cloudConfigContent" class="collapsible-content collapsed">
+                    <p style="margin-bottom: var(--spacing-md); color: var(--text-secondary); font-size: 0.9rem;">
+                        ⚠️ Πρέπει να δημιουργήσετε OAuth2 credentials για κάθε provider. 
+                        <a href="https://console.cloud.google.com" target="_blank" style="color: var(--primary-color);">
+                            Οδηγίες εδώ
+                        </a>
+                    </p>
+                    
+                    <!-- Google Drive Config -->
+                    <div class="config-section">
+                        <h4>📁 Google Drive</h4>
+                        <div class="form-group">
+                            <label>Client ID</label>
+                            <input type="text" id="gdriveClientId" class="form-input form-input-compact" placeholder="xxxxxx.apps.googleusercontent.com">
+                            <small class="help-text">
+                                Από το <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a>
+                            </small>
+                        </div>
+                        <button class="btn-primary btn-compact" onclick="window.saveClientId('gdrive')">
+                            💾 Αποθήκευση
+                        </button>
+                    </div>
+
+                    <!-- Dropbox Config -->
+                    <div class="config-section">
+                        <h4>📦 Dropbox</h4>
+                        <div class="form-group">
+                            <label>App Key</label>
+                            <input type="text" id="dropboxClientId" class="form-input form-input-compact" placeholder="xxxxxxxxxxxxxxx">
+                            <small class="help-text">
+                                Από το <a href="https://www.dropbox.com/developers/apps" target="_blank">Dropbox App Console</a>
+                            </small>
+                        </div>
+                        <button class="btn-primary btn-compact" onclick="window.saveClientId('dropbox')">
+                            💾 Αποθήκευση
+                        </button>
+                    </div>
+
+                    <!-- OneDrive Config -->
+                    <div class="config-section">
+                        <h4>☁️ OneDrive</h4>
+                        <div class="form-group">
+                            <label>Application (client) ID</label>
+                            <input type="text" id="onedriveClientId" class="form-input form-input-compact" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                            <small class="help-text">
+                                Από το <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps" target="_blank">Azure Portal</a>
+                            </small>
+                        </div>
+                        <button class="btn-primary btn-compact" onclick="window.saveClientId('onedrive')">
+                            💾 Αποθήκευση
+                        </button>
+                    </div>
+
+                    <div style="margin-top: var(--spacing-lg); padding: var(--spacing-md); background-color: rgba(245, 158, 11, 0.1); border-radius: var(--radius-md); border: 1px solid var(--warning-color);">
+                        <p style="margin: 0; font-size: 0.85rem; line-height: 1.6;">
+                            <strong>⚠️ Σημαντικό:</strong> Τα Client IDs αποθηκεύονται τοπικά στον browser σας. 
+                            Δεν αποστέλλονται πουθενά. Το redirect URI πρέπει να είναι: 
+                            <code style="background: rgba(0,0,0,0.1); padding: 0.2rem 0.4rem; border-radius: 0.25rem;">
+                                ${window.location.origin}/oauth-callback.html
+                            </code>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card card-compact" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(37, 99, 235, 0.05)); border: 2px solid var(--primary-color);">
+                <h3 style="color: var(--primary-color);">ℹ️ Πώς Λειτουργεί</h3>
+                <ul style="list-style: disc; padding-left: var(--spacing-lg); line-height: 1.8;">
+                    <li><strong>OAuth2 PKCE:</strong> Ασφαλής εξουσιοδότηση χωρίς server</li>
+                    <li><strong>Αυτόματο Backup:</strong> Τα δεδομένα σας backup αυτόματα</li>
+                    <li><strong>Συγχρονισμός:</strong> Sync μεταξύ συσκευών</li>
+                    <li><strong>Conflict Resolution:</strong> Έξυπνη διαχείριση συγκρούσεων</li>
+                    <li><strong>Ιδιωτικότητα:</strong> Μόνο εσείς έχετε πρόσβαση στα αρχεία</li>
                 </ul>
+                <p style="margin-top: var(--spacing-md); font-size: 0.85rem; color: var(--text-secondary); font-style: italic;">
+                    💡 Συνιστάται η χρήση Auto-Sync κάθε 15 λεπτά με Merge strategy
+                </p>
             </div>
         </div>
-        <!-- END CLOUD VIEW -->
 
         <!-- ========================================
              SETTINGS VIEW
