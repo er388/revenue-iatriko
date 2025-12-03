@@ -22,9 +22,12 @@ import { STRINGS, isValidMonthYear } from './utils.js';
  * @param {string} id - Entry ID
  */
 window.editEntry = function(id) {
+    console.log('[Edit] Opening entry:', id); // Debug log
+    
     const entry = STATE.entries.find(e => e.id === id);
     if (!entry) {
         showToast('Η εγγραφή δεν βρέθηκε', 'error');
+        console.error('[Edit] Entry not found:', id);
         return;
     }
 
@@ -55,21 +58,27 @@ window.editEntry = function(id) {
         notesField.style.display = 'none';
     }
 
-    // Fill deductions based on insurance type
+    // Check insurance type
     const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
     
+    // Show/hide deduction fields based on insurance
+    const eopyyFields = document.getElementById('modalEopyyDeductions');
+    const nonEopyyFields = document.getElementById('modalNonEopyyDeductions');
+    
     if (isEopyy) {
+        if (eopyyFields) eopyyFields.style.display = 'block';
+        if (nonEopyyFields) nonEopyyFields.style.display = 'none';
+        
+        // Fill ΕΟΠΥΥ deductions
         const deduction = eopyyDeductionsManager.getDeductions(entry.id);
         
         if (deduction) {
-            // Fill amounts
             document.getElementById('entryParakratisi').value = deduction.deductions.parakratisi || '';
             document.getElementById('entryMDE').value = deduction.deductions.mde || '';
             document.getElementById('entryRebate').value = deduction.deductions.rebate || '';
             document.getElementById('entryKrathseisEopyy').value = deduction.deductions.krathseis || '';
             document.getElementById('entryClawback').value = deduction.deductions.clawback || '';
             
-            // Fill percentages
             if (deduction.percentages) {
                 document.getElementById('entryParakratisiPercent').value = deduction.percentages.parakratisiPercent || '';
                 document.getElementById('entryMDEPercent').value = deduction.percentages.mdePercent || '';
@@ -78,20 +87,27 @@ window.editEntry = function(id) {
                 document.getElementById('entryClawbackPercent').value = deduction.percentages.clawbackPercent || '';
             }
             
-            // Fill clawback period
             if (deduction.clawbackPeriod) {
                 document.getElementById('entryClawbackPeriod').value = deduction.clawbackPeriod;
             }
         }
     } else {
         // Non-ΕΟΠΥΥ
+        if (eopyyFields) eopyyFields.style.display = 'none';
+        if (nonEopyyFields) nonEopyyFields.style.display = 'block';
+        
         document.getElementById('entryKrathseisOther').value = entry.krathseis || '';
         document.getElementById('entryKrathseisOtherPercent').value = entry.krathseisPercent || '';
     }
 
-    // Show modal with correct deduction fields
-    showModalDeductionFields();
-    document.getElementById('entryModal').classList.add('active');
+    // Open modal
+    const modal = document.getElementById('entryModal');
+    if (modal) {
+        modal.classList.add('active');
+        console.log('[Edit] Modal opened successfully');
+    } else {
+        console.error('[Edit] Modal element not found!');
+    }
 };
 
 /**
