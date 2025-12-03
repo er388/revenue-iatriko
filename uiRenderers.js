@@ -353,7 +353,7 @@ export function renderEntriesTable() {
             : '0.00';
         
         return `
-            <tr>
+            <tr data-entry-id="${escapeHtml(entry.id)}">
                 <td>${escapeHtml(entry.date)}</td>
                 <td>${escapeHtml(entry.source)}</td>
                 <td>${escapeHtml(entry.insurance)}</td>
@@ -368,16 +368,32 @@ export function renderEntriesTable() {
                 <td class="text-right">${deductionsPercent}%</td>
                 <td class="text-right"><strong>${formatCurrency(amounts.finalAmount)}</strong></td>
                 <td>${entry.notes ? escapeHtml(entry.notes.substring(0, 20)) + (entry.notes.length > 20 ? '...' : '') : '-'}</td>
-                <td>
-                    <button class="btn-secondary btn-compact btn-sm" onclick="window.editEntry('${entry.id}')">✏️</button>
-                    <button class="btn-danger btn-compact btn-sm" onclick="window.confirmDelete('${entry.id}')">🗑️</button>
+                <td class="text-center">
+                    <button class="btn-secondary btn-compact btn-sm" data-action="edit">✏️</button>
+                    <button class="btn-danger btn-compact btn-sm" data-action="delete">🗑️</button>
                 </td>
             </tr>
         `;
     }).join('');
 
-    renderPagination(sorted.length, totalPages);
-}
+    // Add event delegation for edit/delete buttons
+    tbody.querySelectorAll('tr').forEach(row => {
+        const entryId = row.dataset.entryId;
+        
+        const editBtn = row.querySelector('[data-action="edit"]');
+        const deleteBtn = row.querySelector('[data-action="delete"]');
+        
+        if (editBtn) {
+            editBtn.addEventListener('click', () => window.editEntry(entryId));
+        }
+        
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => window.confirmDelete(entryId));
+        }
+    });
+
+        renderPagination(sorted.length, totalPages);
+    }
 
 /**
  * Temporary filter stub (will be replaced by filters.js)
