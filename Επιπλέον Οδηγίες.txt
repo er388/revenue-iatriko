@@ -1,1 +1,102 @@
-Using the master prompt above, generate the complete forecasting.js module first, following the existing architecture patterns from the provided files.
+# Revenue Management System - Bug Fixes & UI Improvements
+
+## Context
+You are working on a Revenue Management System web application (Greek language). The system manages income entries with ΕΟΠΥΥ deductions, generates reports, and provides forecasting/heatmap features.
+
+## Required Fixes
+
+### 2. Entries Table - Edit Button
+- **Location**: `#entriesTableBody` rows
+- **Issue**: Edit button (✏️) does not trigger `window.editEntry(id)` function
+- **Fix**: Ensure the edit button properly opens the entry modal with pre-filled data
+
+### 3. CSV Export Buttons
+- **Location**: Entries view (#entriesView)
+- **Current**: Two CSV buttons separated
+- **Fix**: Place both CSV export buttons side-by-side (use flex/grid layout)
+
+### 4. PDF Export - Character Encoding
+- **Issue**: PDF exports show unreadable Greek characters
+- **Root Cause**: jsPDF doesn't support Greek characters by default
+- **Fix**: 
+  - Add Greek font support to jsPDF
+  - Use UTF-8 encoding
+  - Alternative: Use `html2canvas` + `jsPDF.addImage()` for text-heavy content
+
+### 5. Reports View Error
+- **Issue**: "Σφάλμα δημιουργίας αναφοράς" when generating reports
+- **Location**: `#reportsView` > Generate Report button
+- **Fix**: Debug `reportsManager.generateAnnualReport()` and related functions
+- **Check**: Ensure data exists for selected period
+
+### 6. Settings View - Autosave UI
+- **Location**: `#settingsView` > Autosave section
+- **Issue**: Extra black line appears after the dropdown
+- **Fix**: Remove extra `<div>`, `<hr>`, or CSS border causing the line
+
+## Files to Upload
+
+Upload these files for comprehensive fixes:
+
+1. **app.js** - Main application logic, event handlers
+2. **index.html** - UI structure, button placement
+3. **styles.css** - UI styling issues (extra line in settings)
+4. **pdfExport.js** - PDF character encoding fix
+5. **uiRenderers.js** - Edit button functionality, table rendering
+6. **eventHandlers.js** - Modal opening, edit entry logic
+7. **reports.js** - Report generation error debugging
+
+## Expected Changes
+
+### app.js
+- Remove duplicate reset button handler
+- Fix edit button onclick binding
+- Adjust CSV button layout handlers
+
+### index.html
+- Change "Γρήγορη Καταχώριση" → "Καταχώριση"
+- Remove "+ Νέα Εγγραφή" button from Tab 2
+- Keep only one reset button in quick form
+- Group CSV export buttons together
+- Remove extra element causing black line in settings
+
+### pdfExport.js
+- Add UTF-8 BOM: `\ufeff`
+- Use Greek-compatible font or image-based PDF generation
+- Example fix:
+```javascript
+// Before saving PDF, ensure UTF-8 encoding
+const pdfBlob = new Blob([doc.output('blob')], { 
+    type: 'application/pdf;charset=utf-8' 
+});
+```
+
+### uiRenderers.js
+- Fix `renderEntriesTable()` to ensure edit button calls `window.editEntry(id)` correctly
+- Verify button HTML: `<button onclick="window.editEntry('${entry.id}')">✏️</button>`
+
+### eventHandlers.js
+- Ensure `window.editEntry = function(id) { ... }` is properly defined
+- Modal should populate all fields from entry data
+
+### reports.js
+- Add error handling in `generateAnnualReport()`, `generateQuarterlyReport()`, etc.
+- Check if `STATE.entries` has data for selected period
+- Add console.log for debugging
+
+### styles.css
+- Find and remove extra border/hr in `.autosave-settings` or `.autosave-status`
+- Check for `::after` pseudo-elements causing extra lines
+
+## Testing Checklist
+- [ ] Edit button in entries table opens modal with data
+- [ ] Both CSV buttons are side-by-side
+- [ ] PDF exports show readable Greek characters
+- [ ] Reports generate without errors
+- [ ] No extra black line in Autosave settings
+
+## Additional Notes
+- Preserve existing functionality
+- Maintain Greek language throughout
+- Keep compact/modern UI design
+- Test all changes in Chrome/Firefox
