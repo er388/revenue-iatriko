@@ -114,6 +114,111 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeEventHandlers();
 
     // ========================================
+    // ✅ vent Delegation για Edit/Delete Buttons
+    // ========================================
+    document.addEventListener('click', (e) => {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+        
+        const action = target.getAttribute('data-action');
+        const entryId = target.getAttribute('data-entry-id');
+        
+        if (!entryId) return;
+        
+        if (action === 'edit') {
+            // ========================================
+            // EDIT ENTRY LOGIC
+            // ========================================
+            const entry = STATE.entries.find(e => e.id === entryId);
+            if (!entry) {
+                showToast('Η εγγραφή δεν βρέθηκε', 'error');
+                return;
+            }
+
+            // Set editing state
+            STATE.editingEntry = entry;
+            
+            // Update modal title
+            document.getElementById('modalTitle').textContent = 'Επεξεργασία Εγγραφής';
+            
+            // Fill basic fields
+            document.getElementById('entryId').value = entry.id;
+            document.getElementById('entryDate').value = entry.date;
+            document.getElementById('entrySource').value = entry.source;
+            document.getElementById('entryInsurance').value = entry.insurance;
+            document.getElementById('entryType').value = entry.type;
+            document.getElementById('entryAmount').value = entry.originalAmount || entry.amount;
+            
+            // Fill notes
+            const notesField = document.getElementById('entryNotes');
+            const notesToggle = document.getElementById('entryNotesToggle');
+            if (entry.notes) {
+                notesField.value = entry.notes;
+                notesToggle.checked = true;
+                notesField.style.display = 'block';
+            } else {
+                notesField.value = '';
+                notesToggle.checked = false;
+                notesField.style.display = 'none';
+            }
+
+            // Fill deductions based on insurance type
+            const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
+            
+            if (isEopyy) {
+                const deduction = eopyyDeductionsManager.getDeductions(entry.id);
+                
+                if (deduction) {
+                    // Fill amounts
+                    document.getElementById('entryParakratisi').value = deduction.deductions.parakratisi || '';
+                    document.getElementById('entryMDE').value = deduction.deductions.mde || '';
+                    document.getElementById('entryRebate').value = deduction.deductions.rebate || '';
+                    document.getElementById('entryKrathseisEopyy').value = deduction.deductions.krathseis || '';
+                    document.getElementById('entryClawback').value = deduction.deductions.clawback || '';
+                    
+                    // Fill percentages
+                    if (deduction.percentages) {
+                        document.getElementById('entryParakratisiPercent').value = deduction.percentages.parakratisiPercent || '';
+                        document.getElementById('entryMDEPercent').value = deduction.percentages.mdePercent || '';
+                        document.getElementById('entryRebatePercent').value = deduction.percentages.rebatePercent || '';
+                        document.getElementById('entryKrathseisEopyyPercent').value = deduction.percentages.krathseisPercent || '';
+                        document.getElementById('entryClawbackPercent').value = deduction.percentages.clawbackPercent || '';
+                    }
+                    
+                    // Fill clawback period
+                    if (deduction.clawbackPeriod) {
+                        document.getElementById('entryClawbackPeriod').value = deduction.clawbackPeriod;
+                    }
+                }
+            } else {
+                // Non-ΕΟΠΥΥ
+                document.getElementById('entryKrathseisOther').value = entry.krathseis || '';
+                document.getElementById('entryKrathseisOtherPercent').value = entry.krathseisPercent || '';
+            }
+
+            // Show modal with correct deduction fields
+            showModalDeductionFields();
+            document.getElementById('entryModal').classList.add('active');
+            
+        } else if (action === 'delete') {
+            // ========================================
+            // DELETE ENTRY LOGIC
+            // ========================================
+            if (confirm('Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την εγγραφή;')) {
+                deleteEntry(entryId).then(success => {
+                    if (success) {
+                        showToast(STRINGS.success.entryDeleted, 'success');
+                        renderEntriesTable();
+                        if (STATE.currentView === 'dashboard') renderDashboard();
+                    }
+                }).catch(error => {
+                    showToast('Σφάλμα διαγραφής', 'error');
+                });
+            }
+        }
+    });
+
+    // ========================================
     // Quick Add Form Submit Handler
     // ========================================
     const quickAddForm = document.getElementById('quickAddForm');

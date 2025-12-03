@@ -369,8 +369,14 @@ export function renderEntriesTable() {
                 <td class="text-right"><strong>${formatCurrency(amounts.finalAmount)}</strong></td>
                 <td>${entry.notes ? escapeHtml(entry.notes.substring(0, 20)) + (entry.notes.length > 20 ? '...' : '') : '-'}</td>
                 <td>
-                    <button class="btn-secondary btn-compact btn-sm" onclick="window.editEntry('${entry.id}')">✏️</button>
-                    <button class="btn-danger btn-compact btn-sm" onclick="window.confirmDelete('${entry.id}')">🗑️</button>
+                    <button class="btn-secondary btn-compact btn-sm" 
+                            data-action="edit" 
+                            data-entry-id="${entry.id}"
+                            title="Επεξεργασία">✏️</button>
+                    <button class="btn-danger btn-compact btn-sm" 
+                            data-action="delete" 
+                            data-entry-id="${entry.id}"
+                            title="Διαγραφή">🗑️</button>
                 </td>
             </tr>
         `;

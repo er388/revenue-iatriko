@@ -54,67 +54,79 @@ class ReportsManager {
      * @returns {Object} Report data
      */
     generateAnnualReport(year, options = {}) {
-        const { includeParakratisi = false } = options;
+        // ✅ ΠΡΟΣΘΗΚΗ: Ολόκληρο το try-catch wrapper
+        try {
+            const { includeParakratisi = false } = options;
 
-        // VALIDATE: Ensure entries exist
-        if (!STATE.entries || STATE.entries.length === 0) {
+            // ✅ ΠΡΟΣΘΗΚΗ: Validation - έλεγχος αν υπάρχουν entries
+            if (!STATE.entries || STATE.entries.length === 0) {
+                return {
+                    year,
+                    isEmpty: true,
+                    message: 'Δεν υπάρχουν εγγραφές στο σύστημα'
+                };
+            }
+
+            // Filter entries for year
+            const entries = STATE.entries.filter(e => {
+                const parsed = parseMonthYear(e.date);
+                return parsed && parsed.year === year;
+            });
+
+            if (entries.length === 0) {
+                return {
+                    year,
+                    isEmpty: true,
+                    message: `Δεν υπάρχουν εγγραφές για το ${year}`
+                };
+            }
+
+            // Calculate KPIs
+            const kpis = eopyyDeductionsManager.calculateKPIs(entries, { includeParakratisi });
+
+            // Monthly breakdown
+            const monthlyData = this.getMonthlyBreakdown(entries, includeParakratisi);
+
+            // Source breakdown
+            const sourceData = this.getSourceBreakdown(entries, includeParakratisi);
+
+            // Insurance breakdown
+            const insuranceData = this.getInsuranceBreakdown(entries, includeParakratisi);
+
+            // Type breakdown
+            const typeData = this.getTypeBreakdown(entries, includeParakratisi);
+
+            // Deductions analysis
+            const deductionsAnalysis = this.getDeductionsAnalysis(entries);
+
             return {
                 year,
-                isEmpty: true,
-                message: 'Δεν υπάρχουν εγγραφές στο σύστημα'
-            };
-        }
-
-        // Filter entries for year
-        const entries = STATE.entries.filter(e => {
-            const parsed = parseMonthYear(e.date);
-            return parsed && parsed.year === year;
-        });
-
-        if (entries.length === 0) {
-            return {
-                year,
-                isEmpty: true,
-                message: `Δεν υπάρχουν εγγραφές για το ${year}`
-            };
-        }
-
-        // Calculate KPIs
-        const kpis = eopyyDeductionsManager.calculateKPIs(entries, { includeParakratisi });
-
-        // Monthly breakdown
-        const monthlyData = this.getMonthlyBreakdown(entries, includeParakratisi);
-
-        // Source breakdown
-        const sourceData = this.getSourceBreakdown(entries, includeParakratisi);
-
-        // Insurance breakdown
-        const insuranceData = this.getInsuranceBreakdown(entries, includeParakratisi);
-
-        // Type breakdown
-        const typeData = this.getTypeBreakdown(entries, includeParakratisi);
-
-        // Deductions analysis
-        const deductionsAnalysis = this.getDeductionsAnalysis(entries);
-
-        return {
-            year,
-            period: 'annual',
-            isEmpty: false,
-            summary: {
-                totalEntries: entries.length,
-                dateRange: {
-                    from: `01/${year}`,
-                    to: `12/${year}`
+                period: 'annual',
+                isEmpty: false,
+                summary: {
+                    totalEntries: entries.length,
+                    dateRange: {
+                        from: `01/${year}`,
+                        to: `12/${year}`
+                    },
+                    kpis
                 },
-                kpis
-            },
-            monthly: monthlyData,
-            bySource: sourceData,
-            byInsurance: insuranceData,
-            byType: typeData,
-            deductions: deductionsAnalysis,
-            generatedAt: Date.now()
+                monthly: monthlyData,
+                bySource: sourceData,
+                byInsurance: insuranceData,
+                byType: typeData,
+                deductions: deductionsAnalysis,
+                generatedAt: Date.now()
+            };
+            
+        } catch (error) {
+            // ✅ ΠΡΟΣΘΗΚΗ: Error handler
+            console.error('[Reports] Error generating annual report:', error);
+            return {
+                year,
+                isEmpty: true,
+                message: 'Σφάλμα δημιουργίας αναφοράς: ' + error.message
+            };
         }
     }
 
