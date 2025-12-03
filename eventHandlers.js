@@ -7,7 +7,7 @@
 import { STATE } from './state.js';
 import { addEntry, deleteEntry } from './dataManager.js';
 import { showToast, renderEntriesTable, renderDashboard, renderSourcesAndInsurances } from './uiRenderers.js';
-import { resetModalForm, validateFormData } from './formHandlers.js';
+import { showModalDeductionFields, resetModalForm, validateFormData } from './formHandlers.js';
 import eopyyDeductionsManager from './eopyyClawback.js';
 import pdfExportManager from './pdfExport.js';
 import storage from './storage.js';
@@ -22,7 +22,7 @@ import { STRINGS, isValidMonthYear } from './utils.js';
  * @param {string} id - Entry ID
  */
 window.editEntry = function(id) {
-    console.log('[Edit] Opening entry:', id);
+    console.log('[Edit] Opening entry:', id); // Debug log
     
     const entry = STATE.entries.find(e => e.id === id);
     if (!entry) {
@@ -31,124 +31,82 @@ window.editEntry = function(id) {
         return;
     }
 
-    console.log('[Edit] Found entry:', entry);
-
     // Set editing state
     STATE.editingEntry = entry;
     
     // Update modal title
-    const modalTitle = document.getElementById('modalTitle');
-    if (modalTitle) {
-        modalTitle.textContent = 'Επεξεργασία Εγγραφής';
-    }
+    document.getElementById('modalTitle').textContent = 'Επεξεργασία Εγγραφής';
     
     // Fill basic fields
-    const fields = {
-        'entryId': entry.id,
-        'entryDate': entry.date,
-        'entrySource': entry.source,
-        'entryInsurance': entry.insurance,
-        'entryType': entry.type,
-        'entryAmount': entry.originalAmount || entry.amount
-    };
-    
-    for (const [fieldId, value] of Object.entries(fields)) {
-        const field = document.getElementById(fieldId);
-        if (field) {
-            field.value = value;
-        } else {
-            console.warn(`[Edit] Field not found: ${fieldId}`);
-        }
-    }
+    document.getElementById('entryId').value = entry.id;
+    document.getElementById('entryDate').value = entry.date;
+    document.getElementById('entrySource').value = entry.source;
+    document.getElementById('entryInsurance').value = entry.insurance;
+    document.getElementById('entryType').value = entry.type;
+    document.getElementById('entryAmount').value = entry.originalAmount || entry.amount;
     
     // Fill notes
     const notesField = document.getElementById('entryNotes');
     const notesToggle = document.getElementById('entryNotesToggle');
-    if (notesField && notesToggle) {
-        if (entry.notes) {
-            notesField.value = entry.notes;
-            notesToggle.checked = true;
-            notesField.style.display = 'block';
-        } else {
-            notesField.value = '';
-            notesToggle.checked = false;
-            notesField.style.display = 'none';
-        }
+    if (entry.notes) {
+        notesField.value = entry.notes;
+        notesToggle.checked = true;
+        notesField.style.display = 'block';
+    } else {
+        notesField.value = '';
+        notesToggle.checked = false;
+        notesField.style.display = 'none';
     }
 
     // Check insurance type
     const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
-    console.log('[Edit] Is ΕΟΠΥΥ:', isEopyy);
     
-    // Show/hide deduction fields
+    // Show/hide deduction fields based on insurance
     const eopyyFields = document.getElementById('modalEopyyDeductions');
     const nonEopyyFields = document.getElementById('modalNonEopyyDeductions');
     
-    if (eopyyFields && nonEopyyFields) {
-        if (isEopyy) {
-            eopyyFields.style.display = 'block';
-            nonEopyyFields.style.display = 'none';
+    if (isEopyy) {
+        if (eopyyFields) eopyyFields.style.display = 'block';
+        if (nonEopyyFields) nonEopyyFields.style.display = 'none';
+        
+        // Fill ΕΟΠΥΥ deductions
+        const deduction = eopyyDeductionsManager.getDeductions(entry.id);
+        
+        if (deduction) {
+            document.getElementById('entryParakratisi').value = deduction.deductions.parakratisi || '';
+            document.getElementById('entryMDE').value = deduction.deductions.mde || '';
+            document.getElementById('entryRebate').value = deduction.deductions.rebate || '';
+            document.getElementById('entryKrathseisEopyy').value = deduction.deductions.krathseis || '';
+            document.getElementById('entryClawback').value = deduction.deductions.clawback || '';
             
-            // Fill ΕΟΠΥΥ deductions
-            const deduction = eopyyDeductionsManager.getDeductions(entry.id);
-            console.log('[Edit] ΕΟΠΥΥ deductions:', deduction);
-            
-            if (deduction) {
-                const eopyyFieldIds = {
-                    'entryParakratisi': deduction.deductions.parakratisi || '',
-                    'entryMDE': deduction.deductions.mde || '',
-                    'entryRebate': deduction.deductions.rebate || '',
-                    'entryKrathseisEopyy': deduction.deductions.krathseis || '',
-                    'entryClawback': deduction.deductions.clawback || ''
-                };
-                
-                for (const [fieldId, value] of Object.entries(eopyyFieldIds)) {
-                    const field = document.getElementById(fieldId);
-                    if (field) field.value = value;
-                }
-                
-                if (deduction.percentages) {
-                    const percentFields = {
-                        'entryParakratisiPercent': deduction.percentages.parakratisiPercent || '',
-                        'entryMDEPercent': deduction.percentages.mdePercent || '',
-                        'entryRebatePercent': deduction.percentages.rebatePercent || '',
-                        'entryKrathseisEopyyPercent': deduction.percentages.krathseisPercent || '',
-                        'entryClawbackPercent': deduction.percentages.clawbackPercent || ''
-                    };
-                    
-                    for (const [fieldId, value] of Object.entries(percentFields)) {
-                        const field = document.getElementById(fieldId);
-                        if (field) field.value = value;
-                    }
-                }
-                
-                const clawbackPeriodField = document.getElementById('entryClawbackPeriod');
-                if (clawbackPeriodField && deduction.clawbackPeriod) {
-                    clawbackPeriodField.value = deduction.clawbackPeriod;
-                }
+            if (deduction.percentages) {
+                document.getElementById('entryParakratisiPercent').value = deduction.percentages.parakratisiPercent || '';
+                document.getElementById('entryMDEPercent').value = deduction.percentages.mdePercent || '';
+                document.getElementById('entryRebatePercent').value = deduction.percentages.rebatePercent || '';
+                document.getElementById('entryKrathseisEopyyPercent').value = deduction.percentages.krathseisPercent || '';
+                document.getElementById('entryClawbackPercent').value = deduction.percentages.clawbackPercent || '';
             }
-        } else {
-            // Non-ΕΟΠΥΥ
-            eopyyFields.style.display = 'none';
-            nonEopyyFields.style.display = 'block';
             
-            const krathseisField = document.getElementById('entryKrathseisOther');
-            const krathseisPercentField = document.getElementById('entryKrathseisOtherPercent');
-            
-            if (krathseisField) krathseisField.value = entry.krathseis || '';
-            if (krathseisPercentField) krathseisPercentField.value = entry.krathseisPercent || '';
+            if (deduction.clawbackPeriod) {
+                document.getElementById('entryClawbackPeriod').value = deduction.clawbackPeriod;
+            }
         }
     } else {
-        console.error('[Edit] Deduction fields containers not found!');
+        // Non-ΕΟΠΥΥ
+        if (eopyyFields) eopyyFields.style.display = 'none';
+        if (nonEopyyFields) nonEopyyFields.style.display = 'block';
+        
+        document.getElementById('entryKrathseisOther').value = entry.krathseis || '';
+        document.getElementById('entryKrathseisOtherPercent').value = entry.krathseisPercent || '';
     }
 
     // Open modal
     const modal = document.getElementById('entryModal');
     if (modal) {
         modal.classList.add('active');
-        console.log('[Edit] ✅ Modal opened successfully');
+        console.log('[Edit] Modal opened successfully');
     } else {
-        console.error('[Edit] ❌ Modal element #entryModal not found!');
+        console.error('[Edit] Modal element not found!');
     }
 };
 
@@ -432,6 +390,12 @@ export function setupDarkModeHandler() {
  */
 export function setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
+        // Ctrl/Cmd + N: New entry
+        if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+            e.preventDefault();
+            document.getElementById('addEntryBtn')?.click();
+        }
+        
         // Escape: Close active modal
         if (e.key === 'Escape') {
             const activeModal = document.querySelector('.modal.active');
