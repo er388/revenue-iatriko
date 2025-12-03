@@ -56,6 +56,15 @@ class ReportsManager {
     generateAnnualReport(year, options = {}) {
         const { includeParakratisi = false } = options;
 
+        // VALIDATE: Ensure entries exist
+        if (!STATE.entries || STATE.entries.length === 0) {
+            return {
+                year,
+                isEmpty: true,
+                message: 'Δεν υπάρχουν εγγραφές στο σύστημα'
+            };
+        }
+
         // Filter entries for year
         const entries = STATE.entries.filter(e => {
             const parsed = parseMonthYear(e.date);
@@ -106,7 +115,7 @@ class ReportsManager {
             byType: typeData,
             deductions: deductionsAnalysis,
             generatedAt: Date.now()
-        };
+        }
     }
 
     /**
