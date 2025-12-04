@@ -338,7 +338,7 @@ export function renderEntriesTable() {
         return;
     }
 
-    // ✅ FIX: Properly escape entry.id for onclick
+    // ✅ CRITICAL: Use data-id instead of onclick
     tbody.innerHTML = pageEntries.map(entry => {
         const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
         const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
@@ -348,7 +348,6 @@ export function renderEntriesTable() {
             ? ((deductionsAmount / amounts.originalAmount) * 100).toFixed(2) 
             : '0.00';
         
-        // ✅ CRITICAL FIX: Use data-id attribute instead of inline onclick
         return `
             <tr>
                 <td>${escapeHtml(entry.date)}</td>
@@ -365,7 +364,7 @@ export function renderEntriesTable() {
                 <td class="text-right">${deductionsPercent}%</td>
                 <td class="text-right"><strong>${formatCurrency(amounts.finalAmount)}</strong></td>
                 <td>${entry.notes ? escapeHtml(entry.notes.substring(0, 20)) + (entry.notes.length > 20 ? '...' : '') : '-'}</td>
-                <td>
+                <td class="action-buttons">
                     <button class="btn-secondary btn-compact btn-sm btn-edit" data-id="${entry.id}" title="Επεξεργασία">✏️</button>
                     <button class="btn-danger btn-compact btn-sm btn-delete" data-id="${entry.id}" title="Διαγραφή">🗑️</button>
                 </td>
@@ -373,10 +372,13 @@ export function renderEntriesTable() {
         `;
     }).join('');
 
-    // ✅ FIX: Add event delegation for dynamically created buttons
+    // ✅ CRITICAL: Attach event listeners AFTER innerHTML is set
     attachTableEventListeners();
 
     renderPagination(sorted.length, totalPages);
+    
+    // ✅ NEW: Render statistics
+    renderEntriesStatistics(filtered);
 }
 
 /**
@@ -387,11 +389,127 @@ function attachTableEventListeners() {
     const tbody = document.getElementById('entriesTableBody');
     if (!tbody) return;
 
-    // Remove existing listeners to prevent duplicates
-    tbody.removeEventListener('click', handleTableClick);
+    // Remove old listener to prevent duplicates
+    const oldListener = tbody._clickHandler;
+    if (oldListener) {
+        tbody.removeEventListener('click', oldListener);
+    }
+
+    // Create new listener
+    const clickHandler = function(e) {
+        // Find the button that was clicked (even if user clicks on emoji)
+        const button = e.target.closest('button[data-id]');
+        if (!button) return;
+
+        const entryId = button.getAttribute('data-id');
+        if (!entryId) {
+            console.error('[Table] Button missing data-id attribute');
+            return;
+        }
+
+        // Handle edit button
+        if (button.classList.contains('btn-edit')) {
+            console.log('[Table] Edit button clicked for entry:', entryId);
+            
+            // Call global edit function
+            if (typeof window.editEntry === 'function') {
+                window.editEntry(entryId);
+            } else {
+                console.error('[Table] window.editEntry is not defined');
+                alert('Σφάλμα: Η λειτουργία επεξεργασίας δεν είναι διαθέσιμη');
+            }
+        }
+        
+        // Handle delete button
+        else if (button.classList.contains('btn-delete')) {
+            console.log('[Table] Delete button clicked for entry:', entryId);
+            
+            if (typeof window.confirmDelete === 'function') {
+                window.confirmDelete(entryId);
+            } else {
+                console.error('[Table] window.confirmDelete is not defined');
+                alert('Σφάλμα: Η λειτουργία διαγραφής δεν είναι διαθέσιμη');
+            }
+        }
+    };
+
+    // Store reference to remove later
+    tbody._clickHandler = clickHandler;
     
-    // Add single listener for entire tbody (event delegation)
-    tbody.addEventListener('click', handleTableClick);
+    // Attach the listener
+    tbody.addEventListener('click', clickHandler);
+    
+    console.log('[Table] Event listeners attached');
+}
+
+/**
+ * ✅ NEW FUNCTION: Render entries statistics
+ * Shows summary of filtered entries
+ */
+function renderEntriesStatistics(entries) {
+    const container = document.getElementById('entriesStatistics');
+    if (!container) return;
+
+    if (entries.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Δεν υπάρχουν δεδομένα</p>';
+        return;
+    }
+
+    // Calculate totals
+    let totalOriginal = 0;
+    let totalDeductions = 0;
+    let totalFinal = 0;
+    let eopyyCount = 0;
+    let otherCount = 0;
+
+    entries.forEach(entry => {
+        const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
+        totalOriginal += amounts.originalAmount;
+        totalDeductions += amounts.totalDeductions;
+        totalFinal += amounts.finalAmount;
+        
+        if (eopyyDeductionsManager.isEopyyEntry(entry)) {
+            eopyyCount++;
+        } else {
+            otherCount++;
+        }
+    });
+
+    const avgDeductionPercent = totalOriginal > 0 
+        ? ((totalDeductions / totalOriginal) * 100).toFixed(2)
+        : '0.00';
+
+    container.innerHTML = `
+        <div class="stat-card">
+            <span class="stat-label">Σύνολο Εγγραφών</span>
+            <span class="stat-value">${entries.length}</span>
+            <span class="stat-description">ΕΟΠΥΥ: ${eopyyCount}, Άλλα: ${otherCount}</span>
+        </div>
+        
+        <div class="stat-card">
+            <span class="stat-label">Αρχικό Ποσό</span>
+            <span class="stat-value">${formatCurrency(totalOriginal)}</span>
+            <span class="stat-description">Πριν τις κρατήσεις</span>
+        </div>
+        
+        <div class="stat-card">
+            <span class="stat-label">Κρατήσεις</span>
+            <span class="stat-value">${formatCurrency(totalDeductions)}</span>
+            <span class="stat-description">${avgDeductionPercent}% του αρχικού</span>
+        </div>
+        
+        <div class="stat-card">
+            <span class="stat-label">Τελικό Ποσό</span>
+            <span class="stat-value">${formatCurrency(totalFinal)}</span>
+            <span class="stat-description">Μετά τις κρατήσεις</span>
+        </div>
+        
+        <div class="stat-card">
+            <span class="stat-label">Μέσος Όρος</span>
+            <span class="stat-value">${formatCurrency(totalFinal / entries.length)}</span>
+            <span class="stat-description">Ανά εγγραφή</span>
+        </div>
+    `;
 }
 
 /**
