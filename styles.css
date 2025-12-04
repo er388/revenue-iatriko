@@ -1658,6 +1658,14 @@ button:disabled {
     border-radius: var(--radius-md);
 }
 
+.autosave-status {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background-color: var(--bg-primary);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+}
+
 /* Cache Report */
 .cache-report {
     margin-top: var(--spacing-md);

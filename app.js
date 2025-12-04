@@ -1740,33 +1740,42 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         try {
             if (type === 'annual') {
                 const year = parseInt(document.getElementById('reportYear').value);
+                report = reportsManager.generateAnnualReport(year, { includeParakratisi });
+            } else if (type === 'quarterly') {
+                const year = parseInt(document.getElementById('reportYear').value);
+                const quarter = document.getElementById('reportQuarter').value;
+                report = reportsManager.generateQuarterlyReport(year, quarter, { includeParakratisi });
+            } else if (type === 'semiannual') {
+                const year = parseInt(document.getElementById('reportYear').value);
+                const semester = document.getElementById('reportSemester').value;
+                report = reportsManager.generateSemiannualReport(year, semester, { includeParakratisi });
+            } else if (type === 'custom') {
+                const startDate = document.getElementById('reportDateFrom').value;
+                const endDate = document.getElementById('reportDateTo').value;
                 
-                // VALIDATE year
-                if (!year || isNaN(year)) {
-                    showToast('Επιλέξτε έτος', 'warning');
+                if (!startDate || !endDate) {
+                    showToast('Επιλέξτε ημερομηνίες', 'warning');
                     return;
                 }
                 
-                report = reportsManager.generateAnnualReport(year, { includeParakratisi });
-            } 
-            // ... rest of conditions
+                report = reportsManager.generatePeriodReport(startDate, endDate, { includeParakratisi });
+            }
             
             if (report.isEmpty) {
                 showToast(report.message, 'warning');
                 return;
             }
             
-            // Store globally
+            // Store report globally for export
             window.currentReport = report;
             
-            // Display
+            // Display report
             displayReport(report);
             
             showToast('Αναφορά δημιουργήθηκε επιτυχώς', 'success');
-            
         } catch (error) {
             console.error('Report generation error:', error);
-            showToast('Σφάλμα: ' + (error.message || 'Άγνωστο σφάλμα'), 'error');
+            showToast('Σφάλμα δημιουργίας αναφοράς', 'error');
         }
     }
 
