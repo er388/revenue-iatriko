@@ -324,13 +324,9 @@ export function renderEntriesTable() {
     const tbody = document.getElementById('entriesTableBody');
     if (!tbody) return;
 
-    // Apply filters (stub for now - will implement filters.js later)
     const filtered = applyFiltersStub();
-    
-    // Apply sorting
     const sorted = applySorting(filtered);
     
-    // Calculate pagination
     const totalPages = Math.ceil(sorted.length / STATE.pageSize);
     const start = (STATE.currentPage - 1) * STATE.pageSize;
     const end = start + STATE.pageSize;
@@ -342,7 +338,7 @@ export function renderEntriesTable() {
         return;
     }
 
-    // Render rows
+    // ✅ FIX: Properly escape entry.id for onclick
     tbody.innerHTML = pageEntries.map(entry => {
         const amounts = eopyyDeductionsManager.getAmountsBreakdown(entry);
         const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
@@ -352,12 +348,13 @@ export function renderEntriesTable() {
             ? ((deductionsAmount / amounts.originalAmount) * 100).toFixed(2) 
             : '0.00';
         
+        // ✅ CRITICAL FIX: Use data-id attribute instead of inline onclick
         return `
             <tr>
                 <td>${escapeHtml(entry.date)}</td>
                 <td>${escapeHtml(entry.source)}</td>
                 <td>${escapeHtml(entry.insurance)}</td>
-                <td>${entry.type === 'cash' ? 'Μετρητά' : 'Τιμολόγια'}</td>
+                <td>${entry.type === 'cash' ? 'Μετρητά' : 'Τιμολόγιο'}</td>
                 <td class="text-right">${formatCurrency(amounts.originalAmount)}</td>
                 <td class="text-right">${isEopyy ? formatCurrency(amounts.parakratisi || 0) : '-'}</td>
                 <td class="text-right">${isEopyy ? formatCurrency(amounts.mde || 0) : '-'}</td>
@@ -369,14 +366,59 @@ export function renderEntriesTable() {
                 <td class="text-right"><strong>${formatCurrency(amounts.finalAmount)}</strong></td>
                 <td>${entry.notes ? escapeHtml(entry.notes.substring(0, 20)) + (entry.notes.length > 20 ? '...' : '') : '-'}</td>
                 <td>
-                    <button class="btn-secondary btn-compact btn-sm" onclick="window.editEntry('${entry.id}')">✏️</button>
-                    <button class="btn-danger btn-compact btn-sm" onclick="window.confirmDelete('${entry.id}')">🗑️</button>
+                    <button class="btn-secondary btn-compact btn-sm btn-edit" data-id="${entry.id}" title="Επεξεργασία">✏️</button>
+                    <button class="btn-danger btn-compact btn-sm btn-delete" data-id="${entry.id}" title="Διαγραφή">🗑️</button>
                 </td>
             </tr>
         `;
     }).join('');
 
+    // ✅ FIX: Add event delegation for dynamically created buttons
+    attachTableEventListeners();
+
     renderPagination(sorted.length, totalPages);
+}
+
+/**
+ * ✅ NEW FUNCTION: Event delegation for table buttons
+ * Attach click handlers AFTER table is rendered
+ */
+function attachTableEventListeners() {
+    const tbody = document.getElementById('entriesTableBody');
+    if (!tbody) return;
+
+    // Remove existing listeners to prevent duplicates
+    tbody.removeEventListener('click', handleTableClick);
+    
+    // Add single listener for entire tbody (event delegation)
+    tbody.addEventListener('click', handleTableClick);
+}
+
+/**
+ * ✅ NEW FUNCTION: Handle all table button clicks
+ */
+function handleTableClick(e) {
+    const target = e.target.closest('button');
+    if (!target) return;
+
+    const entryId = target.getAttribute('data-id');
+    if (!entryId) return;
+
+    if (target.classList.contains('btn-edit')) {
+        // Call edit function
+        if (typeof window.editEntry === 'function') {
+            window.editEntry(entryId);
+        } else {
+            console.error('[Table] window.editEntry not found');
+        }
+    } else if (target.classList.contains('btn-delete')) {
+        // Call delete function
+        if (typeof window.confirmDelete === 'function') {
+            window.confirmDelete(entryId);
+        } else {
+            console.error('[Table] window.confirmDelete not found');
+        }
+    }
 }
 
 /**
