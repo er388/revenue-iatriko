@@ -349,17 +349,30 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
 
         function setupReportsView() {
+            console.log('[Reports] Setting up Reports view...');
+            
             const reportPeriodType = document.getElementById('reportPeriodType');
             const generateReportBtn = document.getElementById('generateReportBtn');
             const exportReportCsvBtn = document.getElementById('exportReportCsvBtn');
             
-            // Populate years
-            const years = reportsManager.getAvailableYears();
-            const reportYearSelect = document.getElementById('reportYear');
-            if (reportYearSelect && years.length > 0) {
-                reportYearSelect.innerHTML = years.map(y => 
-                    `<option value="${y}">${y}</option>`
-                ).join('');
+            // ✅ FIX 12: Populate years with validation
+            try {
+                const years = reportsManager.getAvailableYears();
+                const reportYearSelect = document.getElementById('reportYear');
+                
+                if (reportYearSelect) {
+                    if (years.length > 0) {
+                        reportYearSelect.innerHTML = years.map(y => 
+                            `<option value="${y}">${y}</option>`
+                        ).join('');
+                        console.log(`[Reports] Loaded ${years.length} years with data`);
+                    } else {
+                        reportYearSelect.innerHTML = '<option value="">Δεν υπάρχουν δεδομένα</option>';
+                        console.warn('[Reports] No years with data found');
+                    }
+                }
+            } catch (error) {
+                console.error('[Reports] Error populating years:', error);
             }
             
             // Period type change handler
@@ -395,6 +408,8 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
                     generateAndDisplayReport();
                 });
             }
+            
+            console.log('[Reports] Setup complete');
             
             // Export CSV
             if (exportReportCsvBtn) {
@@ -1732,51 +1747,147 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     }
 
     function generateAndDisplayReport() {
+        console.log('[Reports] Generating report...');
+        
         const type = document.getElementById('reportPeriodType').value;
         const includeParakratisi = document.getElementById('reportIncludeParakratisi').checked;
+        
+        // ✅ FIX 1: Validate inputs before proceeding
+        if (!validateReportInputs(type)) {
+            return; // Stop if validation fails
+        }
         
         let report;
         
         try {
             if (type === 'annual') {
-                const year = parseInt(document.getElementById('reportYear').value);
+                const yearSelect = document.getElementById('reportYear');
+                
+                // ✅ FIX 2: Check if year is selected
+                if (!yearSelect || !yearSelect.value) {
+                    showToast('Επιλέξτε έτος', 'warning');
+                    return;
+                }
+                
+                const year = parseInt(yearSelect.value);
+                
+                // ✅ FIX 3: Validate year range
+                if (isNaN(year) || year < 2000 || year > 2100) {
+                    showToast('Μη έγκυρο έτος', 'error');
+                    return;
+                }
+                
+                console.log(`[Reports] Generating annual report for ${year}`);
                 report = reportsManager.generateAnnualReport(year, { includeParakratisi });
+                
             } else if (type === 'quarterly') {
                 const year = parseInt(document.getElementById('reportYear').value);
                 const quarter = document.getElementById('reportQuarter').value;
+                
+                // ✅ FIX 4: Validate quarterly inputs
+                if (!quarter) {
+                    showToast('Επιλέξτε τρίμηνο', 'warning');
+                    return;
+                }
+                
+                console.log(`[Reports] Generating quarterly report: ${year} ${quarter}`);
                 report = reportsManager.generateQuarterlyReport(year, quarter, { includeParakratisi });
+                
             } else if (type === 'semiannual') {
                 const year = parseInt(document.getElementById('reportYear').value);
                 const semester = document.getElementById('reportSemester').value;
+                
+                // ✅ FIX 5: Validate semiannual inputs
+                if (!semester) {
+                    showToast('Επιλέξτε εξάμηνο', 'warning');
+                    return;
+                }
+                
+                console.log(`[Reports] Generating semiannual report: ${year} ${semester}`);
                 report = reportsManager.generateSemiannualReport(year, semester, { includeParakratisi });
+                
             } else if (type === 'custom') {
                 const startDate = document.getElementById('reportDateFrom').value;
                 const endDate = document.getElementById('reportDateTo').value;
                 
+                // ✅ FIX 6: Validate custom date range
                 if (!startDate || !endDate) {
                     showToast('Επιλέξτε ημερομηνίες', 'warning');
                     return;
                 }
                 
+                // ✅ FIX 7: Validate date format
+                if (!isValidMonthYear(startDate) || !isValidMonthYear(endDate)) {
+                    showToast('Μη έγκυρες ημερομηνίες (χρησιμοποιήστε ΜΜ/ΕΕΕΕ)', 'error');
+                    return;
+                }
+                
+                // ✅ FIX 8: Check date order
+                if (compareDates(startDate, endDate) > 0) {
+                    showToast('Η αρχική ημερομηνία πρέπει να είναι πριν την τελική', 'error');
+                    return;
+                }
+                
+                console.log(`[Reports] Generating custom report: ${startDate} to ${endDate}`);
                 report = reportsManager.generatePeriodReport(startDate, endDate, { includeParakratisi });
             }
             
-            if (report.isEmpty) {
-                showToast(report.message, 'warning');
+            // ✅ FIX 9: Check if report generation succeeded
+            if (!report) {
+                showToast('Σφάλμα δημιουργίας αναφοράς', 'error');
                 return;
             }
             
-            // Store report globally for export
-            window.currentReport = report;
+            // ✅ FIX 10: Handle empty reports
+            if (report.isEmpty) {
+                showToast(report.message || 'Δεν υπάρχουν δεδομένα για την επιλεγμένη περίοδο', 'warning');
+                
+                // Show empty state instead of results
+                document.getElementById('reportResults').style.display = 'none';
+                document.getElementById('reportEmptyState').style.display = 'block';
+                return;
+            }
             
-            // Display report
+            // ✅ SUCCESS: Store report and display
+            window.currentReport = report;
             displayReport(report);
             
             showToast('Αναφορά δημιουργήθηκε επιτυχώς', 'success');
+            
         } catch (error) {
-            console.error('Report generation error:', error);
-            showToast('Σφάλμα δημιουργίας αναφοράς', 'error');
+            // ✅ FIX 11: Comprehensive error logging
+            console.error('[Reports] Generation error:', error);
+            console.error('[Reports] Error stack:', error.stack);
+            console.error('[Reports] Report type:', type);
+            console.error('[Reports] Current entries count:', STATE.entries.length);
+            
+            // User-friendly error message
+            const errorMsg = error.message || 'Άγνωστο σφάλμα';
+            showToast(`Σφάλμα δημιουργίας αναφοράς: ${errorMsg}`, 'error');
+            
+            // Show technical details in console for debugging
+            console.error('[Reports] Full error object:', error);
         }
+    }
+
+    /**
+     * ✅ NEW FUNCTION: Validate report inputs
+     */
+    function validateReportInputs(type) {
+        // Check if reportsManager exists
+        if (typeof reportsManager === 'undefined') {
+            console.error('[Reports] reportsManager not found');
+            showToast('Το σύστημα αναφορών δεν είναι διαθέσιμο', 'error');
+            return false;
+        }
+        
+        // Check if there's any data
+        if (!STATE.entries || STATE.entries.length === 0) {
+            showToast('Δεν υπάρχουν εγγραφές για αναφορά', 'warning');
+            return false;
+        }
+        
+        return true;
     }
 
     function displayReport(report) {
