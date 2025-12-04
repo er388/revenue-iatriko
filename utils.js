@@ -166,32 +166,157 @@ export function generateDateRange(startDate, endDate) {
 }
 
 /**
- * Setup auto-formatting for date input (MM/YYYY)
- * @param {HTMLInputElement} inputElement - Input element
+ * ✅ FIX 4: Enhanced Date Input UX
+ * FEATURES:
+ * 1. Auto-complete: "01/25" → "01/2025"
+ * 2. Smart backspace handling
+ * 3. Natural slash behavior
+ * 4. Blur auto-complete
  */
+
 export function setupDateAutoFormat(inputElement) {
     if (!inputElement) return;
     
+    let isBackspacing = false;
+    let lastValue = '';
+    
+    // Track backspace key
+    inputElement.addEventListener('keydown', (e) => {
+        isBackspacing = e.key === 'Backspace';
+        lastValue = e.target.value;
+    });
+    
     inputElement.addEventListener('input', (e) => {
-        let value = e.target.value.replace(/\D/g, '');
+        let value = e.target.value;
+        let cursorPos = e.target.selectionStart;
         
-        // Auto-add slash after month
-        if (value.length >= 2) {
-            value = value.slice(0, 2) + '/' + value.slice(2);
+        // ✅ FIX 1: Handle backspace naturally
+        if (isBackspacing) {
+            // If user deleted the slash, also delete the digit before it
+            if (lastValue.includes('/') && !value.includes('/') && value.length === 2) {
+                e.target.value = value.charAt(0);
+                setTimeout(() => e.target.setSelectionRange(1, 1), 0);
+                return;
+            }
+            
+            // Allow natural backspace without reformatting
+            // Just ensure we don't have invalid characters
+            const cleaned = value.replace(/[^\d/]/g, '');
+            e.target.value = cleaned;
+            return;
         }
         
-        // Auto-complete year from 2 digits
-        if (value.length === 4 && value.includes('/')) {
-            const parts = value.split('/');
-            if (parts[1] && parts[1].length === 2) {
-                const currentYear = new Date().getFullYear();
-                const century = Math.floor(currentYear / 100) * 100;
-                value = parts[0] + '/' + (century + parseInt(parts[1]));
+        // ✅ FIX 2: Remove all non-digits for formatting
+        let digits = value.replace(/\D/g, '');
+        
+        // ✅ FIX 3: Format based on length
+        if (digits.length === 0) {
+            e.target.value = '';
+            return;
+        }
+        
+        if (digits.length <= 2) {
+            // Month only: "01" or "1"
+            e.target.value = digits;
+            
+        } else if (digits.length <= 4) {
+            // Month + partial year: "01/2" or "01/25"
+            const month = digits.substring(0, 2);
+            const year = digits.substring(2);
+            e.target.value = `${month}/${year}`;
+            
+        } else {
+            // Full date: auto-complete to 4-digit year
+            const month = digits.substring(0, 2);
+            let year = digits.substring(2, 6);
+            
+            // ✅ FIX 4: Smart year completion
+            if (year.length === 2) {
+                year = completeYear(year);
+            } else if (year.length === 3) {
+                // User is typing 3rd digit - don't complete yet
+                year = year;
+            } else if (year.length >= 4) {
+                // Keep 4 digits max
+                year = year.substring(0, 4);
+            }
+            
+            e.target.value = `${month}/${year}`;
+        }
+        
+        // ✅ FIX 5: Smart cursor positioning
+        if (digits.length === 2 && !isBackspacing) {
+            // After typing month, jump cursor after slash
+            setTimeout(() => e.target.setSelectionRange(3, 3), 0);
+        }
+    });
+    
+    // ✅ FIX 6: Auto-complete on blur
+    inputElement.addEventListener('blur', (e) => {
+        const value = e.target.value.replace(/[^\d]/g, '');
+        
+        if (value.length >= 2 && value.length < 6) {
+            const month = value.substring(0, 2);
+            let year = value.substring(2);
+            
+            // Complete partial year
+            if (year.length > 0 && year.length < 4) {
+                year = completeYear(year.padEnd(2, '0').substring(0, 2));
+            }
+            
+            if (year.length === 4) {
+                e.target.value = `${month}/${year}`;
             }
         }
-        
-        e.target.value = value.slice(0, 7); // MM/YYYY max length
     });
+    
+    // ✅ FIX 7: Prevent paste of invalid formats
+    inputElement.addEventListener('paste', (e) => {
+        e.preventDefault();
+        
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        const digits = pastedText.replace(/\D/g, '');
+        
+        if (digits.length >= 2) {
+            const month = digits.substring(0, 2);
+            let year = digits.substring(2, 6);
+            
+            if (year.length === 2) {
+                year = completeYear(year);
+            }
+            
+            e.target.value = year.length >= 4 ? `${month}/${year}` : `${month}/${year}`;
+            e.target.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    });
+}
+
+/**
+ * ✅ NEW HELPER: Smart year completion
+ * Converts 2-digit year to 4-digit year
+ * 
+ * Logic:
+ * - 00-50 → 2000-2050
+ * - 51-99 → 1951-1999
+ */
+function completeYear(twoDigitYear) {
+    const year = parseInt(twoDigitYear);
+    
+    if (isNaN(year)) {
+        return new Date().getFullYear().toString();
+    }
+    
+    const currentYear = new Date().getFullYear();
+    const currentCentury = Math.floor(currentYear / 100) * 100;
+    
+    // Smart logic: 
+    // If year <= 50, assume 20xx
+    // If year > 50, assume 19xx
+    if (year <= 50) {
+        return (currentCentury + year).toString();
+    } else {
+        return (currentCentury - 100 + year).toString();
+    }
 }
 
 // ========================================
