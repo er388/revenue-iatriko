@@ -34,7 +34,9 @@ import {
     setupDateAutoFormat,
     STRINGS,
     isValidMonthYear,
-    formatMonthYear
+    formatMonthYear,
+    formatCurrency,
+    formatPercent     
 } from './utils.js';
 import reportsManager from './reports.js';
 import forecastingManager from './forecasting.js';
