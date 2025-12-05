@@ -387,49 +387,92 @@ export function renderEntriesTable() {
  */
 function attachTableEventListeners() {
     const tbody = document.getElementById('entriesTableBody');
-    if (!tbody) return;
+    if (!tbody) {
+        console.error('[Table] tbody element not found');
+        return;
+    }
 
     // Remove old listener to prevent duplicates
     const oldListener = tbody._clickHandler;
     if (oldListener) {
         tbody.removeEventListener('click', oldListener);
+        console.log('[Table] Removed old event listener');
     }
 
-    // Create new listener
+    // Create new listener with enhanced error handling
     const clickHandler = function(e) {
+        console.log('[Table] Click event detected:', {
+            target: e.target.tagName,
+            classList: e.target.classList.toString(),
+            innerHTML: e.target.innerHTML?.substring(0, 20)
+        });
+
         // Find the button that was clicked (even if user clicks on emoji)
         const button = e.target.closest('button[data-id]');
-        if (!button) return;
-
-        const entryId = button.getAttribute('data-id');
-        if (!entryId) {
-            console.error('[Table] Button missing data-id attribute');
+        
+        if (!button) {
+            console.log('[Table] Click was not on a data-id button');
             return;
         }
 
+        const entryId = button.getAttribute('data-id');
+        if (!entryId) {
+            console.error('[Table] Button missing data-id attribute:', button);
+            alert('Σφάλμα: Το κουμπί δεν έχει έγκυρο ID');
+            return;
+        }
+
+        console.log('[Table] Valid button click detected:', {
+            entryId,
+            isEdit: button.classList.contains('btn-edit'),
+            isDelete: button.classList.contains('btn-delete')
+        });
+
         // Handle edit button
         if (button.classList.contains('btn-edit')) {
-            console.log('[Table] Edit button clicked for entry:', entryId);
+            console.log('[Table] Calling editEntry for:', entryId);
             
-            // Call global edit function
+            // Prevent default and stop propagation
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Call global edit function with additional safety checks
             if (typeof window.editEntry === 'function') {
-                window.editEntry(entryId);
+                try {
+                    window.editEntry(entryId);
+                    console.log('[Table] editEntry called successfully');
+                } catch (error) {
+                    console.error('[Table] Error calling editEntry:', error);
+                    alert('Σφάλμα κατά την επεξεργασία: ' + error.message);
+                }
             } else {
                 console.error('[Table] window.editEntry is not defined');
+                console.log('[Table] Available window functions:', Object.keys(window).filter(k => k.includes('edit')));
                 alert('Σφάλμα: Η λειτουργία επεξεργασίας δεν είναι διαθέσιμη');
             }
         }
         
         // Handle delete button
         else if (button.classList.contains('btn-delete')) {
-            console.log('[Table] Delete button clicked for entry:', entryId);
+            console.log('[Table] Calling confirmDelete for:', entryId);
+            
+            e.preventDefault();
+            e.stopPropagation();
             
             if (typeof window.confirmDelete === 'function') {
-                window.confirmDelete(entryId);
+                try {
+                    window.confirmDelete(entryId);
+                    console.log('[Table] confirmDelete called successfully');
+                } catch (error) {
+                    console.error('[Table] Error calling confirmDelete:', error);
+                    alert('Σφάλμα κατά τη διαγραφή: ' + error.message);
+                }
             } else {
                 console.error('[Table] window.confirmDelete is not defined');
                 alert('Σφάλμα: Η λειτουργία διαγραφής δεν είναι διαθέσιμη');
             }
+        } else {
+            console.warn('[Table] Button clicked but no action class found');
         }
     };
 
@@ -439,7 +482,12 @@ function attachTableEventListeners() {
     // Attach the listener
     tbody.addEventListener('click', clickHandler);
     
-    console.log('[Table] Event listeners attached');
+    console.log('[Table] Event listener attached successfully to:', tbody);
+    console.log('[Table] Window functions available:', {
+        editEntry: typeof window.editEntry,
+        confirmDelete: typeof window.confirmDelete,
+        saveEntry: typeof window.saveEntry
+    });
 }
 
 /**
