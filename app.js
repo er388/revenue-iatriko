@@ -43,14 +43,155 @@ import forecastingManager from './forecasting.js';
 import heatmapManager from './heatmaps.js';
 import cloudSyncManager from './cloudAdapters.js';
 
-    window.editEntry = function(id) {
+window.editEntry = async function(id) {
+    console.log('[EditEntry] Called with ID:', id);
+    
+    // Import needed modules
+    const { STATE } = await import('./state.js');
+    const eopyyModule = await import('./eopyyClawback.js');
+    const eopyyDeductionsManager = eopyyModule.default;
+    
+    // Find entry
     const entry = STATE.entries.find(e => e.id === id);
+    
     if (!entry) {
+        console.error('[EditEntry] Entry not found:', id);
+        const { showToast } = await import('./uiRenderers.js');
         showToast('Η εγγραφή δεν βρέθηκε', 'error');
         return;
     }
-    // ... υπόλοιπος κώδικας από eventHandlers.js
-    console.log('Edit entry:', id);
+    
+    console.log('[EditEntry] Entry found:', entry);
+
+    // Set editing state
+    STATE.editingEntry = entry;
+    
+    // Update modal title
+    const modalTitle = document.getElementById('modalTitle');
+    if (modalTitle) {
+        modalTitle.textContent = 'Επεξεργασία Εγγραφής';
+    }
+    
+    // Fill basic fields
+    const entryId = document.getElementById('entryId');
+    const entryDate = document.getElementById('entryDate');
+    const entrySource = document.getElementById('entrySource');
+    const entryInsurance = document.getElementById('entryInsurance');
+    const entryType = document.getElementById('entryType');
+    const entryAmount = document.getElementById('entryAmount');
+    
+    if (entryId) entryId.value = entry.id;
+    if (entryDate) entryDate.value = entry.date;
+    if (entrySource) entrySource.value = entry.source;
+    if (entryInsurance) entryInsurance.value = entry.insurance;
+    if (entryType) entryType.value = entry.type;
+    if (entryAmount) entryAmount.value = entry.originalAmount || entry.amount;
+    
+    console.log('[EditEntry] Basic fields filled');
+    
+    // Fill notes
+    const notesField = document.getElementById('entryNotes');
+    const notesToggle = document.getElementById('entryNotesToggle');
+    
+    if (notesField && notesToggle) {
+        if (entry.notes) {
+            notesField.value = entry.notes;
+            notesToggle.checked = true;
+            notesField.style.display = 'block';
+        } else {
+            notesField.value = '';
+            notesToggle.checked = false;
+            notesField.style.display = 'none';
+        }
+    }
+    
+    console.log('[EditEntry] Notes filled');
+
+    // Determine if ΕΟΠΥΥ
+    const isEopyy = eopyyDeductionsManager.isEopyyEntry(entry);
+    console.log('[EditEntry] Is ΕΟΠΥΥ:', isEopyy);
+    
+    // Fill deductions
+    if (isEopyy) {
+        const deduction = eopyyDeductionsManager.getDeductions(entry.id);
+        console.log('[EditEntry] ΕΟΠΥΥ deductions:', deduction);
+        
+        if (deduction) {
+            // Fill amounts
+            const parakratisi = document.getElementById('entryParakratisi');
+            const mde = document.getElementById('entryMDE');
+            const rebate = document.getElementById('entryRebate');
+            const krathseisEopyy = document.getElementById('entryKrathseisEopyy');
+            const clawback = document.getElementById('entryClawback');
+            
+            if (parakratisi) parakratisi.value = deduction.deductions.parakratisi || '';
+            if (mde) mde.value = deduction.deductions.mde || '';
+            if (rebate) rebate.value = deduction.deductions.rebate || '';
+            if (krathseisEopyy) krathseisEopyy.value = deduction.deductions.krathseis || '';
+            if (clawback) clawback.value = deduction.deductions.clawback || '';
+            
+            // Fill percentages
+            if (deduction.percentages) {
+                const parakratisiPercent = document.getElementById('entryParakratisiPercent');
+                const mdePercent = document.getElementById('entryMDEPercent');
+                const rebatePercent = document.getElementById('entryRebatePercent');
+                const krathseisPercent = document.getElementById('entryKrathseisEopyyPercent');
+                const clawbackPercent = document.getElementById('entryClawbackPercent');
+                
+                if (parakratisiPercent) parakratisiPercent.value = deduction.percentages.parakratisiPercent || '';
+                if (mdePercent) mdePercent.value = deduction.percentages.mdePercent || '';
+                if (rebatePercent) rebatePercent.value = deduction.percentages.rebatePercent || '';
+                if (krathseisPercent) krathseisPercent.value = deduction.percentages.krathseisPercent || '';
+                if (clawbackPercent) clawbackPercent.value = deduction.percentages.clawbackPercent || '';
+            }
+            
+            // Fill clawback period
+            const clawbackPeriod = document.getElementById('entryClawbackPeriod');
+            if (clawbackPeriod && deduction.clawbackPeriod) {
+                clawbackPeriod.value = deduction.clawbackPeriod;
+            }
+            
+            console.log('[EditEntry] ΕΟΠΥΥ fields filled');
+        }
+    } else {
+        // Non-ΕΟΠΥΥ
+        const krathseisOther = document.getElementById('entryKrathseisOther');
+        const krathseisOtherPercent = document.getElementById('entryKrathseisOtherPercent');
+        
+        if (krathseisOther) krathseisOther.value = entry.krathseis || '';
+        if (krathseisOtherPercent) krathseisOtherPercent.value = entry.krathseisPercent || '';
+        
+        console.log('[EditEntry] Non-ΕΟΠΥΥ fields filled');
+    }
+
+    // Show correct deduction fields
+    const { showModalDeductionFields } = await import('./formHandlers.js');
+    if (typeof showModalDeductionFields === 'function') {
+        showModalDeductionFields();
+        console.log('[EditEntry] showModalDeductionFields() called');
+    } else {
+        console.error('[EditEntry] showModalDeductionFields is not defined');
+    }
+    
+    // Open modal
+    const modal = document.getElementById('entryModal');
+    if (modal) {
+        modal.classList.add('active');
+        console.log('[EditEntry] Modal opened - classList:', modal.classList.toString());
+        
+        // Focus first input
+        setTimeout(() => {
+            const firstInput = modal.querySelector('input:not([type="hidden"])');
+            if (firstInput) {
+                firstInput.focus();
+            }
+        }, 100);
+    } else {
+        console.error('[EditEntry] Modal element not found: #entryModal');
+        alert('Σφάλμα: Το modal δεν βρέθηκε');
+    }
+    
+    console.log('[EditEntry] Complete');
 };
 
 window.saveEntry = async function() {
