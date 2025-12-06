@@ -43,6 +43,72 @@ import forecastingManager from './forecasting.js';
 import heatmapManager from './heatmaps.js';
 import cloudSyncManager from './cloudAdapters.js';
 
+    window.editEntry = function(id) {
+    const entry = STATE.entries.find(e => e.id === id);
+    if (!entry) {
+        showToast('Η εγγραφή δεν βρέθηκε', 'error');
+        return;
+    }
+    // ... υπόλοιπος κώδικας από eventHandlers.js
+    console.log('Edit entry:', id);
+};
+
+window.saveEntry = async function() {
+    console.log('Save entry called');
+    // ... κώδικας από eventHandlers.js
+};
+
+window.confirmDelete = async function(id) {
+    if (confirm('Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την εγγραφή;')) {
+        try {
+            const success = await deleteEntry(id);
+            if (success) {
+                showToast(STRINGS.success.entryDeleted, 'success');
+                renderEntriesTable();
+                if (STATE.currentView === 'dashboard') renderDashboard();
+            }
+        } catch (error) {
+            showToast('Σφάλμα διαγραφής', 'error');
+        }
+    }
+};
+
+window.changePage = function(page) {
+    STATE.currentPage = page;
+    renderEntriesTable();
+};
+
+window.removeSource = async function(source) {
+    if (confirm(`Διαγραφή του διαγνωστικού "${source}";`)) {
+        STATE.sources = STATE.sources.filter(s => s !== source);
+        await storage.saveSetting('sources', STATE.sources);
+        renderSourcesAndInsurances();
+        showToast('Το διαγνωστικό διαγράφηκε', 'success');
+    }
+};
+
+window.removeInsurance = async function(insurance) {
+    if (confirm(`Διαγραφή της ασφάλειας "${insurance}";`)) {
+        STATE.insurances = STATE.insurances.filter(i => i !== insurance);
+        await storage.saveSetting('insurances', STATE.insurances);
+        renderSourcesAndInsurances();
+        showToast('Η ασφάλεια διαγράφηκε', 'success');
+    }
+};
+
+window.exportChartPDF = async function(canvasId) {
+    if (!STATE.cdnAvailable) {
+        showToast('PDF export δεν είναι διαθέσιμο', 'error');
+        return;
+    }
+    try {
+        await pdfExportManager.exportHeatmap(canvasId, `Chart_${canvasId}`);
+        showToast('PDF εξήχθη επιτυχώς', 'success');
+    } catch (error) {
+        showToast('Σφάλμα export PDF', 'error');
+    }
+};
+
 // ========================================
 // Initialization
 // ========================================
@@ -2635,72 +2701,6 @@ const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         };
         console.log('%c🔧 Debug tools available in window.DEBUG', 'color: #f59e0b;');
     }
-
-    window.editEntry = function(id) {
-    const entry = STATE.entries.find(e => e.id === id);
-    if (!entry) {
-        showToast('Η εγγραφή δεν βρέθηκε', 'error');
-        return;
-    }
-    // ... υπόλοιπος κώδικας από eventHandlers.js
-    console.log('Edit entry:', id);
-};
-
-window.saveEntry = async function() {
-    console.log('Save entry called');
-    // ... κώδικας από eventHandlers.js
-};
-
-window.confirmDelete = async function(id) {
-    if (confirm('Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την εγγραφή;')) {
-        try {
-            const success = await deleteEntry(id);
-            if (success) {
-                showToast(STRINGS.success.entryDeleted, 'success');
-                renderEntriesTable();
-                if (STATE.currentView === 'dashboard') renderDashboard();
-            }
-        } catch (error) {
-            showToast('Σφάλμα διαγραφής', 'error');
-        }
-    }
-};
-
-window.changePage = function(page) {
-    STATE.currentPage = page;
-    renderEntriesTable();
-};
-
-window.removeSource = async function(source) {
-    if (confirm(`Διαγραφή του διαγνωστικού "${source}";`)) {
-        STATE.sources = STATE.sources.filter(s => s !== source);
-        await storage.saveSetting('sources', STATE.sources);
-        renderSourcesAndInsurances();
-        showToast('Το διαγνωστικό διαγράφηκε', 'success');
-    }
-};
-
-window.removeInsurance = async function(insurance) {
-    if (confirm(`Διαγραφή της ασφάλειας "${insurance}";`)) {
-        STATE.insurances = STATE.insurances.filter(i => i !== insurance);
-        await storage.saveSetting('insurances', STATE.insurances);
-        renderSourcesAndInsurances();
-        showToast('Η ασφάλεια διαγράφηκε', 'success');
-    }
-};
-
-window.exportChartPDF = async function(canvasId) {
-    if (!STATE.cdnAvailable) {
-        showToast('PDF export δεν είναι διαθέσιμο', 'error');
-        return;
-    }
-    try {
-        await pdfExportManager.exportHeatmap(canvasId, `Chart_${canvasId}`);
-        showToast('PDF εξήχθη επιτυχώς', 'success');
-    } catch (error) {
-        showToast('Σφάλμα export PDF', 'error');
-    }
-};
 
     // ========================================
     // Final Initialization Complete
